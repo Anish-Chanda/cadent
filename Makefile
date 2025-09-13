@@ -13,7 +13,7 @@ install:
 	cd $(BACKEND_DIR) && go mod tidy
 
 test:
-	cd $(BACKEND_DIR) && go test ./...
+	cd $(BACKEND_DIR) && go test ./... --cover
 
 build:
 	@echo "Building Go application..."
