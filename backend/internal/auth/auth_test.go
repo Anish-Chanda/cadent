@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/anish-chanda/cadence/backend/internal/models"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // MockDatabase implements the Database interface for testing
@@ -46,27 +45,26 @@ func (m *MockDatabase) Migrate() error {
 
 func TestHandleLogin_ValidCredentials(t *testing.T) {
 	db := NewMockDatabase()
-	
+
 	// Create a test user with hashed password
 	password := "testpassword123"
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
-	
-	passwordStr := string(hashedPassword)
+
 	testUser := &models.UserRecord{
 		ID:           "test-user-id",
 		Email:        "test@example.com",
-		PasswordHash: &passwordStr,
+		PasswordHash: &hashedPassword,
 		AuthProvider: models.AuthProviderLocal,
 		CreatedAt:    1234567890,
 		UpdatedAt:    1234567890,
 	}
-	
+
 	// Add user to mock database
 	db.users["test@example.com"] = testUser
-	
+
 	// Test valid login
 	success, err := HandleLogin(db, "test@example.com", password)
 	if err != nil {
@@ -79,27 +77,26 @@ func TestHandleLogin_ValidCredentials(t *testing.T) {
 
 func TestHandleLogin_InvalidPassword(t *testing.T) {
 	db := NewMockDatabase()
-	
+
 	// Create a test user with hashed password
 	password := "testpassword123"
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
-	
-	passwordStr := string(hashedPassword)
+
 	testUser := &models.UserRecord{
 		ID:           "test-user-id",
 		Email:        "test@example.com",
-		PasswordHash: &passwordStr,
+		PasswordHash: &hashedPassword,
 		AuthProvider: models.AuthProviderLocal,
 		CreatedAt:    1234567890,
 		UpdatedAt:    1234567890,
 	}
-	
+
 	// Add user to mock database
 	db.users["test@example.com"] = testUser
-	
+
 	// Test invalid password
 	success, err := HandleLogin(db, "test@example.com", "wrongpassword")
 	if err != nil {
@@ -112,7 +109,7 @@ func TestHandleLogin_InvalidPassword(t *testing.T) {
 
 func TestHandleLogin_UserNotFound(t *testing.T) {
 	db := NewMockDatabase()
-	
+
 	// Test login for non-existent user
 	success, err := HandleLogin(db, "nonexistent@example.com", "password")
 	if err != nil {
@@ -125,7 +122,7 @@ func TestHandleLogin_UserNotFound(t *testing.T) {
 
 func TestHandleLogin_NonLocalAuthProvider(t *testing.T) {
 	db := NewMockDatabase()
-	
+
 	// Create a test user with OAuth provider
 	testUser := &models.UserRecord{
 		ID:           "test-user-id",
@@ -135,10 +132,10 @@ func TestHandleLogin_NonLocalAuthProvider(t *testing.T) {
 		CreatedAt:    1234567890,
 		UpdatedAt:    1234567890,
 	}
-	
+
 	// Add user to mock database
 	db.users["test@example.com"] = testUser
-	
+
 	// Test login should fail for non-local auth provider
 	success, err := HandleLogin(db, "test@example.com", "password")
 	if err == nil {
@@ -151,52 +148,55 @@ func TestHandleLogin_NonLocalAuthProvider(t *testing.T) {
 
 func TestCreateUser_Success(t *testing.T) {
 	db := NewMockDatabase()
-	
+
 	email := "newuser@example.com"
 	password := "newpassword123"
-	
+
 	user, err := CreateUser(db, email, password)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
-	
+
 	// Verify user was created correctly
 	if user.Email != email {
 		t.Errorf("Expected email %s, got %s", email, user.Email)
 	}
-	
+
 	if user.AuthProvider != models.AuthProviderLocal {
 		t.Errorf("Expected auth provider %s, got %s", models.AuthProviderLocal, user.AuthProvider)
 	}
-	
+
 	if user.PasswordHash == nil {
 		t.Error("Expected password hash to be set")
 	}
-	
+
 	if user.ID == "" {
 		t.Error("Expected user ID to be generated")
 	}
-	
+
 	if user.CreatedAt == 0 {
 		t.Error("Expected CreatedAt to be set")
 	}
-	
+
 	if user.UpdatedAt == 0 {
 		t.Error("Expected UpdatedAt to be set")
 	}
-	
+
 	// Verify password was hashed correctly
-	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password))
+	isValid, err := VerifyPassword(password, *user.PasswordHash)
 	if err != nil {
+		t.Fatalf("Failed to verify password: %v", err)
+	}
+	if !isValid {
 		t.Error("Password was not hashed correctly")
 	}
-	
+
 	// Verify user was saved to database
 	savedUser, err := db.GetUserByEmail(context.Background(), email)
 	if err != nil {
 		t.Fatalf("Failed to retrieve saved user: %v", err)
 	}
-	
+
 	if savedUser == nil {
 		t.Error("User was not saved to database")
 	}
@@ -207,26 +207,26 @@ func TestGenerateUserID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate user ID: %v", err)
 	}
-	
+
 	id2, err := generateUserID()
 	if err != nil {
 		t.Fatalf("Failed to generate user ID: %v", err)
 	}
-	
+
 	// IDs should be non-empty
 	if id1 == "" {
 		t.Error("Generated ID should not be empty")
 	}
-	
+
 	if id2 == "" {
 		t.Error("Generated ID should not be empty")
 	}
-	
+
 	// IDs should be unique
 	if id1 == id2 {
 		t.Error("Generated IDs should be unique")
 	}
-	
+
 	// IDs should be valid UUIDs (36 characters with hyphens)
 	if len(id1) != 36 {
 		t.Errorf("Expected UUID length 36, got %d", len(id1))

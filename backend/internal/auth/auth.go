@@ -8,7 +8,6 @@ import (
 	"github.com/anish-chanda/cadence/backend/internal/db"
 	"github.com/anish-chanda/cadence/backend/internal/models"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // HandleLogin handles local authentication by checking email and password
@@ -35,8 +34,11 @@ func HandleLogin(database db.Database, email, password string) (bool, error) {
 	}
 
 	// Verify password
-	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password))
+	isValid, err := VerifyPassword(password, *user.PasswordHash)
 	if err != nil {
+		return false, fmt.Errorf("failed to verify password: %w", err)
+	}
+	if !isValid {
 		return false, nil // Invalid password
 	}
 
@@ -52,18 +54,17 @@ func CreateUser(database db.Database, email, password string) (*models.UserRecor
 	}
 
 	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	// Create user record
 	now := time.Now().Unix()
-	passwordHashStr := string(hashedPassword)
 	user := &models.UserRecord{
 		ID:           userID,
 		Email:        email,
-		PasswordHash: &passwordHashStr,
+		PasswordHash: &hashedPassword,
 		AuthProvider: models.AuthProviderLocal,
 		CreatedAt:    now,
 		UpdatedAt:    now,
