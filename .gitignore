@@ -1,6 +1,9 @@
 # Binaries for programs and plugins
 bin/
 
+# ignore docker dirs
+./avatars/
+
 # Output of the go coverage tool
 coverage.out
 
