@@ -9,8 +9,10 @@ include .env.example
 
 # common stuff
 install:
-	@echo "Installing dependencies..."
+	@echo "Installing go dependencies..."
 	cd $(BACKEND_DIR) && go mod tidy
+	@echo "Installing flutter dependencies..."
+	cd $(FRONTEND_DIR) && flutter pub get
 
 test:
 	cd $(BACKEND_DIR) && go test ./... --cover
@@ -18,6 +20,8 @@ test:
 build:
 	@echo "Building Go application..."
 	cd $(BACKEND_DIR) && go build -o ../$(GO_BUILD_DIR)
+	@echo "Building Flutter application (Apk)..."
+	cd $(FRONTEND_DIR) && flutter build apk
 
 # API specific stuff
 run-api:
