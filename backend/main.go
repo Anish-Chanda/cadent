@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -57,18 +56,7 @@ func main() {
 		Issuer:         "cadence",
 		URL:            cfg.BaseURL,
 		DisableXSRF:    true,
-		ClaimsUpd: token.ClaimsUpdFunc(func(cl token.Claims) token.Claims {
-			if cl.User.Name == "" {
-				return cl
-			}
-			u, err := database.GetUserByEmail(context.TODO(), cl.User.Name)
-			if err != nil || u == nil {
-				return cl
-			}
-			cl.User.SetStrAttr("uid", u.ID)
-			return cl
-		}),
-		AvatarStore: avatar.NewLocalFS(cfg.AvatarPath),
+		AvatarStore:    avatar.NewLocalFS(cfg.AvatarPath),
 	}
 
 	// Create auth service with providers
@@ -82,13 +70,18 @@ func main() {
 
 	// Add middlewares
 	router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer)
+	// router.Use(middleware.Recoverer)
 	// router.Use(middleware.RealIP)
 
 	// Mount auth routes
 	authHandler, avatarHandler := authService.Handlers()
 	router.Mount("/auth", authHandler)
 	router.Mount("/avatar", avatarHandler)
+
+	// Add custom auth endpoints
+	router.Route("/", func(r chi.Router) {
+		r.Post("/signup", handlers.SignupHandler(database, *log))
+	})
 
 	// Mount V1 API routes
 	router.Route("/v1", func(r chi.Router) {
