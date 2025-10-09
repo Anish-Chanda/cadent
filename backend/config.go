@@ -19,11 +19,14 @@ type Config struct {
 	Environment string
 
 	// Authentication configuration
-	JWTSecret     string
-	BaseURL       string
-	AvatarPath    string
-	TokenDuration int // in minutes
+	JWTSecret      string
+	BaseURL        string
+	AvatarPath     string
+	TokenDuration  int // in minutes
 	CookieDuration int // in hours
+
+	// Storage configuration
+	StorageDsn string
 }
 
 // LoadConfig loads configuration from environment variables with sensible defaults
@@ -31,20 +34,23 @@ func LoadConfig() Config {
 	return Config{
 		// Database
 		Dsn: getRequiredEnv("POSTGRES_DSN"),
-		
+
 		// Server
 		Port: uint(getEnvIntOrDefault("PORT", 8080)),
-		
+
 		// Logging
 		LogLevel:    getEnvOrDefault("LOG_LEVEL", "info"),
 		Environment: getEnvOrDefault("ENVIRONMENT", "production"),
-		
+
 		// Authentication
 		JWTSecret:      getRequiredEnv("JWT_SECRET"),
 		BaseURL:        getEnvOrDefault("BASE_URL", "http://localhost:8080"),
 		AvatarPath:     getEnvOrDefault("AVATAR_PATH", "/tmp/avatars"),
 		TokenDuration:  getEnvIntOrDefault("TOKEN_DURATION_MINUTES", 5),
 		CookieDuration: getEnvIntOrDefault("COOKIE_DURATION_HOURS", 24),
+
+		// Storage
+		StorageDsn: getEnvOrDefault("STORAGE_DSN", "local://./data"),
 	}
 }
 

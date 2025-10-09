@@ -7,6 +7,8 @@ GO_MAIN = main
 
 include .env.example
 
+.PHONY: install test build build-api run-api
+
 # common stuff
 install:
 	@echo "Installing go dependencies..."
@@ -24,6 +26,10 @@ build:
 	cd $(FRONTEND_DIR) && flutter build apk
 
 # API specific stuff
-run-api:
-	@echo "Running Go application..."
-	./bin/backend
+
+build-api:
+	@echo "Building Go application..."
+	cd $(BACKEND_DIR) && go build -o ../$(GO_BUILD_DIR)/$(GO_APP_NAME) .
+run-api: build-api
+	@set -a && [ -f ./.env ] && . ./.env && set +a && \
+		./bin/$(GO_APP_NAME)

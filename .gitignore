@@ -37,3 +37,9 @@ Thumbs.db
 
 # Temporary files
 *.tmp
+
+# ignore env vars
+.env
+
+# storage files
+data/
