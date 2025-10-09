@@ -10,6 +10,8 @@ import (
 	"github.com/anish-chanda/cadence/backend/internal/db/postgres"
 	"github.com/anish-chanda/cadence/backend/internal/handlers"
 	"github.com/anish-chanda/cadence/backend/internal/logger"
+	"github.com/anish-chanda/cadence/backend/internal/store"
+	"github.com/anish-chanda/cadence/backend/internal/store/local_store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	authpkg "github.com/go-pkgz/auth/v2"
@@ -30,6 +32,31 @@ func main() {
 
 	log := logger.New(logConfig)
 
+	// Initialize storage
+	log.Info("Initializing storage")
+	storageConfig, err := store.ParseStorageDSN(cfg.StorageDsn)
+	if err != nil {
+		log.Error("Invalid storage DSN", err)
+		return
+	}
+
+	var objectStore store.ObjectStore
+	switch storageConfig.Type {
+	case "local":
+		objectStore = local_store.NewLocalStore(*log)
+	case "s3":
+		log.Error("S3 storage not yet implemented", nil)
+		return
+	default:
+		log.Error(fmt.Sprintf("Unsupported storage type: %s", storageConfig.Type), nil)
+		return
+	}
+
+	if err := objectStore.Connect(cfg.StorageDsn); err != nil {
+		log.Error("Failed to connect to storage", err)
+		return
+	}
+
 	log.Info("Initializing database")
 	var database db.Database = postgres.NewPostgresDB(*log)
 	if err := database.Connect(cfg.Dsn); err != nil {
@@ -37,7 +64,7 @@ func main() {
 		return
 	}
 
-	defer gracefulShutdown(database, *log)
+	defer gracefulShutdown(database, objectStore, *log)
 
 	// Run DB migrations
 	log.Info("Running database migrations")
@@ -96,8 +123,17 @@ func main() {
 	}
 }
 
-func gracefulShutdown(database db.Database, log logger.ServiceLogger) {
+func gracefulShutdown(database db.Database, objectStore store.ObjectStore, log logger.ServiceLogger) {
 	log.Info("Shutting down gracefully...")
+	
+	// Close storage connection
+	if err := objectStore.Close(); err != nil {
+		log.Error("Error closing storage connection", err)
+	} else {
+		log.Info("Storage connection closed successfully")
+	}
+	
+	// Close database connection
 	if err := database.Close(); err != nil {
 		log.Error("Error closing database connection", err)
 	} else {
