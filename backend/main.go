@@ -12,6 +12,7 @@ import (
 	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/store"
 	"github.com/anish-chanda/cadence/backend/internal/store/local_store"
+	"github.com/anish-chanda/cadence/backend/internal/valhalla"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	authpkg "github.com/go-pkgz/auth/v2"
@@ -56,6 +57,10 @@ func main() {
 		log.Error("Failed to connect to storage", err)
 		return
 	}
+
+	// Initialize Valhalla client
+	log.Info("Initializing Valhalla client")
+	valhallaClient := valhalla.NewClient(cfg.ValhallaURL, *log)
 
 	log.Info("Initializing database")
 	var database db.Database = postgres.NewPostgresDB(*log)
@@ -112,8 +117,8 @@ func main() {
 
 	// Mount V1 API routes
 	router.Route("/v1", func(r chi.Router) {
-		r.HandleFunc("/placeholder", handlers.Placeholder(database))
-		// TODO: Add more API routes here
+		// activity handlers
+		r.Post("/activities", handlers.HanldeCreateActivity(database, valhallaClient))
 	})
 
 	// Start listening
@@ -125,14 +130,14 @@ func main() {
 
 func gracefulShutdown(database db.Database, objectStore store.ObjectStore, log logger.ServiceLogger) {
 	log.Info("Shutting down gracefully...")
-	
+
 	// Close storage connection
 	if err := objectStore.Close(); err != nil {
 		log.Error("Error closing storage connection", err)
 	} else {
 		log.Info("Storage connection closed successfully")
 	}
-	
+
 	// Close database connection
 	if err := database.Close(); err != nil {
 		log.Error("Error closing database connection", err)

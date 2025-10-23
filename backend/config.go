@@ -27,6 +27,9 @@ type Config struct {
 
 	// Storage configuration
 	StorageDsn string
+
+	// Valhalla configuration
+	ValhallaURL string
 }
 
 // LoadConfig loads configuration from environment variables with sensible defaults
@@ -51,6 +54,9 @@ func LoadConfig() Config {
 
 		// Storage
 		StorageDsn: getEnvOrDefault("STORAGE_DSN", "local://./data"),
+
+		// Valhalla
+		ValhallaURL: getEnvOrDefault("VALHALLA_URL", "https://valhalla.anishchanda.dev"),
 	}
 }
 

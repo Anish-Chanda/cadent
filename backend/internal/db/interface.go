@@ -13,7 +13,10 @@ type Database interface {
 	// UpdateUser(ctx context.Context, user *UserRecord) error
 	// DeleteUser(ctx context.Context, id string) error
 
-	// other stuff
+	// --- Activities stuff ----
+	// CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error)
+
+	// --- Other stuff ---
 
 	// establishes a database connection
 	Connect(dsn string) error
