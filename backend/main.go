@@ -60,7 +60,7 @@ func main() {
 
 	// Initialize Valhalla client
 	log.Info("Initializing Valhalla client")
-	valhallaClient := valhalla.NewClient(cfg.ValhallaURL, *log)
+	valhallaClient := valhalla.NewClient(cfg.ValhallaURL)
 
 	log.Info("Initializing database")
 	var database db.Database = postgres.NewPostgresDB(*log)
@@ -117,8 +117,16 @@ func main() {
 
 	// Mount V1 API routes
 	router.Route("/v1", func(r chi.Router) {
-		// activity handlers
-		r.Post("/activities", handlers.HanldeCreateActivity(database, valhallaClient))
+		// Protected routes that require authentication
+		r.Group(func(r chi.Router) {
+			// Use auth middleware for protected routes
+			authMiddleware := authService.Middleware()
+			r.Use(authMiddleware.Auth)
+
+			// Activity endpoints
+			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, *log))
+			r.Get("/activities", handlers.HandleGetActivities(database, *log))
+		})
 	})
 
 	// Start listening

@@ -8,35 +8,29 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/anish-chanda/cadence/backend/internal/logger"
 )
 
 // Client represents a Valhalla API client
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
-	log        logger.ServiceLogger
 }
 
-// NewClient creates a new Valhalla client
-func NewClient(baseURL string, log logger.ServiceLogger) *Client {
+func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		log: log,
 	}
 }
 
-// GPSPoint represents a GPS coordinate point
 type GPSPoint struct {
-	Lat float64 `json:"lat"`
-	Lon float64 `json:"lon"`
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
+	Time *int64  `json:"time,omitempty"` // seconds since epoch
 }
 
-// ShapeMatch represents the shape matching algorithm type
 type ShapeMatch string
 
 const (
@@ -45,7 +39,6 @@ const (
 	ShapeMatchWalkOrSnap ShapeMatch = "walk_or_snap"
 )
 
-// Costing represents the costing model for routing
 type Costing string
 
 const (
@@ -56,7 +49,6 @@ const (
 	CostingBus        Costing = "bus"
 )
 
-// TraceOptions contains additional options for trace requests
 type TraceOptions struct {
 	SearchRadius          *int `json:"search_radius,omitempty"`
 	GPSAccuracy           *int `json:"gps_accuracy,omitempty"`
@@ -64,7 +56,6 @@ type TraceOptions struct {
 	InterpolationDistance *int `json:"interpolation_distance,omitempty"`
 }
 
-// TraceRouteRequest represents a map matching request for trace_route
 type TraceRouteRequest struct {
 	Shape            []GPSPoint    `json:"shape"`
 	ShapeMatch       *ShapeMatch   `json:"shape_match,omitempty"`
@@ -76,69 +67,70 @@ type TraceRouteRequest struct {
 	LinearReferences *bool         `json:"linear_references,omitempty"`
 }
 
-// Leg represents a route leg in the response
+type Summary struct {
+	Time   float64 `json:"time"`
+	Length float64 `json:"length"`
+	MinLat float64 `json:"min_lat"`
+	MinLon float64 `json:"min_lon"`
+	MaxLat float64 `json:"max_lat"`
+	MaxLon float64 `json:"max_lon"`
+}
+
 type Leg struct {
-	Summary struct {
-		Time   float64 `json:"time"`
-		Length float64 `json:"length"`
-		MinLat float64 `json:"min_lat"`
-		MinLon float64 `json:"min_lon"`
-		MaxLat float64 `json:"max_lat"`
-		MaxLon float64 `json:"max_lon"`
-	} `json:"summary"`
-	Shape string `json:"shape"`
+	Summary Summary `json:"summary"`
+	Shape   string  `json:"shape"`
 }
 
-// TraceRouteResponse represents the response from trace_route
+type Trip struct {
+	Legs          []Leg   `json:"legs"`
+	Summary       Summary `json:"summary"`
+	Status        int     `json:"status"`
+	StatusMessage string  `json:"status_message"`
+	Units         string  `json:"units"`
+}
+
+type Alternate struct {
+	Trip Trip `json:"trip"`
+}
+
 type TraceRouteResponse struct {
-	Trip struct {
-		Legs    []Leg `json:"legs"`
-		Summary struct {
-			Time   float64 `json:"time"`
-			Length float64 `json:"length"`
-			MinLat float64 `json:"min_lat"`
-			MinLon float64 `json:"min_lon"`
-			MaxLat float64 `json:"max_lat"`
-			MaxLon float64 `json:"max_lon"`
-		} `json:"summary"`
-		Status        int    `json:"status"`
-		StatusMessage string `json:"status_message"`
-		Units         string `json:"units"`
-	} `json:"trip"`
-	Alternates []interface{} `json:"alternates,omitempty"`
-	Warnings   []string      `json:"warnings,omitempty"`
+	Trip       Trip        `json:"trip"`
+	Alternates []Alternate `json:"alternates,omitempty"`
+	Warnings   []string    `json:"warnings,omitempty"`
 }
 
-// TraceRoute performs map matching using the trace_route action
-func (c *Client) TraceRoute(ctx context.Context, req TraceRouteRequest) (*TraceRouteResponse, error) {
-	c.log.Debug("Performing Valhalla trace_route map matching")
+// Height API structures
+type HeightRequest struct {
+	Range           bool   `json:"range"`
+	EncodedPolyline string `json:"encoded_polyline"`
+}
 
+type HeightResponse struct {
+	EncodedPolyline string  `json:"encoded_polyline"`
+	RangeHeight     [][]int `json:"range_height"`
+}
+
+func (c *Client) TraceRoute(ctx context.Context, req TraceRouteRequest) (*TraceRouteResponse, error) {
 	if len(req.Shape) == 0 {
 		return nil, fmt.Errorf("shape cannot be empty")
 	}
-
-	// Set default shape match if not provided
 	if req.ShapeMatch == nil {
-		defaultMatch := ShapeMatchMapSnap
-		req.ShapeMatch = &defaultMatch
+		def := ShapeMatchMapSnap
+		req.ShapeMatch = &def
 	}
-
-	// Set default costing if not provided
 	if req.Costing == "" {
-		req.Costing = CostingAuto
+		req.Costing = CostingBicycle
 	}
 
-	// Prepare the request body
 	requestBody := map[string]interface{}{
 		"shape":       req.Shape,
 		"costing":     req.Costing,
 		"shape_match": req.ShapeMatch,
 	}
-
 	if req.BeginTime != nil {
 		requestBody["begin_time"] = *req.BeginTime
 	}
-	if req.Durations != nil {
+	if req.Durations != nil && len(req.Durations) > 0 {
 		requestBody["durations"] = req.Durations
 	}
 	if req.UseTimestamps != nil {
@@ -153,47 +145,76 @@ func (c *Client) TraceRoute(ctx context.Context, req TraceRouteRequest) (*TraceR
 
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
-		c.log.Error("Failed to marshal trace_route request", err)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Make the HTTP request
 	url := fmt.Sprintf("%s/trace_route", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		c.log.Error("Failed to create HTTP request", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
-
-	c.log.Debug(fmt.Sprintf("Making Valhalla API call to %s with %d GPS points", url, len(req.Shape)))
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		c.log.Error("Valhalla API request failed", err)
 		return nil, fmt.Errorf("API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.log.Error("Failed to read response body", err)
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
-
 	if resp.StatusCode != http.StatusOK {
-		c.log.Error(fmt.Sprintf("Valhalla API returned status %d", resp.StatusCode), fmt.Errorf("response: %s", string(body)))
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var result TraceRouteResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		c.log.Error("Failed to unmarshal response", err)
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
+	return &result, nil
+}
 
-	c.log.Info(fmt.Sprintf("Successfully map-matched %d GPS points, got %.2fkm route", len(req.Shape), result.Trip.Summary.Length))
+func (c *Client) GetHeight(ctx context.Context, req HeightRequest) (*HeightResponse, error) {
+	if req.EncodedPolyline == "" {
+		return nil, fmt.Errorf("encoded_polyline cannot be empty")
+	}
 
+	requestBody := map[string]interface{}{
+		"range":            req.Range,
+		"encoded_polyline": req.EncodedPolyline,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal height request: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/height", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create height request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("height API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read height response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("height API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result HeightResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse height response: %w", err)
+	}
 	return &result, nil
 }

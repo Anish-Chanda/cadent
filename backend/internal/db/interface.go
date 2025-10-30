@@ -14,7 +14,9 @@ type Database interface {
 	// DeleteUser(ctx context.Context, id string) error
 
 	// --- Activities stuff ----
-	// CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error)
+	CreateActivity(ctx context.Context, activity *models.Activity) error
+	GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error)
+	CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error)
 
 	// --- Other stuff ---
 

@@ -96,6 +96,164 @@ func (s *PostgresDB) CreateUser(ctx context.Context, user *models.UserRecord) er
 	return nil
 }
 
+// --- Activities stuff ---
+
+// CreateActivity creates a new activity in the database
+func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activity) error {
+	s.log.Debug(fmt.Sprintf("Creating new activity for user: %s", activity.UserID))
+
+	query := `
+		INSERT INTO activities (
+			id, user_id, client_activity_id, title, description, type,
+			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
+			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, processing_ver,
+			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
+			start_lat, start_lon, end_lat, end_lon, num_legs, num_alternates,
+			num_points_poly, val_duration_seconds, file_url, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+			$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32
+		)
+	`
+
+	_, err := s.db.Exec(ctx, query,
+		activity.ID,
+		activity.UserID,
+		activity.ClientActivityID,
+		activity.Title,
+		activity.Description,
+		activity.ActivityType,
+		activity.StartTime,
+		activity.EndTime,
+		activity.ElapsedTime,
+		activity.DistanceM,
+		activity.ElevationGainM,
+		activity.AvgSpeedMps,
+		activity.MaxSpeedMps,
+		activity.AvgHRBpm,
+		activity.MaxHRBpm,
+		activity.ProcessingVer,
+		activity.Polyline,
+		activity.BBoxMinLat,
+		activity.BBoxMinLon,
+		activity.BBoxMaxLat,
+		activity.BBoxMaxLon,
+		activity.StartLat,
+		activity.StartLon,
+		activity.EndLat,
+		activity.EndLon,
+		activity.NumLegs,
+		activity.NumAlternates,
+		activity.NumPointsPoly,
+		activity.ValDurationSeconds,
+		activity.FileURL,
+		activity.CreatedAt,
+		activity.UpdatedAt,
+	)
+
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while creating activity for user: %s", activity.UserID), err)
+		return fmt.Errorf("failed to create activity: %w", err)
+	}
+
+	s.log.Info(fmt.Sprintf("Successfully created activity: %s for user: %s", activity.ID, activity.UserID))
+	return nil
+}
+
+// GetActivitiesByUserID retrieves all activities for a specific user
+func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
+	s.log.Debug(fmt.Sprintf("Fetching activities for user: %s", userID))
+
+	query := `
+		SELECT 
+			id, user_id, client_activity_id, title, description, type,
+			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
+			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, processing_ver,
+			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
+			start_lat, start_lon, end_lat, end_lon, num_legs, num_alternates,
+			num_points_poly, val_duration_seconds, file_url, created_at, updated_at
+		FROM activities 
+		WHERE user_id = $1
+		ORDER BY start_time DESC
+	`
+
+	rows, err := s.db.Query(ctx, query, userID)
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while fetching activities for user: %s", userID), err)
+		return nil, fmt.Errorf("failed to get activities: %w", err)
+	}
+	defer rows.Close()
+
+	var activities []models.Activity
+	for rows.Next() {
+		var activity models.Activity
+		err := rows.Scan(
+			&activity.ID,
+			&activity.UserID,
+			&activity.ClientActivityID,
+			&activity.Title,
+			&activity.Description,
+			&activity.ActivityType,
+			&activity.StartTime,
+			&activity.EndTime,
+			&activity.ElapsedTime,
+			&activity.DistanceM,
+			&activity.ElevationGainM,
+			&activity.AvgSpeedMps,
+			&activity.MaxSpeedMps,
+			&activity.AvgHRBpm,
+			&activity.MaxHRBpm,
+			&activity.ProcessingVer,
+			&activity.Polyline,
+			&activity.BBoxMinLat,
+			&activity.BBoxMinLon,
+			&activity.BBoxMaxLat,
+			&activity.BBoxMaxLon,
+			&activity.StartLat,
+			&activity.StartLon,
+			&activity.EndLat,
+			&activity.EndLon,
+			&activity.NumLegs,
+			&activity.NumAlternates,
+			&activity.NumPointsPoly,
+			&activity.ValDurationSeconds,
+			&activity.FileURL,
+			&activity.CreatedAt,
+			&activity.UpdatedAt,
+		)
+		if err != nil {
+			s.log.Error(fmt.Sprintf("Error scanning activity row for user: %s", userID), err)
+			return nil, fmt.Errorf("failed to scan activity: %w", err)
+		}
+		activities = append(activities, activity)
+	}
+
+	if err = rows.Err(); err != nil {
+		s.log.Error(fmt.Sprintf("Row iteration error for user: %s", userID), err)
+		return nil, fmt.Errorf("failed to iterate activities: %w", err)
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully retrieved %d activities for user: %s", len(activities), userID))
+	return activities, nil
+}
+
+// CheckIdempotency checks if a client activity ID already exists
+func (s *PostgresDB) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
+	s.log.Debug(fmt.Sprintf("Checking idempotency for client activity ID: %s", clientActivityID))
+
+	query := `SELECT EXISTS(SELECT 1 FROM activities WHERE client_activity_id = $1)`
+
+	var exists bool
+	err := s.db.QueryRow(ctx, query, clientActivityID).Scan(&exists)
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while checking idempotency for: %s", clientActivityID), err)
+		return false, fmt.Errorf("failed to check idempotency: %w", err)
+	}
+
+	s.log.Debug(fmt.Sprintf("Idempotency check result for %s: %t", clientActivityID, exists))
+	return exists, nil
+}
+
 // --- Other stuff ---
 
 func (s *PostgresDB) Connect(dsn string) error {
