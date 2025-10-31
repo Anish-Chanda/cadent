@@ -130,12 +130,19 @@ class _RecorderScreenState extends State<RecorderScreen> {
         accuracy: LocationAccuracy.high,
         distanceFilter: 0,
         intervalDuration: const Duration(seconds: 1),
+        // Enable background location updates
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationText: "Recording your activity",
+          notificationTitle: "GPS Tracker",
+        ),
       );
     } else if (Platform.isIOS) {
       locationSettings = AppleSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 0,
         pauseLocationUpdatesAutomatically: false,
+        // Enable background location updates
+        showBackgroundLocationIndicator: true,
       );
     } else {
       locationSettings = const LocationSettings(
