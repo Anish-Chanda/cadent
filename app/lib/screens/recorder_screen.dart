@@ -5,6 +5,8 @@ import 'dart:math' show cos, sqrt, asin;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../services/permissions_handler.dart';
+
 enum RecordingState { idle, recording, paused }
 
 class RecorderScreen extends StatefulWidget {
@@ -15,8 +17,6 @@ class RecorderScreen extends StatefulWidget {
 }
 
 class _RecorderScreenState extends State<RecorderScreen> {
-  final GeolocatorPlatform _geolocatorPlatform = GeolocatorPlatform.instance;
-
   RecordingState _recordingState = RecordingState.idle;
   StreamSubscription<Position>? _positionStreamSubscription;
 
@@ -68,39 +68,9 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   Future<bool> _checkPermissions() async {
-    bool serviceEnabled = await _geolocatorPlatform.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location services are disabled')),
-        );
-      }
-      return false;
-    }
-
-    LocationPermission permission = await _geolocatorPlatform.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await _geolocatorPlatform.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permission denied')),
-          );
-        }
-        return false;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission denied forever')),
-        );
-      }
-      return false;
-    }
-
-    return true;
+    return await LocationPermissionService.requestLocationPermission(
+      context: mounted ? context : null,
+    );
   }
 
   Future<void> _startRecording() async {
@@ -128,7 +98,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
     if (Platform.isAndroid) {
       locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
+        distanceFilter: 1,
         intervalDuration: const Duration(seconds: 1),
         // Enable background location updates
         foregroundNotificationConfig: const ForegroundNotificationConfig(
@@ -151,7 +121,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
       );
     }
 
-    final positionStream = _geolocatorPlatform.getPositionStream(
+    final positionStream = GeolocatorPlatform.instance.getPositionStream(
       locationSettings: locationSettings,
     );
 
