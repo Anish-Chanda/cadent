@@ -124,7 +124,7 @@ func main() {
 			r.Use(authMiddleware.Auth)
 
 			// Activity endpoints
-			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, *log))
+			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
 			r.Get("/activities", handlers.HandleGetActivities(database, *log))
 		})
 	})

@@ -156,7 +156,7 @@ func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activi
 		return fmt.Errorf("failed to create activity: %w", err)
 	}
 
-	s.log.Info(fmt.Sprintf("Successfully created activity: %s for user: %s", activity.ID, activity.UserID))
+	s.log.Debug(fmt.Sprintf("Created activity: %s for user: %s", activity.ID, activity.UserID))
 	return nil
 }
 

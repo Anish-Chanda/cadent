@@ -6,14 +6,20 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/anish-chanda/cadence/backend/internal/db"
 	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadence/backend/internal/store"
 	"github.com/anish-chanda/cadence/backend/internal/valhalla"
 	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
+	"github.com/muktihari/fit/encoder"
+	"github.com/muktihari/fit/profile/filedef"
+	"github.com/muktihari/fit/profile/mesgdef"
+	"github.com/muktihari/fit/profile/typedef"
 )
 
 type CreateActivityRequest struct {
@@ -30,14 +36,43 @@ type Sample struct {
 	Lon float64 `json:"lon"` // longitude
 }
 
-type ActivityResult struct {
-	valhalla.Result
+type ActivityStats struct {
 	ElapsedSeconds float64 `json:"elapsed_seconds"`
-	AvgSpeedMs     float64 `json:"avg_speed_ms"`  // meters per second (SI unit)
-	AvgSpeedKmh    float64 `json:"avg_speed_kmh"` // kilometers per hour (for convenience)
+	AvgSpeedMs     float64 `json:"avg_speed_ms"`     // meters per second (SI unit)
+	ElevationGainM float64 `json:"elevation_gain_m"` // elevation gain in meters
+	DistanceM      float64 `json:"distance_m"`       // distance in meters
 }
 
-func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client, log logger.ServiceLogger) http.HandlerFunc {
+type BoundingBox struct {
+	MinLat float64 `json:"min_lat"`
+	MaxLat float64 `json:"max_lat"`
+	MinLon float64 `json:"min_lon"`
+	MaxLon float64 `json:"max_lon"`
+}
+
+type Coordinate struct {
+	Lat float64 `json:"lat"`
+	Lon float64 `json:"lon"`
+}
+
+type ActivityResult struct {
+	ID            string        `json:"id"`
+	Title         string        `json:"title"`
+	Description   string        `json:"description"`
+	Type          string        `json:"type"`
+	StartTime     time.Time     `json:"start_time"`
+	EndTime       *time.Time    `json:"end_time"`
+	Stats         ActivityStats `json:"stats"`
+	BBox          BoundingBox   `json:"bbox"`
+	Start         Coordinate    `json:"start"`
+	End           Coordinate    `json:"end"`
+	Polyline      string        `json:"polyline"`
+	ProcessingVer int           `json:"processing_ver"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
+}
+
+func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
@@ -73,7 +108,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		// The go-pkgz/auth package generates its own user IDs, but we need to map to our database user ID
-		// Extract email from the token (stored as "Name" field by go-pkgz/auth local provider)
+		// Extract email from the token (stored as "Name" field by go-pkgz/authfor  local provider)
 		userEmail := user.Name
 		if userEmail == "" {
 			log.Error("No email found in user token", nil)
@@ -95,7 +130,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		userID := dbUser.ID
-		log.Info(fmt.Sprintf("Processing activity for user: %s (%s)", userID, userEmail))
+		log.Debug(fmt.Sprintf("Processing activity for user: %s (%s)", userID, userEmail))
 
 		// Convert ms to seconds
 		beginTimeS := req.Samples[0].T / 1000
@@ -171,10 +206,9 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		elapsedSeconds := math.Max(0, float64(req.Samples[len(req.Samples)-1].T-req.Samples[0].T)/1000.0)
 
 		// Calculate average speeds
-		var avgSpeedMs, avgSpeedKmh float64
+		var avgSpeedMs float64
 		if elapsedSeconds > 0 {
 			avgSpeedMs = baseResult.DistanceMeters / elapsedSeconds // meters per second (SI unit)
-			avgSpeedKmh = avgSpeedMs * 3.6                          // convert m/s to km/h
 		}
 
 		// Create activity model for database
@@ -241,6 +275,17 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		activity.NumPointsPoly = &baseResult.NumPointsPoly
 		activity.ValDurationSeconds = &baseResult.ValDurationSeconds
 
+		// Create and store FIT file, get the object key
+		objectKey := fmt.Sprintf("activities/%s/%s.fit", activity.UserID, activity.ID.String())
+		if err := createFITFile(ctx, activity, req.Samples, objectStore, log); err != nil {
+			log.Error("Failed to create FIT file", err)
+			http.Error(w, "Failed to create FIT file", http.StatusInternalServerError)
+			return
+		}
+
+		// Set the file URL
+		activity.FileURL = &objectKey
+
 		// Save to database
 		if err := database.CreateActivity(ctx, activity); err != nil {
 			log.Error("Failed to save activity to database", err)
@@ -248,14 +293,104 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 			return
 		}
 
-		log.Info(fmt.Sprintf("Successfully created activity %s for user %s", activity.ID, userID))
-
 		// Return the processing result (not the full database model)
 		result := ActivityResult{
-			Result:         baseResult,
-			ElapsedSeconds: elapsedSeconds,
-			AvgSpeedMs:     avgSpeedMs,
-			AvgSpeedKmh:    avgSpeedKmh,
+			ID:    activity.ID.String(),
+			Title: activity.Title,
+			Description: func() string {
+				if activity.Description != nil {
+					return *activity.Description
+				}
+				return ""
+			}(),
+			Type:          string(activity.ActivityType),
+			StartTime:     activity.StartTime,
+			EndTime:       activity.EndTime,
+			ProcessingVer: activity.ProcessingVer,
+			Stats: ActivityStats{
+				ElapsedSeconds: elapsedSeconds,
+				AvgSpeedMs:     avgSpeedMs,
+				ElevationGainM: func() float64 {
+					if elevationGain != nil {
+						return *elevationGain
+					}
+					return 0
+				}(),
+				DistanceM: baseResult.DistanceMeters,
+			},
+			BBox: BoundingBox{
+				MinLat: func() float64 {
+					if bbox := baseResult.BBox; bbox != nil {
+						if val, ok := bbox["min_lat"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+				MaxLat: func() float64 {
+					if bbox := baseResult.BBox; bbox != nil {
+						if val, ok := bbox["max_lat"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+				MinLon: func() float64 {
+					if bbox := baseResult.BBox; bbox != nil {
+						if val, ok := bbox["min_lon"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+				MaxLon: func() float64 {
+					if bbox := baseResult.BBox; bbox != nil {
+						if val, ok := bbox["max_lon"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+			},
+			Start: Coordinate{
+				Lat: func() float64 {
+					if start := baseResult.Start; start != nil {
+						if val, ok := start["lat"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+				Lon: func() float64 {
+					if start := baseResult.Start; start != nil {
+						if val, ok := start["lon"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+			},
+			End: Coordinate{
+				Lat: func() float64 {
+					if end := baseResult.End; end != nil {
+						if val, ok := end["lat"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+				Lon: func() float64 {
+					if end := baseResult.End; end != nil {
+						if val, ok := end["lon"]; ok {
+							return val
+						}
+					}
+					return 0
+				}(),
+			},
+			Polyline:  baseResult.Polyline,
+			CreatedAt: activity.CreatedAt,
+			UpdatedAt: activity.UpdatedAt,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -307,11 +442,221 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 			return
 		}
 
-		log.Info(fmt.Sprintf("Retrieved %d activities for user %s", len(activities), userID))
+		// Transform activities to the new response format
+		var results []ActivityResult
+		for _, activity := range activities {
+			result := ActivityResult{
+				ID:    activity.ID.String(),
+				Title: activity.Title,
+				Description: func() string {
+					if activity.Description != nil {
+						return *activity.Description
+					}
+					return ""
+				}(),
+				Type:          string(activity.ActivityType),
+				StartTime:     activity.StartTime,
+				EndTime:       activity.EndTime,
+				ProcessingVer: activity.ProcessingVer,
+				Stats: ActivityStats{
+					ElapsedSeconds: float64(activity.ElapsedTime),
+					AvgSpeedMs: func() float64 {
+						if activity.AvgSpeedMps != nil {
+							return *activity.AvgSpeedMps
+						}
+						return 0.0
+					}(),
+					ElevationGainM: func() float64 {
+						if activity.ElevationGainM != nil {
+							return *activity.ElevationGainM
+						}
+						return 0.0
+					}(),
+					DistanceM: activity.DistanceM,
+				},
+				BBox: BoundingBox{
+					MinLat: func() float64 {
+						if activity.BBoxMinLat != nil {
+							return *activity.BBoxMinLat
+						}
+						return 0.0
+					}(),
+					MaxLat: func() float64 {
+						if activity.BBoxMaxLat != nil {
+							return *activity.BBoxMaxLat
+						}
+						return 0.0
+					}(),
+					MinLon: func() float64 {
+						if activity.BBoxMinLon != nil {
+							return *activity.BBoxMinLon
+						}
+						return 0.0
+					}(),
+					MaxLon: func() float64 {
+						if activity.BBoxMaxLon != nil {
+							return *activity.BBoxMaxLon
+						}
+						return 0.0
+					}(),
+				},
+				Start: Coordinate{
+					Lat: func() float64 {
+						if activity.StartLat != nil {
+							return *activity.StartLat
+						}
+						return 0.0
+					}(),
+					Lon: func() float64 {
+						if activity.StartLon != nil {
+							return *activity.StartLon
+						}
+						return 0.0
+					}(),
+				},
+				End: Coordinate{
+					Lat: func() float64 {
+						if activity.EndLat != nil {
+							return *activity.EndLat
+						}
+						return 0.0
+					}(),
+					Lon: func() float64 {
+						if activity.EndLon != nil {
+							return *activity.EndLon
+						}
+						return 0.0
+					}(),
+				},
+				Polyline: func() string {
+					if activity.Polyline != nil {
+						return *activity.Polyline
+					}
+					return ""
+				}(),
+				CreatedAt: activity.CreatedAt,
+				UpdatedAt: activity.UpdatedAt,
+			}
+			results = append(results, result)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(activities)
+		_ = json.NewEncoder(w).Encode(results)
 	}
 }
 
-func intPtr(v int) *int { return &v }
+// createFITFile generates a FIT file from activity data and saves it to object store
+func createFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log logger.ServiceLogger) error {
+	// Create FIT activity file using muktihari/fit library
+	fitActivity := filedef.NewActivity()
+
+	// Set file ID information
+	fitActivity.FileId = *mesgdef.NewFileId(nil).
+		SetType(typedef.FileActivity).
+		SetTimeCreated(activity.StartTime).
+		SetManufacturer(typedef.ManufacturerDevelopment). // Use development manufacturer
+		SetProduct(uint16(1)).                            // TODO: product ID, for now set 1
+		SetProductName("Cadent")
+
+	// Convert samples to FIT records
+	if len(samples) > 0 {
+		startTime := time.UnixMilli(samples[0].T)
+
+		for i, sample := range samples {
+			timestamp := time.UnixMilli(sample.T)
+
+			record := mesgdef.NewRecord(nil).
+				SetTimestamp(timestamp).
+				SetPositionLat(int32(sample.Lat * 11930465)). // Convert to semicircles
+				SetPositionLong(int32(sample.Lon * 11930465)) // Convert to semicircles
+
+			// Add distance and speed if we can calculate it
+			if i > 0 {
+				prevSample := samples[i-1]
+				distance := haversineDistance(prevSample.Lat, prevSample.Lon, sample.Lat, sample.Lon)
+				timeElapsed := float64(sample.T-prevSample.T) / 1000.0 // Convert to seconds
+
+				if timeElapsed > 0 {
+					speed := distance / timeElapsed       // m/s
+					record.SetSpeed(uint16(speed * 1000)) // Convert to mm/s for FIT format
+				}
+			}
+
+			fitActivity.Records = append(fitActivity.Records, record)
+		}
+
+		// Create session summary
+		endTime := time.UnixMilli(samples[len(samples)-1].T)
+		totalTime := endTime.Sub(startTime)
+
+		session := mesgdef.NewSession(nil).
+			SetTimestamp(endTime).
+			SetStartTime(startTime).
+			SetTotalElapsedTime(uint32(totalTime.Seconds() * 1000)). // milliseconds
+			SetSport(typedef.SportRunning).                          // Default to running
+			SetSubSport(typedef.SubSportGeneric)
+
+		if activity.DistanceM > 0 {
+			session.SetTotalDistance(uint32(activity.DistanceM * 100)) // Convert to cm
+		}
+		if activity.AvgSpeedMps != nil && *activity.AvgSpeedMps > 0 {
+			session.SetAvgSpeed(uint16(*activity.AvgSpeedMps * 1000)) // Convert to mm/s
+		}
+
+		fitActivity.Sessions = append(fitActivity.Sessions, session)
+
+		// Create activity summary
+		fitActivity.Activity = mesgdef.NewActivity(nil).
+			SetTimestamp(endTime).
+			SetType(typedef.ActivityManual).
+			SetNumSessions(1)
+	}
+
+	// Convert to FIT protocol messages
+	fit := fitActivity.ToFIT(nil)
+
+	// Create a buffer to encode FIT data
+	var buf strings.Builder
+	enc := encoder.New(&buf)
+	if err := enc.Encode(&fit); err != nil {
+		log.Error("Failed to encode FIT file", err)
+		return fmt.Errorf("failed to encode FIT file: %w", err)
+	}
+
+	// Create object key: activities/{user_id}/{activity_id}.fit
+	objectKey := fmt.Sprintf("activities/%s/%s.fit", activity.UserID, activity.ID.String())
+
+	// Store the FIT file in object store
+	reader := strings.NewReader(buf.String())
+	size := int64(buf.Len())
+
+	if err := objectStore.PutObject(ctx, objectKey, reader, size); err != nil {
+		log.Error("Failed to store FIT file", err)
+		return fmt.Errorf("failed to store FIT file: %w", err)
+	}
+
+	log.Debug(fmt.Sprintf("FIT file created for activity %s", activity.ID.String()))
+	return nil
+}
+
+// haversineDistance calculates the distance between two points on Earth using the Haversine formula
+func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	const R = 6371000 // Earth's radius in meters
+
+	// Convert degrees to radians
+	lat1Rad := lat1 * math.Pi / 180
+	lon1Rad := lon1 * math.Pi / 180
+	lat2Rad := lat2 * math.Pi / 180
+	lon2Rad := lon2 * math.Pi / 180
+
+	// Differences
+	deltaLat := lat2Rad - lat1Rad
+	deltaLon := lon2Rad - lon1Rad
+
+	// Haversine formula
+	a := math.Sin(deltaLat/2)*math.Sin(deltaLat/2) +
+		math.Cos(lat1Rad)*math.Cos(lat2Rad)*math.Sin(deltaLon/2)*math.Sin(deltaLon/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return R * c // Distance in meters
+}
