@@ -19,11 +19,18 @@ type Config struct {
 	Environment string
 
 	// Authentication configuration
-	JWTSecret     string
-	BaseURL       string
-	AvatarPath    string
-	TokenDuration int // in minutes
+	JWTSecret      string
+	BaseURL        string
+	AvatarPath     string
+	TokenDuration  int // in minutes
 	CookieDuration int // in hours
+
+	// Storage configuration
+	StorageDsn        string
+	AvatarStoragePath string
+
+	// Valhalla configuration
+	ValhallaURL string
 }
 
 // LoadConfig loads configuration from environment variables with sensible defaults
@@ -31,20 +38,27 @@ func LoadConfig() Config {
 	return Config{
 		// Database
 		Dsn: getRequiredEnv("POSTGRES_DSN"),
-		
+
 		// Server
 		Port: uint(getEnvIntOrDefault("PORT", 8080)),
-		
+
 		// Logging
 		LogLevel:    getEnvOrDefault("LOG_LEVEL", "info"),
 		Environment: getEnvOrDefault("ENVIRONMENT", "production"),
-		
+
 		// Authentication
 		JWTSecret:      getRequiredEnv("JWT_SECRET"),
 		BaseURL:        getEnvOrDefault("BASE_URL", "http://localhost:8080"),
-		AvatarPath:     getEnvOrDefault("AVATAR_PATH", "/tmp/avatars"),
+		AvatarPath:     getEnvOrDefault("AVATAR_PATH", "/data/auth/avatars"),
 		TokenDuration:  getEnvIntOrDefault("TOKEN_DURATION_MINUTES", 5),
 		CookieDuration: getEnvIntOrDefault("COOKIE_DURATION_HOURS", 24),
+
+		// Storage
+		StorageDsn:        getEnvOrDefault("STORAGE_DSN", "local://./data"),
+		AvatarStoragePath: getEnvOrDefault("AVATAR_STORAGE_PATH", "/data/auth/avatars"),
+
+		// Valhalla
+		ValhallaURL: getEnvOrDefault("VALHALLA_URL", "https://valhalla.anishchanda.dev"),
 	}
 }
 
@@ -72,30 +86,4 @@ func getEnvIntOrDefault(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
-}
-
-func getEnvFloatOrDefault(key string, defaultValue float32) float32 {
-	if value := os.Getenv(key); value != "" {
-		if floatValue, err := strconv.ParseFloat(value, 32); err == nil {
-			return float32(floatValue)
-		}
-	}
-	return defaultValue
-}
-
-func getEnvUint32OrDefault(key string, defaultValue uint32) uint32 {
-	if value := os.Getenv(key); value != "" {
-		if intValue, err := strconv.ParseUint(value, 10, 32); err == nil {
-			return uint32(intValue)
-		}
-	}
-	return defaultValue
-}
-
-func getEnvUintOrPanic(key string) uint64 {
-	value := getRequiredEnv(key)
-	if uintValue, err := strconv.ParseUint(value, 10, 32); err == nil {
-		return uintValue
-	}
-	panic("Environment variable " + key + " must be a valid unsigned integer")
 }
