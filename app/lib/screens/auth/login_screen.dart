@@ -38,8 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Login failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text('Login failed: \${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -118,43 +118,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // App Logo/Title
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'C',
-                              style: TextStyle(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ),
+                        Image.asset(
+                          'assets/icon/logofull.png',
+                          height: 180,
                         ),
                         const SizedBox(height: 24),
                         const Text(
-                          'Cadence',
+                          'Welcome!',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Welcome back',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 56),
 
                         // Login Form
                         Form(
@@ -225,9 +202,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 strokeWidth: 2,
                                               ),
                                             )
-                                          : const Text(
+                                          : Text(
                                               'Login',
-                                              style: TextStyle(fontSize: 16),
+                                              style: TextStyle(
+                                                  color: Theme.of(context).primaryColor,
+                                                  fontSize: 16),
                                             ),
                                     ),
                                   );
@@ -248,7 +227,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       );
                                     },
-                                    child: const Text('Sign up'),
+                                    child: Text(
+                                        'Sign up',
+                                      style: TextStyle(
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -272,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -281,29 +265,29 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Logging into:',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey,
+                                    color: Theme.of(context).textTheme.bodySmall?.color,
                                   ),
                                 ),
                                 Text(
                                   auth.serverUrl,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.blue,
+                                    color: Theme.of(context).primaryColor,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const Text(
+                          Text(
                             '→',
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey,
+                              color: Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],
