@@ -116,7 +116,7 @@ class Activity {
   // Helper getters for display
   double get distanceKm => stats?.distanceM != null ? stats!.distanceM / 1000 : 0.0;
   
-  String get formattedDistance => '${distanceKm.toStringAsFixed(1)} Km';
+  String get formattedDistance => '${distanceKm.toStringAsFixed(2)} Km';
   
   String get formattedElevation => stats?.elevationGainM != null ? '${stats!.elevationGainM.round()} m' : '0 m';
   

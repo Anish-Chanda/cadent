@@ -16,6 +16,8 @@ class ActivitiesProvider with ChangeNotifier {
   List<Activity> _activities = [];
   ActivitiesLoadingState _loadingState = ActivitiesLoadingState.idle;
   String? _errorMessage;
+  DateTime? _lastRefreshTime;
+  static const Duration _refreshCooldown = Duration(seconds: 1);
 
   // Getters
   List<Activity> get activities => _activities;
@@ -29,6 +31,14 @@ class ActivitiesProvider with ChangeNotifier {
   Future<void> loadActivities() async {
     if (_loadingState == ActivitiesLoadingState.loading) return; // Prevent multiple simultaneous loads
 
+    // Add debouncing protection
+    final now = DateTime.now();
+    if (_lastRefreshTime != null && 
+        now.difference(_lastRefreshTime!) < _refreshCooldown) {
+      return; // Too soon, ignore request
+    }
+    
+    _lastRefreshTime = now;
     _setLoadingState(ActivitiesLoadingState.loading);
     _clearError();
 
