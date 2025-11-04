@@ -442,8 +442,9 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 			return
 		}
 
-		// Transform activities to the new response format
-		var results []ActivityResult
+		// Transform activities to the response format
+		// Initialize as empty slice to ensure we always return [] instead of null
+		results := make([]ActivityResult, 0, len(activities))
 		for _, activity := range activities {
 			result := ActivityResult{
 				ID:    activity.ID.String(),

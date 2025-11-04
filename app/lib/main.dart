@@ -13,17 +13,19 @@ void main() async {
   // initialize auth provider
   final authProvider = await AuthProvider.initialize();
 
- runApp(
-  MultiProvider(
-    providers: [
-      ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
-      ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
-      ChangeNotifierProvider(create: (_) => ThemeProvider(AppTheme.lightTheme)),
-    ],
-    child: const CadenceApp(),
-  ),
-);
-
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(AppTheme.lightTheme),
+        ),
+      ],
+      child: const CadenceApp(),
+    ),
+  );
+}
 
 class CadenceApp extends StatelessWidget {
   const CadenceApp({super.key});
