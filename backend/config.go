@@ -26,7 +26,7 @@ type Config struct {
 	CookieDuration int // in hours
 
 	// Storage configuration
-	StorageDsn   string
+	StorageDsn        string
 	AvatarStoragePath string
 
 	// Valhalla configuration
