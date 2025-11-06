@@ -1,13 +1,7 @@
-import 'dart:async';
-import 'dart:io' show Platform;
-import 'dart:math' show cos, sqrt, asin;
-
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 
-import '../services/permissions_handler.dart';
-
-enum RecordingState { idle, recording, paused }
+import '../controllers/recording_controller.dart';
+import '../models/recording_session_model.dart';
 
 class RecorderScreen extends StatefulWidget {
   const RecorderScreen({super.key});
@@ -17,351 +11,436 @@ class RecorderScreen extends StatefulWidget {
 }
 
 class _RecorderScreenState extends State<RecorderScreen> {
-  RecordingState _recordingState = RecordingState.idle;
-  StreamSubscription<Position>? _positionStreamSubscription;
+  late final RecordingController _controller;
 
-  final List<Position> _recordedPositions = [];
-  Position? _lastPosition;
-
-  double _totalDistanceMiles = 0.0;
-  int _elapsedSeconds = 0;
-  Timer? _timer;
-
-  String _formatTime(int seconds) {
-    int hours = seconds ~/ 3600;
-    int minutes = (seconds % 3600) ~/ 60;
-    int secs = seconds % 60;
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-  }
-
-  double _calculatePace() {
-    if (_totalDistanceMiles == 0) return 0.0;
-    double hours = _elapsedSeconds / 3600.0;
-    return _totalDistanceMiles / hours;
-  }
-
-  double _calculateDistance(Position start, Position end) {
-    const double earthRadiusMiles = 3958.8;
-
-    double lat1 = start.latitude * (3.141592653589793 / 180);
-    double lat2 = end.latitude * (3.141592653589793 / 180);
-    double lon1 = start.longitude * (3.141592653589793 / 180);
-    double lon2 = end.longitude * (3.141592653589793 / 180);
-
-    double dLat = lat2 - lat1;
-    double dLon = lon2 - lon1;
-
-    double a =
-        (1 - cos(dLat)) / 2 + cos(lat1) * cos(lat2) * (1 - cos(dLon)) / 2;
-    double c = 2 * asin(sqrt(a));
-
-    return earthRadiusMiles * c;
+  @override
+  void initState() {
+    super.initState();
+    _controller = RecordingController();
+    // Listen to controller changes to update UI
+    _controller.addListener(_onControllerUpdate);
   }
 
   @override
   void dispose() {
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = null;
-    _timer?.cancel();
-    _timer = null;
+    _controller.removeListener(_onControllerUpdate);
+    _controller.dispose();
     super.dispose();
   }
 
-  Future<bool> _checkPermissions() async {
-    return await LocationPermissionService.requestLocationPermission(
-      context: mounted ? context : null,
-    );
+  void _onControllerUpdate() {
+    // Trigger UI rebuild when controller state changes
+    setState(() {});
   }
 
   Future<void> _startRecording() async {
-    final hasPermission = await _checkPermissions();
-    if (!hasPermission) return;
-
-    setState(() {
-      _recordingState = RecordingState.recording;
-      _recordedPositions.clear();
-      _totalDistanceMiles = 0.0;
-      _elapsedSeconds = 0;
-      _lastPosition = null;
-    });
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_recordingState == RecordingState.recording) {
-        setState(() {
-          _elapsedSeconds++;
-        });
-      }
-    });
-
-    LocationSettings locationSettings;
-
-    if (Platform.isAndroid) {
-      locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 1,
-        intervalDuration: const Duration(seconds: 1),
-        // Enable background location updates
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: "Recording your activity",
-          notificationTitle: "GPS Tracker",
+    final success = await _controller.startRecording(context: context);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to start recording. Please check location permissions.'),
         ),
       );
-    } else if (Platform.isIOS) {
-      locationSettings = AppleSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-        pauseLocationUpdatesAutomatically: false,
-        // Enable background location updates
-        showBackgroundLocationIndicator: true,
-      );
-    } else {
-      locationSettings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-      );
     }
-
-    final positionStream = GeolocatorPlatform.instance.getPositionStream(
-      locationSettings: locationSettings,
-    );
-
-    _positionStreamSubscription = positionStream.listen((position) {
-      if (_recordingState == RecordingState.recording) {
-        setState(() {
-          _recordedPositions.add(position);
-
-          if (_lastPosition != null) {
-            double distance = _calculateDistance(_lastPosition!, position);
-            _totalDistanceMiles += distance;
-          }
-
-          _lastPosition = position;
-        });
-      }
-    });
   }
 
   void _pauseRecording() {
-    setState(() {
-      _recordingState = RecordingState.paused;
-    });
+    _controller.pauseRecording();
   }
 
   void _resumeRecording() {
-    setState(() {
-      _recordingState = RecordingState.recording;
-    });
-  }
-
-  void _stopRecording() {
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = null;
-    _timer?.cancel();
-    _timer = null;
+    _controller.resumeRecording();
   }
 
   Future<void> _finishRecording() async {
-    if (_recordingState == RecordingState.recording) {
-      _pauseRecording();
+    if (!_controller.hasMinimumData()) {
+      // Show message if not enough data
+      _showInsufficientDataDialog();
+      return;
     }
 
-    final shouldSave = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Save Activity'),
-        content: Text(
-          'Distance: ${_totalDistanceMiles.toStringAsFixed(2)} miles\n'
-          'Time: ${_formatTime(_elapsedSeconds)}\n'
-          'Points: ${_recordedPositions.length}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+    // Move to completed state
+    _controller.finishRecording();
+  }
 
-    if (shouldSave == true) {
-      _stopRecording();
-      setState(() {
-        _recordingState = RecordingState.idle;
-      });
-
-      // Logic here for uploading data
-
+  Future<void> _saveActivity() async {
+    final activityData = _controller.getActivityData();
+    if (activityData != null) {
+      // TODO: Implement saving activity to backend via ActivitiesService
+      _controller.resetToIdle();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Activity saved!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Activity saved!')),
+        );
       }
     }
   }
 
-  Future<void> _discardRecording() async {
-    if (_recordingState == RecordingState.recording) {
-      _pauseRecording();
-    }
+  void _discardActivity() {
+    _controller.resetToIdle();
+  }
 
-    final shouldDiscard = await showDialog<bool>(
+  Future<void> _discardRecording() async {
+    final shouldDiscard = await _showDiscardDialog();
+    if (shouldDiscard == true) {
+      _controller.discardRecording();
+    }
+  }
+
+
+
+  Future<bool?> _showDiscardDialog() {
+    return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Discard Activity'),
-        content: const Text('Are you sure?'),
+        content: const Text('Are you sure you want to discard this recording?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Discard'),
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Discard'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showInsufficientDataDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Insufficient Data'),
+        content: const Text('Not enough GPS data collected. Please record for a longer time or distance.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
           ),
         ],
       ),
     );
-
-    if (shouldDiscard == true) {
-      _stopRecording();
-      setState(() {
-        _recordingState = RecordingState.idle;
-        _recordedPositions.clear();
-        _totalDistanceMiles = 0.0;
-        _elapsedSeconds = 0;
-        _lastPosition = null;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final model = _controller.model;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GPS Tracker'),
+        title: const Text('Activity Recorder'),
         actions: [
-          if (_recordingState != RecordingState.idle)
+          if (model.isActive)
             IconButton(
               icon: const Icon(Icons.delete),
               onPressed: _discardRecording,
+              tooltip: 'Discard Recording',
+            ),
+          if (model.isCompleted)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: _discardActivity,
+              tooltip: 'Discard Activity',
             ),
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Time
-            Text(
-              _formatTime(_elapsedSeconds),
-              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 40),
-
-            // Distance
-            Text(
-              '${_totalDistanceMiles.toStringAsFixed(2)} mi',
-              style: const TextStyle(fontSize: 32),
-            ),
-            const Text('Distance', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 40),
-
-            // Pace
-            Text(
-              '${_calculatePace().toStringAsFixed(1)} mph',
-              style: const TextStyle(fontSize: 32),
-            ),
-            const Text('Speed', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 40),
-
-            // Points
-            Text(
-              '${_recordedPositions.length}',
-              style: const TextStyle(fontSize: 32),
-            ),
-            const Text('GPS Points', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 40),
-
-            // Buttons
-            if (_recordingState == RecordingState.idle)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _startRecording,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(20),
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Start', style: TextStyle(fontSize: 18)),
+            // Recording Status Indicator
+            if (model.isActive) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: model.isRecording ? Colors.red : Colors.orange,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      model.isRecording ? Icons.fiber_manual_record : Icons.pause,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      model.isRecording ? 'RECORDING' : 'PAUSED',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 32),
+            ],
 
-            if (_recordingState == RecordingState.recording)
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _pauseRecording,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(20),
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
+            // Completed Status Indicator
+            if (model.isCompleted) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'COMPLETED',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
-                      child: const Text('Pause'),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _finishRecording,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(20),
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Finish'),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(height: 32),
+            ],
 
-            if (_recordingState == RecordingState.paused)
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _resumeRecording,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(20),
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Resume'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _finishRecording,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(20),
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Finish'),
-                    ),
-                  ),
-                ],
+            // Time Display
+            Text(
+              model.formattedTime,
+              style: const TextStyle(
+                fontSize: 56,
+                fontWeight: FontWeight.w300,
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
+            ),
+            const Text(
+              'Time',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 48),
+
+            // Distance Display
+            Text(
+              model.formattedDistance,
+              style: const TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const Text(
+              'Distance',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Speed Display (only show when recording)
+            if (model.isRecording) ...[
+              Text(
+                model.formattedSpeed,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const Text(
+                'Current Speed',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 32),
+            ] else
+              const SizedBox(height: 32),
+
+            // Control Buttons
+            _buildControlButtons(model),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildControlButtons(RecordingSessionModel model) {
+    if (model.isIdle) {
+      return SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: _startRecording,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text(
+            'Start Recording',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+        ),
+      );
+    }
+
+    if (model.isRecording) {
+      return Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _pauseRecording,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Pause', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _finishRecording,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Finish', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (model.isPaused) {
+      return Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _resumeRecording,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Resume', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _finishRecording,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Finish', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (model.isCompleted) {
+      return Column(
+        children: [
+          // Activity summary
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Distance: ${model.formattedDistance}\n'
+              'Time: ${model.formattedTime}\n'
+              'GPS Points: ${model.pointsCount}',
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _discardActivity,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Discard', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _saveActivity,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Save', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
