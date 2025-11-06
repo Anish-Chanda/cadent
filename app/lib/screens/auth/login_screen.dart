@@ -1,3 +1,4 @@
+import 'package:cadence/error_message.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -37,10 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+          errorSnackBar('Login failed: ${simplifyErrorMessage(e)}'),
         );
       }
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../error_message.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -49,10 +50,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Signup failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+          errorSnackBar('Signup failed: ${e.toString()}'),
         );
       }
     }
