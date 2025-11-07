@@ -2,6 +2,15 @@ import 'package:geolocator/geolocator.dart';
 
 enum RecordingState { idle, recording, paused, completed }
 
+enum WorkoutType { 
+  running('Running', 'running'), 
+  roadBiking('Road Biking', 'road_bike');
+  
+  const WorkoutType(this.displayName, this.apiName);
+  final String displayName;
+  final String apiName;
+}
+
 /// Model class representing a GPS recording session
 /// Stores all data related to an ongoing or completed recording
 class RecordingSessionModel {
@@ -11,6 +20,9 @@ class RecordingSessionModel {
   int _elapsedSeconds;
   DateTime? _startTime;
   Position? _lastPosition;
+  WorkoutType _activityType;
+  String? _title;
+  String? _description;
 
   RecordingSessionModel({
     RecordingState state = RecordingState.idle,
@@ -19,12 +31,18 @@ class RecordingSessionModel {
     int elapsedSeconds = 0,
     DateTime? startTime,
     Position? lastPosition,
+    WorkoutType activityType = WorkoutType.running,
+    String? title,
+    String? description,
   })  : _state = state,
         _positions = positions ?? [],
         _totalDistanceMeters = totalDistanceMeters,
         _elapsedSeconds = elapsedSeconds,
         _startTime = startTime,
-        _lastPosition = lastPosition;
+        _lastPosition = lastPosition,
+        _activityType = activityType,
+        _title = title,
+        _description = description;
 
   // Getters
   RecordingState get state => _state;
@@ -33,6 +51,9 @@ class RecordingSessionModel {
   int get elapsedSeconds => _elapsedSeconds;
   DateTime? get startTime => _startTime;
   Position? get lastPosition => _lastPosition;
+  WorkoutType get activityType => _activityType;
+  String? get title => _title;
+  String? get description => _description;
   
   // Computed properties
   double get totalDistanceMiles => _totalDistanceMeters * 0.000621371; // Convert meters to miles
@@ -135,6 +156,18 @@ class RecordingSessionModel {
     _startTime = time;
   }
 
+  void _setActivityType(WorkoutType activityType) {
+    _activityType = activityType;
+  }
+
+  void _setTitle(String? title) {
+    _title = title;
+  }
+
+  void _setDescription(String? description) {
+    _description = description;
+  }
+
   void _reset() {
     _state = RecordingState.idle;
     _positions.clear();
@@ -142,6 +175,9 @@ class RecordingSessionModel {
     _elapsedSeconds = 0;
     _startTime = null;
     _lastPosition = null;
+    _activityType = WorkoutType.running;
+    _title = null;
+    _description = null;
   }
 
   // Factory methods for controller access
@@ -158,12 +194,38 @@ class RecordingSessionModel {
       elapsedSeconds: _elapsedSeconds,
       startTime: _startTime,
       lastPosition: _lastPosition,
+      activityType: _activityType,
+      title: _title,
+      description: _description,
+    );
+  }
+
+  /// Returns a copy of the model with updated title and description
+  RecordingSessionModel copyWith({
+    RecordingState? state,
+    WorkoutType? activityType,
+    String? title,
+    String? description,
+  }) {
+    return RecordingSessionModel(
+      state: state ?? _state,
+      positions: List.from(_positions),
+      totalDistanceMeters: _totalDistanceMeters,
+      elapsedSeconds: _elapsedSeconds,
+      startTime: _startTime,
+      lastPosition: _lastPosition,
+      activityType: activityType ?? _activityType,
+      title: title ?? _title,
+      description: description ?? _description,
     );
   }
 
   /// Creates a summary for saving the activity
   Map<String, dynamic> toActivitySummary() {
     return {
+      'activity_type': _activityType.name,
+      'title': _title,
+      'description': _description,
       'positions': _positions.length,
       'distance_meters': _totalDistanceMeters,
       'distance_miles': totalDistanceMiles,
@@ -191,5 +253,8 @@ mixin RecordingSessionModelController on RecordingSessionModel {
   void addDistance(double distanceMeters) => _addDistance(distanceMeters);
   void incrementTime() => _incrementTime();
   void setStartTime(DateTime time) => _setStartTime(time);
+  void setActivityType(WorkoutType activityType) => _setActivityType(activityType);
+  void setTitle(String? title) => _setTitle(title);
+  void setDescription(String? description) => _setDescription(description);
   void reset() => _reset();
 }

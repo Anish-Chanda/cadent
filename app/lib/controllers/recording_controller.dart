@@ -33,10 +33,17 @@ class RecordingController extends ChangeNotifier {
       );
       if (!hasPermission) return false;
 
-      // Reset model and start fresh recording
+      // Preserve activity type when starting a new recording
+      final currentActivityType = _model.activityType;
       _resetModel();
+      
+      // Restore the activity type before updating state to avoid notifying with wrong type
+      _model = _model.copyWith(activityType: currentActivityType);
+      
       _updateModelState(RecordingState.recording);
       _setStartTime(DateTime.now());
+      
+      log('Started recording: ${_model.activityType.displayName}');
 
       // Start the timer for elapsed time
       _startTimer();
@@ -77,6 +84,8 @@ class RecordingController extends ChangeNotifier {
 
     // Move to completed state for final review
     _updateModelState(RecordingState.completed);
+    
+    log('Recording finished: ${_model.activityType.displayName} - ${_model.formattedTime} - ${_model.formattedDistance} - ${_model.positions.length} GPS points');
   }
 
   /// Gets the activity data for saving (only available in completed state)
@@ -87,8 +96,22 @@ class RecordingController extends ChangeNotifier {
 
   /// Resets to idle state (after saving or discarding completed recording)
   void resetToIdle() {
+    // Preserve the activity type when resetting
+    final currentActivityType = _model.activityType;
     _resetModel();
     _updateModelState(RecordingState.idle);
+    // Set the activity type back to what it was
+    _model = _model.copyWith(activityType: currentActivityType);
+    notifyListeners();
+  }
+
+  /// Updates the activity type (only allowed when idle)
+  void setActivityType(WorkoutType activityType) {
+    if (_model.isIdle) {
+      _model = _model.copyWith(activityType: activityType);
+      log('Activity type changed to: ${_model.activityType.displayName}');
+      notifyListeners();
+    }
   }
 
   /// Discards the current recording
@@ -97,6 +120,22 @@ class RecordingController extends ChangeNotifier {
     _stopTimer();
     _resetModel();
     _updateModelState(RecordingState.idle);
+  }
+
+  /// Resume recording from completed state (go back to paused state)
+  Future<void> resumeFromFinished() async {
+    if (!_model.isCompleted) return;
+    
+    // Move back to paused state so user can resume or make changes
+    _updateModelState(RecordingState.paused);
+    
+    // Restart the timer to continue tracking elapsed time
+    _startTimer();
+    
+    // Restart GPS location tracking so we can continue recording when they hit resume
+    await _startLocationTracking();
+    
+    log('Resumed from finished: ${_model.activityType.displayName}');
   }
 
   /// Private method to reset the model
@@ -120,6 +159,9 @@ class RecordingController extends ChangeNotifier {
       elapsedSeconds: _model.elapsedSeconds,
       startTime: time,
       lastPosition: _model.lastPosition,
+      activityType: _model.activityType,
+      title: _model.title,
+      description: _model.description,
     );
   }
 
@@ -136,6 +178,9 @@ class RecordingController extends ChangeNotifier {
           elapsedSeconds: _model.elapsedSeconds + 1,
           startTime: _model.startTime,
           lastPosition: _model.lastPosition,
+          activityType: _model.activityType,
+          title: _model.title,
+          description: _model.description,
         );
         notifyListeners();
       }
@@ -235,6 +280,9 @@ class RecordingController extends ChangeNotifier {
         elapsedSeconds: _model.elapsedSeconds,
         startTime: _model.startTime,
         lastPosition: position,
+        activityType: _model.activityType,
+        title: _model.title,
+        description: _model.description,
       );
 
       notifyListeners();
