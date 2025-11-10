@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          errorSnackBar('Login failed: ${simplifyErrorMessage(e)}'),
+          errorSnackBar('Login failed: ${simplifyErrorMessage(e)}', context),
         );
       }
     }

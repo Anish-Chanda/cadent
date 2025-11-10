@@ -50,7 +50,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          errorSnackBar('Signup failed: ${e.toString()}'),
+          errorSnackBar('Signup failed: ${simplifyErrorMessage(e)}', context),
         );
       }
     }
