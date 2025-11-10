@@ -37,10 +37,20 @@ type Sample struct {
 }
 
 type ActivityStats struct {
-	ElapsedSeconds float64 `json:"elapsed_seconds"`
-	AvgSpeedMs     float64 `json:"avg_speed_ms"`     // meters per second (SI unit)
-	ElevationGainM float64 `json:"elevation_gain_m"` // elevation gain in meters
-	DistanceM      float64 `json:"distance_m"`       // distance in meters
+	ElapsedSeconds float64      `json:"elapsed_seconds"`
+	AvgSpeedMs     float64      `json:"avg_speed_ms"`     // meters per second (SI unit)
+	ElevationGainM float64      `json:"elevation_gain_m"` // elevation gain in meters
+	DistanceM      float64      `json:"distance_m"`       // distance in meters
+	Derived        DerivedStats `json:"derived"`
+}
+
+type DerivedStats struct {
+	SpeedKmh      *float64 `json:"speed_kmh,omitempty"`
+	SpeedMph      *float64 `json:"speed_mph,omitempty"`
+	PaceSPerKm    *float64 `json:"pace_s_per_km,omitempty"`
+	PaceSPerMile  *float64 `json:"pace_s_per_mile,omitempty"`
+	DistanceKm    float64  `json:"distance_km"`
+	DistanceMiles float64  `json:"distance_miles"`
 }
 
 type BoundingBox struct {
@@ -70,6 +80,10 @@ type ActivityResult struct {
 	ProcessingVer int           `json:"processing_ver"`
 	CreatedAt     time.Time     `json:"created_at"`
 	UpdatedAt     time.Time     `json:"updated_at"`
+}
+
+type GetActivitiesResponse struct {
+	Activities []ActivityResult `json:"activities"`
 }
 
 func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) http.HandlerFunc {
@@ -317,6 +331,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 					return 0
 				}(),
 				DistanceM: baseResult.DistanceMeters,
+				Derived:   calculateDerivedStats(req.ActivityType, avgSpeedMs, baseResult.DistanceMeters),
 			},
 			BBox: BoundingBox{
 				MinLat: func() float64 {
@@ -446,6 +461,13 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 		// Initialize as empty slice to ensure we always return [] instead of null
 		results := make([]ActivityResult, 0, len(activities))
 		for _, activity := range activities {
+			avgSpeedMs := func() float64 {
+				if activity.AvgSpeedMps != nil {
+					return *activity.AvgSpeedMps
+				}
+				return 0.0
+			}()
+
 			result := ActivityResult{
 				ID:    activity.ID.String(),
 				Title: activity.Title,
@@ -461,12 +483,7 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 				ProcessingVer: activity.ProcessingVer,
 				Stats: ActivityStats{
 					ElapsedSeconds: float64(activity.ElapsedTime),
-					AvgSpeedMs: func() float64 {
-						if activity.AvgSpeedMps != nil {
-							return *activity.AvgSpeedMps
-						}
-						return 0.0
-					}(),
+					AvgSpeedMs:     avgSpeedMs,
 					ElevationGainM: func() float64 {
 						if activity.ElevationGainM != nil {
 							return *activity.ElevationGainM
@@ -474,6 +491,7 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 						return 0.0
 					}(),
 					DistanceM: activity.DistanceM,
+					Derived:   calculateDerivedStats(string(activity.ActivityType), avgSpeedMs, activity.DistanceM),
 				},
 				BBox: BoundingBox{
 					MinLat: func() float64 {
@@ -541,8 +559,12 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 			results = append(results, result)
 		}
 
+		response := GetActivitiesResponse{
+			Activities: results,
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(results)
+		_ = json.NewEncoder(w).Encode(response)
 	}
 }
 
@@ -660,4 +682,31 @@ func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return R * c // Distance in meters
+}
+
+// calculateDerivedStats calculates derived statistics based on activity type and speed
+func calculateDerivedStats(activityType string, speedMs float64, distanceM float64) DerivedStats {
+	derived := DerivedStats{
+		DistanceKm:    distanceM / 1000.0,
+		DistanceMiles: distanceM / 1609.344, // 1 mile = 1609.344 meters
+	}
+
+	if speedMs > 0 {
+		switch activityType {
+		case "road_bike":
+			// For bike activities, show speed in km/h and mph
+			speedKmh := speedMs * 3.6      // m/s to km/h
+			speedMph := speedMs * 2.236936 // m/s to mph
+			derived.SpeedKmh = &speedKmh
+			derived.SpeedMph = &speedMph
+		case "run":
+			// For running activities, show pace in seconds per km and per mile
+			paceSPerKm := 1000.0 / speedMs     // seconds per km
+			paceSPerMile := 1609.344 / speedMs // seconds per mile
+			derived.PaceSPerKm = &paceSPerKm
+			derived.PaceSPerMile = &paceSPerMile
+		}
+	}
+
+	return derived
 }
