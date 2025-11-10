@@ -1,14 +1,45 @@
+class DerivedStats {
+  final double? speedKmh;
+  final double? speedMph;
+  final double? paceSPerKm;
+  final double? paceSPerMile;
+  final double distanceKm;
+  final double distanceMiles;
+
+  DerivedStats({
+    this.speedKmh,
+    this.speedMph,
+    this.paceSPerKm,
+    this.paceSPerMile,
+    required this.distanceKm,
+    required this.distanceMiles,
+  });
+
+  factory DerivedStats.fromJson(Map<String, dynamic> json) {
+    return DerivedStats(
+      speedKmh: json['speed_kmh']?.toDouble(),
+      speedMph: json['speed_mph']?.toDouble(),
+      paceSPerKm: json['pace_s_per_km']?.toDouble(),
+      paceSPerMile: json['pace_s_per_mile']?.toDouble(),
+      distanceKm: (json['distance_km'] as num).toDouble(),
+      distanceMiles: (json['distance_miles'] as num).toDouble(),
+    );
+  }
+}
+
 class ActivityStats {
   final double elapsedSeconds;
   final double avgSpeedMs;
   final double elevationGainM;
   final double distanceM;
+  final DerivedStats derived;
 
   ActivityStats({
     required this.elapsedSeconds,
     required this.avgSpeedMs,
     required this.elevationGainM,
     required this.distanceM,
+    required this.derived,
   });
 
   factory ActivityStats.fromJson(Map<String, dynamic> json) {
@@ -17,6 +48,7 @@ class ActivityStats {
       avgSpeedMs: (json['avg_speed_ms'] as num).toDouble(),
       elevationGainM: (json['elevation_gain_m'] as num).toDouble(),
       distanceM: (json['distance_m'] as num).toDouble(),
+      derived: DerivedStats.fromJson(json['derived'] as Map<String, dynamic>),
     );
   }
 }
@@ -113,8 +145,9 @@ class Activity {
     );
   }
 
-  // Helper getters for display
-  double get distanceKm => stats?.distanceM != null ? stats!.distanceM / 1000 : 0.0;
+  // Helper getters for display using derived data
+  double get distanceKm => stats?.derived.distanceKm ?? 0.0;
+  double get distanceMiles => stats?.derived.distanceMiles ?? 0.0;
   
   String get formattedDistance => '${distanceKm.toStringAsFixed(2)} Km';
   
@@ -128,5 +161,30 @@ class Activity {
       return '$hours hr $minutes min';
     }
     return '$minutes min';
+  }
+
+  // helper getters for speed and pace
+  String get formattedSpeed {
+    if (stats?.derived.speedKmh != null) {
+      return '${stats!.derived.speedKmh!.toStringAsFixed(1)} km/h';
+    } else if (stats?.derived.speedMph != null) {
+      return '${stats!.derived.speedMph!.toStringAsFixed(1)} mph';
+    }
+    return 'N/A';
+  }
+
+  String get formattedPace {
+    if (stats?.derived.paceSPerKm != null) {
+      final paceSec = stats!.derived.paceSPerKm!;
+      final minutes = paceSec ~/ 60;
+      final seconds = (paceSec % 60).round();
+      return '$minutes:${seconds.toString().padLeft(2, '0')}/km';
+    } else if (stats?.derived.paceSPerMile != null) {
+      final paceSec = stats!.derived.paceSPerMile!;
+      final minutes = paceSec ~/ 60;
+      final seconds = (paceSec % 60).round();
+      return '$minutes:${seconds.toString().padLeft(2, '0')}/mi';
+    }
+    return 'N/A';
   }
 }

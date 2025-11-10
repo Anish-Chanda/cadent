@@ -42,21 +42,26 @@ class ActivityCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Row(
                   children: [
+                    // Distance - left aligned with title
                     _buildStat(
                       icon: Icons.straighten,
                       label: 'Distance',
                       value: activity.formattedDistance,
                     ),
-                    const SizedBox(width: 24),
-                    _buildStat(
-                      icon: Icons.terrain,
-                      label: 'Elevation',
-                      value: activity.formattedElevation,
+                    // Flexible space for center alignment
+                    Expanded(
+                      child: Center(
+                        child: _buildStat(
+                          icon: Icons.terrain,
+                          label: 'Elevation',
+                          value: activity.formattedElevation,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 24),
+                    // Time - right aligned with padding
                     _buildStat(
                       icon: Icons.access_time,
                       label: 'Time',
@@ -151,9 +156,10 @@ class ActivityCard extends StatelessWidget {
 
   Widget _buildStat({required IconData icon, required String label, required String value}) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 16, color: Colors.grey[600]),
             const SizedBox(width: 4),
@@ -174,6 +180,7 @@ class ActivityCard extends StatelessWidget {
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
