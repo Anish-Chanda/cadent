@@ -185,35 +185,25 @@ class RecordingSessionModel {
     return RecordingSessionModel();
   }
 
-  /// Returns a copy of the model with the new state
-  RecordingSessionModel copyWithState(RecordingState newState) {
-    return RecordingSessionModel(
-      state: newState,
-      positions: List.from(_positions),
-      totalDistanceMeters: _totalDistanceMeters,
-      elapsedSeconds: _elapsedSeconds,
-      startTime: _startTime,
-      lastPosition: _lastPosition,
-      activityType: _activityType,
-      title: _title,
-      description: _description,
-    );
-  }
-
-  /// Returns a copy of the model with updated title and description
+  /// Returns a copy of the model with updated fields
   RecordingSessionModel copyWith({
     RecordingState? state,
+    List<Position>? positions,
+    double? totalDistanceMeters,
+    int? elapsedSeconds,
+    DateTime? startTime,
+    Position? lastPosition,
     WorkoutType? activityType,
     String? title,
     String? description,
   }) {
     return RecordingSessionModel(
       state: state ?? _state,
-      positions: List.from(_positions),
-      totalDistanceMeters: _totalDistanceMeters,
-      elapsedSeconds: _elapsedSeconds,
-      startTime: _startTime,
-      lastPosition: _lastPosition,
+      positions: positions ?? List.from(_positions),
+      totalDistanceMeters: totalDistanceMeters ?? _totalDistanceMeters,
+      elapsedSeconds: elapsedSeconds ?? _elapsedSeconds,
+      startTime: startTime ?? _startTime,
+      lastPosition: lastPosition ?? _lastPosition,
       activityType: activityType ?? _activityType,
       title: title ?? _title,
       description: description ?? _description,

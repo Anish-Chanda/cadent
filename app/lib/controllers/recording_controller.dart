@@ -145,24 +145,13 @@ class RecordingController extends ChangeNotifier {
 
   /// Private method to update model state
   void _updateModelState(RecordingState newState) {
-    _model = _model.copyWithState(newState);
+    _model = _model.copyWith(state: newState);
     notifyListeners();
   }
 
   /// Private method to set start time
   void _setStartTime(DateTime time) {
-    // Create new model with updated start time
-    _model = RecordingSessionModel(
-      state: _model.state,
-      positions: _model.positions,
-      totalDistanceMeters: _model.totalDistanceMeters,
-      elapsedSeconds: _model.elapsedSeconds,
-      startTime: time,
-      lastPosition: _model.lastPosition,
-      activityType: _model.activityType,
-      title: _model.title,
-      description: _model.description,
-    );
+    _model = _model.copyWith(startTime: time);
   }
 
   /// Starts the timer for elapsed time tracking
@@ -170,18 +159,7 @@ class RecordingController extends ChangeNotifier {
     _stopTimer(); // Ensure no duplicate timers
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_model.isRecording) {
-        // Create new model with incremented time
-        _model = RecordingSessionModel(
-          state: _model.state,
-          positions: _model.positions,
-          totalDistanceMeters: _model.totalDistanceMeters,
-          elapsedSeconds: _model.elapsedSeconds + 1,
-          startTime: _model.startTime,
-          lastPosition: _model.lastPosition,
-          activityType: _model.activityType,
-          title: _model.title,
-          description: _model.description,
-        );
+        _model = _model.copyWith(elapsedSeconds: _model.elapsedSeconds + 1);
         notifyListeners();
       }
     });
@@ -272,17 +250,11 @@ class RecordingController extends ChangeNotifier {
         totalDistance += distance;
       }
 
-      // Create new model with updated data
-      _model = RecordingSessionModel(
-        state: _model.state,
+      // Update model using copyWith for consistency
+      _model = _model.copyWith(
         positions: positions,
         totalDistanceMeters: totalDistance,
-        elapsedSeconds: _model.elapsedSeconds,
-        startTime: _model.startTime,
         lastPosition: position,
-        activityType: _model.activityType,
-        title: _model.title,
-        description: _model.description,
       );
 
       notifyListeners();

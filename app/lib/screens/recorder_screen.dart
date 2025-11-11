@@ -67,8 +67,6 @@ class _RecorderScreenState extends State<RecorderScreen> {
       } else {
         log('No map controller or no positions available');
       }
-    } else {
-      log('Map updates skipped - card is expanded');
     }
   }
 
@@ -693,29 +691,11 @@ class _RecorderScreenState extends State<RecorderScreen> {
               Row(
                 children: [
                   // Pause/Resume Button - show when recording or paused
-                  if (model.isRecording || model.isPaused)
-                    GestureDetector(
-                      onTap: () {
-                        if (model.isRecording) {
-                          _pauseRecording();
-                        } else if (model.isPaused) {
-                          _resumeRecording();
-                        }
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: model.isRecording ? Colors.orange : Colors.blue,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(
-                          model.isRecording ? Icons.pause : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
+                  _RecordingControlButton(
+                    model: model,
+                    onPause: _pauseRecording,
+                    onResume: _resumeRecording,
+                  ),
 
                   // Finish Button - show when recording or paused
                   if (model.isRecording || model.isPaused) ...[
@@ -1077,5 +1057,47 @@ class _RecorderScreenState extends State<RecorderScreen> {
     }
 
     return const SizedBox.shrink();
+  }
+}
+
+class _RecordingControlButton extends StatelessWidget {
+  final RecordingSessionModel model;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+
+  const _RecordingControlButton({
+    required this.model,
+    required this.onPause,
+    required this.onResume,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!model.isRecording && !model.isPaused) {
+      return const SizedBox.shrink();
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (model.isRecording) {
+          onPause();
+        } else if (model.isPaused) {
+          onResume();
+        }
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: model.isRecording ? Colors.orange : Colors.blue,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Icon(
+          model.isRecording ? Icons.pause : Icons.play_arrow,
+          color: Colors.white,
+          size: 20,
+        ),
+      ),
+    );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -20,6 +22,7 @@ class LocationPermissionService {
       return permission == LocationPermission.whileInUse || 
              permission == LocationPermission.always;
     } catch (e) {
+      log('Error checking location permissions: $e');
       return false;
     }
   }
@@ -33,6 +36,7 @@ class LocationPermissionService {
       bool serviceEnabled = await _geolocatorPlatform.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (context != null && context.mounted) {
+          //TODO: create a centralized way to show these messages
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Location services are disabled. Please enable them in settings.'),
