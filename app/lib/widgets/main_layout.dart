@@ -1,3 +1,4 @@
+import 'package:cadence/screens/recorder_screen.dart';
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
 import '../screens/settings_screen.dart';
@@ -24,9 +25,10 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _onRecordTapped() {
-    // TODO: Implement record activity functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Record activity coming soon!')),
+    // navigate to recorder screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RecorderScreen()),
     );
   }
 
@@ -44,7 +46,7 @@ class _MainLayoutState extends State<MainLayout> {
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
-        child: Container(
+        child: SizedBox(
           height: 60,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
