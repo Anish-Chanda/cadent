@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/activity.dart';
 import '../utils/polyline_decoder.dart';
+import '../screens/activity_detail_screen.dart';
 
 class ActivityCard extends StatelessWidget {
   final Activity activity;
@@ -11,63 +12,77 @@ class ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Map section
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
-            child: SizedBox(
-              height: 200,
-              child: _buildMap(),
-            ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailScreen(activity: activity),
           ),
-          // Content section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Map section
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+              child: SizedBox(
+                height: 200,
+                child: _buildMap(),
+              ),
+            ),
+            // Content section
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildStat(
-                      icon: Icons.straighten,
-                      label: 'Distance',
-                      value: activity.formattedDistance,
-                    ),
-                    const SizedBox(width: 24),
-                    _buildStat(
-                      icon: Icons.terrain,
-                      label: 'Elevation',
-                      value: activity.formattedElevation,
-                    ),
-                    const SizedBox(width: 24),
-                    _buildStat(
-                      icon: Icons.access_time,
-                      label: 'Time',
-                      value: activity.formattedDuration,
-                    ),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      // Distance - left aligned with title
+                      _buildStat(
+                        icon: Icons.straighten,
+                        label: 'Distance',
+                        value: activity.formattedDistance,
+                      ),
+                      // Flexible space for center alignment
+                      Expanded(
+                        child: Center(
+                          child: _buildStat(
+                            icon: Icons.terrain,
+                            label: 'Elevation',
+                            value: activity.formattedElevation,
+                          ),
+                        ),
+                      ),
+                      // Time - right aligned with padding
+                      _buildStat(
+                        icon: Icons.access_time,
+                        label: 'Time',
+                        value: activity.formattedDuration,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -151,9 +166,10 @@ class ActivityCard extends StatelessWidget {
 
   Widget _buildStat({required IconData icon, required String label, required String value}) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 16, color: Colors.grey[600]),
             const SizedBox(width: 4),
@@ -174,6 +190,7 @@ class ActivityCard extends StatelessWidget {
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
