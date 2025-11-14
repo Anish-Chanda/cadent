@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import './providers/auth_provider.dart';
 import './providers/activities_provider.dart';
+import '../controllers/settings_controller.dart';
 import './providers/theme_provider.dart';
 import './router.dart';
 import './utils/app_theme.dart';
@@ -18,6 +19,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+        ChangeNotifierProvider(create: (_) => AppSettingsController()),
         ChangeNotifierProvider(
           create: (_) => ThemeProvider(AppTheme.lightTheme),
         ),
