@@ -110,25 +110,30 @@ class SettingsScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 32),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text(
-                    'Sign Out',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  onTap: () async {
-                    try {
-                      await auth.logout();
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error signing out: $e')),
-                        );
-                      }
-                    }
-                  },
-                ),
+              Consumer<AppSettingsController>(
+                builder: (context, settingsController, child) {
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.logout, color: Colors.red),
+                      title: const Text(
+                        'Sign Out',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      onTap: () async {
+                        try {
+                          await auth.logout();
+                          await settingsController.resetToDefaults();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error signing out: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  );
+                },
               ),
             ],
           );
