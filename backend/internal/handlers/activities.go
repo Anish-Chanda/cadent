@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/anish-chanda/cadence/backend/internal/db"
+	"github.com/anish-chanda/cadence/backend/internal/geo"
 	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/models"
 	"github.com/anish-chanda/cadence/backend/internal/store"
@@ -40,6 +41,9 @@ type ActivityStats struct {
 	ElapsedSeconds float64      `json:"elapsed_seconds"`
 	AvgSpeedMs     float64      `json:"avg_speed_ms"`     // meters per second (SI unit)
 	ElevationGainM float64      `json:"elevation_gain_m"` // elevation gain in meters
+	ElevationLossM float64      `json:"elevation_loss_m"` // elevation loss in meters
+	MaxHeightM     float64      `json:"max_height_m"`     // maximum height in meters
+	MinHeightM     float64      `json:"min_height_m"`     // minimum height in meters
 	DistanceM      float64      `json:"distance_m"`       // distance in meters
 	Derived        DerivedStats `json:"derived"`
 }
@@ -113,192 +117,34 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 			return
 		}
 
-		// Get authenticated user information using go-pkgz/auth token package
-		user, err := token.GetUserInfo(r)
+		// Get authenticated user ID
+		userID, err := getAuthenticatedUserID(ctx, r, database, log)
 		if err != nil {
-			log.Error("Failed to get user info from token", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		// The go-pkgz/auth package generates its own user IDs, but we need to map to our database user ID
-		// Extract email from the token (stored as "Name" field by go-pkgz/authfor  local provider)
-		userEmail := user.Name
-		if userEmail == "" {
-			log.Error("No email found in user token", nil)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
+		log.Debug(fmt.Sprintf("Processing activity for user: %s", userID))
 
-		// Look up the actual database user ID using the email
-		dbUser, err := database.GetUserByEmail(ctx, userEmail)
-		if err != nil {
-			log.Error("Failed to get user from database", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-		if dbUser == nil {
-			log.Error("User not found in database", nil)
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
+		// Process GPS data to create polyline and calculate metrics
+		polyline, totalDistance, bounds := processGPSData(req.Samples)
 
-		userID := dbUser.ID
-		log.Debug(fmt.Sprintf("Processing activity for user: %s (%s)", userID, userEmail))
+		// Get elevation data from Valhalla
+		elevationData := getElevationData(ctx, valhallaClient, polyline, log)
 
-		// Convert ms to seconds
-		beginTimeS := req.Samples[0].T / 1000
+		// Calculate time-based metrics
+		elapsedSeconds := calculateElapsedSeconds(req.Samples)
+		avgSpeedMs := calculateAverageSpeed(totalDistance, elapsedSeconds)
 
-		// Build shape with per-point time (seconds)
-		points := make([]valhalla.GPSPoint, 0, len(req.Samples))
-		for _, s := range req.Samples {
-			sec := s.T / 1000
-			t := sec
-			points = append(points, valhalla.GPSPoint{
-				Lat:  s.Lat,
-				Lon:  s.Lon,
-				Time: &t,
-			})
-		}
+		// Create activity model
+		activity := buildActivityModel(req, userID, polyline, totalDistance, bounds, elevationData, elapsedSeconds, avgSpeedMs)
 
-		// Durations array (seconds, non-negative)
-		durations := make([]int, 0, len(req.Samples)-1)
-		for i := 0; i+1 < len(req.Samples); i++ {
-			d := (req.Samples[i+1].T - req.Samples[i].T) / 1000
-			if d < 0 {
-				d = 0
-			}
-			durations = append(durations, int(d))
-		}
-
-		useTS := true
-		sm := valhalla.ShapeMatchMapSnap
-
-		traceReq := valhalla.TraceRouteRequest{
-			Shape:         points,
-			ShapeMatch:    &sm,
-			Costing:       valhalla.CostingBicycle,
-			BeginTime:     &beginTimeS,
-			Durations:     durations,
-			UseTimestamps: &useTS,
-		}
-
-		resp, err := valhallaClient.TraceRoute(ctx, traceReq)
-		if err != nil {
-			http.Error(w, "Failed to process GPS data", http.StatusInternalServerError)
-			return
-		}
-
-		baseResult := valhalla.ProcessTraceResponse(resp)
-
-		// Get elevation data using the polyline
-		heightReq := valhalla.HeightRequest{
-			Range:           true,
-			EncodedPolyline: baseResult.Polyline,
-		}
-
-		heightResp, err := valhallaClient.GetHeight(ctx, heightReq)
-		if err != nil {
-			// Log error but don't fail the request - elevation is optional
-			// In production, you might want to use proper logging here
-			heightResp = nil
-		}
-
-		// Calculate elevation gain
-		var elevationGain *float64
-		if heightResp != nil {
-			gain := valhalla.CalculateElevationGain(heightResp)
-			if gain > 0 {
-				elevationGain = &gain
-			}
-		}
-
-		// Update base result with elevation gain
-		baseResult.ElevationGainM = elevationGain
-
-		// Elapsed seconds from device timestamps (ms -> s)
-		elapsedSeconds := math.Max(0, float64(req.Samples[len(req.Samples)-1].T-req.Samples[0].T)/1000.0)
-
-		// Calculate average speeds
-		var avgSpeedMs float64
-		if elapsedSeconds > 0 {
-			avgSpeedMs = baseResult.DistanceMeters / elapsedSeconds // meters per second (SI unit)
-		}
-
-		// Create activity model for database
-		now := time.Now()
-		startTime := time.Unix(req.Samples[0].T/1000, 0)
-		endTime := time.Unix(req.Samples[len(req.Samples)-1].T/1000, 0)
-
-		activity := &models.Activity{
-			ID:               uuid.New(),
-			UserID:           userID,
-			ClientActivityID: req.ClientActivityID,
-			Title:            req.Title,
-			Description:      req.Description,
-			ActivityType:     models.ActivityType(req.ActivityType),
-			StartTime:        startTime,
-			EndTime:          &endTime,
-			ElapsedTime:      int(elapsedSeconds),
-			DistanceM:        baseResult.DistanceMeters,
-			ElevationGainM:   elevationGain,
-			AvgSpeedMps:      &avgSpeedMs,
-			ProcessingVer:    1,
-			Polyline:         &baseResult.Polyline,
-			CreatedAt:        now,
-			UpdatedAt:        now,
-		}
-
-		// Set bounding box coordinates
-		if bbox := baseResult.BBox; bbox != nil {
-			if minLat, ok := bbox["min_lat"]; ok {
-				activity.BBoxMinLat = &minLat
-			}
-			if minLon, ok := bbox["min_lon"]; ok {
-				activity.BBoxMinLon = &minLon
-			}
-			if maxLat, ok := bbox["max_lat"]; ok {
-				activity.BBoxMaxLat = &maxLat
-			}
-			if maxLon, ok := bbox["max_lon"]; ok {
-				activity.BBoxMaxLon = &maxLon
-			}
-		}
-
-		// Set start/end coordinates
-		if start := baseResult.Start; start != nil {
-			if lat, ok := start["lat"]; ok {
-				activity.StartLat = &lat
-			}
-			if lon, ok := start["lon"]; ok {
-				activity.StartLon = &lon
-			}
-		}
-		if end := baseResult.End; end != nil {
-			if lat, ok := end["lat"]; ok {
-				activity.EndLat = &lat
-			}
-			if lon, ok := end["lon"]; ok {
-				activity.EndLon = &lon
-			}
-		}
-
-		// Set Valhalla metadata
-		activity.NumLegs = &baseResult.NumLegs
-		activity.NumAlternates = &baseResult.NumAlternates
-		activity.NumPointsPoly = &baseResult.NumPointsPoly
-		activity.ValDurationSeconds = &baseResult.ValDurationSeconds
-
-		// Create and store FIT file, get the object key
-		objectKey := fmt.Sprintf("activities/%s/%s.fit", activity.UserID, activity.ID.String())
-		if err := createFITFile(ctx, activity, req.Samples, objectStore, log); err != nil {
+		// Create and store FIT file
+		if err := createAndStoreFITFile(ctx, activity, req.Samples, objectStore, log); err != nil {
 			log.Error("Failed to create FIT file", err)
 			http.Error(w, "Failed to create FIT file", http.StatusInternalServerError)
 			return
 		}
-
-		// Set the file URL
-		activity.FileURL = &objectKey
 
 		// Save to database
 		if err := database.CreateActivity(ctx, activity); err != nil {
@@ -307,109 +153,258 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 			return
 		}
 
-		// Return the processing result (not the full database model)
-		result := ActivityResult{
-			ID:    activity.ID.String(),
-			Title: activity.Title,
-			Description: func() string {
-				if activity.Description != nil {
-					return *activity.Description
-				}
-				return ""
-			}(),
-			Type:          string(activity.ActivityType),
-			StartTime:     activity.StartTime,
-			EndTime:       activity.EndTime,
-			ProcessingVer: activity.ProcessingVer,
-			Stats: ActivityStats{
-				ElapsedSeconds: elapsedSeconds,
-				AvgSpeedMs:     avgSpeedMs,
-				ElevationGainM: func() float64 {
-					if elevationGain != nil {
-						return *elevationGain
-					}
-					return 0
-				}(),
-				DistanceM: baseResult.DistanceMeters,
-				Derived:   calculateDerivedStats(req.ActivityType, avgSpeedMs, baseResult.DistanceMeters),
-			},
-			BBox: BoundingBox{
-				MinLat: func() float64 {
-					if bbox := baseResult.BBox; bbox != nil {
-						if val, ok := bbox["min_lat"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-				MaxLat: func() float64 {
-					if bbox := baseResult.BBox; bbox != nil {
-						if val, ok := bbox["max_lat"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-				MinLon: func() float64 {
-					if bbox := baseResult.BBox; bbox != nil {
-						if val, ok := bbox["min_lon"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-				MaxLon: func() float64 {
-					if bbox := baseResult.BBox; bbox != nil {
-						if val, ok := bbox["max_lon"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-			},
-			Start: Coordinate{
-				Lat: func() float64 {
-					if start := baseResult.Start; start != nil {
-						if val, ok := start["lat"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-				Lon: func() float64 {
-					if start := baseResult.Start; start != nil {
-						if val, ok := start["lon"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-			},
-			End: Coordinate{
-				Lat: func() float64 {
-					if end := baseResult.End; end != nil {
-						if val, ok := end["lat"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-				Lon: func() float64 {
-					if end := baseResult.End; end != nil {
-						if val, ok := end["lon"]; ok {
-							return val
-						}
-					}
-					return 0
-				}(),
-			},
-			Polyline:  baseResult.Polyline,
-			CreatedAt: activity.CreatedAt,
-			UpdatedAt: activity.UpdatedAt,
-		}
+		log.Debug(fmt.Sprintf("Created activity: %s for user: %s", activity.ID.String(), userID))
 
+		// Build and return response
+		result := createActivityResult(activity)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(result)
+	}
+}
+
+// Helper function to extract and validate authenticated user ID
+func getAuthenticatedUserID(ctx context.Context, r *http.Request, database db.Database, log logger.ServiceLogger) (string, error) {
+	user, err := token.GetUserInfo(r)
+	if err != nil {
+		log.Error("Failed to get user info from token", err)
+		return "", fmt.Errorf("Unauthorized")
+	}
+
+	// the goauth package stores email in Name field for local provider
+	userEmail := user.Name
+	if userEmail == "" {
+		log.Error("No email found in user token", nil)
+		return "", fmt.Errorf("Unauthorized")
+	}
+
+	dbUser, err := database.GetUserByEmail(ctx, userEmail)
+	if err != nil {
+		log.Error("Failed to get user from database", err)
+		return "", fmt.Errorf("Internal server error")
+	}
+	if dbUser == nil {
+		log.Error("User not found in database", nil)
+		return "", fmt.Errorf("User not found")
+	}
+
+	return dbUser.ID, nil
+}
+
+// Helper functions for null handling
+func floatOrDefault(ptr *float64, defaultVal float64) float64 {
+	if ptr != nil {
+		return *ptr
+	}
+	return defaultVal
+}
+
+func stringOrDefault(ptr *string, defaultVal string) string {
+	if ptr != nil {
+		return *ptr
+	}
+	return defaultVal
+}
+
+// BoundingBox represents geographical bounds
+type Bounds struct {
+	MinLat float64
+	MaxLat float64
+	MinLon float64
+	MaxLon float64
+}
+
+// Helper function to process GPS data and generate polyline, distance, and bounds
+func processGPSData(samples []Sample) (string, float64, Bounds) {
+	// Convert samples to geo.Point format
+	geoPoints := make([]geo.Point, 0, len(samples))
+	for _, s := range samples {
+		geoPoints = append(geoPoints, geo.Point{
+			Lat: s.Lat,
+			Lon: s.Lon,
+		})
+	}
+
+	// Create polyline directly from GPS points
+	polyline := geo.Encode6(geoPoints)
+
+	// Calculate total distance using Haversine formula
+	var totalDistance float64
+	for i := 1; i < len(samples); i++ {
+		prev := samples[i-1]
+		curr := samples[i]
+		distance := haversineDistance(prev.Lat, prev.Lon, curr.Lat, curr.Lon)
+		totalDistance += distance
+	}
+
+	// Calculate bounding box
+	bounds := Bounds{
+		MinLat: samples[0].Lat,
+		MaxLat: samples[0].Lat,
+		MinLon: samples[0].Lon,
+		MaxLon: samples[0].Lon,
+	}
+
+	for _, s := range samples {
+		if s.Lat < bounds.MinLat {
+			bounds.MinLat = s.Lat
+		}
+		if s.Lat > bounds.MaxLat {
+			bounds.MaxLat = s.Lat
+		}
+		if s.Lon < bounds.MinLon {
+			bounds.MinLon = s.Lon
+		}
+		if s.Lon > bounds.MaxLon {
+			bounds.MaxLon = s.Lon
+		}
+	}
+
+	return polyline, totalDistance, bounds
+}
+
+// Helper function to get elevation data from Valhalla
+func getElevationData(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log logger.ServiceLogger) *valhalla.ElevationChange {
+	heightReq := valhalla.HeightRequest{
+		Range:           false, // range off
+		EncodedPolyline: polyline,
+		HeightPrecision: 2, // Request 2 decimal places precision
+	}
+
+	heightResp, err := valhallaClient.GetHeight(ctx, heightReq)
+	if err != nil {
+		log.Error("Failed to get height data from Valhalla", err)
+		return nil
+	}
+
+	// Calculate elevation change from height response with 2.0m threshold
+	elevationChangeResult := valhalla.CalculateElevationChange(heightResp, 2.0)
+	log.Debug(fmt.Sprintf("Calculated elevation - Gain: %.2f m, Loss: %.2f m, Max: %.2f m, Min: %.2f m",
+		elevationChangeResult.GainMeters, elevationChangeResult.LossMeters, elevationChangeResult.MaxHeight, elevationChangeResult.MinHeight))
+
+	return &elevationChangeResult
+}
+
+// Helper function to calculate elapsed time from samples
+func calculateElapsedSeconds(samples []Sample) float64 {
+	if len(samples) < 2 {
+		return 0
+	}
+	return math.Max(0, float64(samples[len(samples)-1].T-samples[0].T)/1000.0)
+}
+
+// Helper function to calculate average speed
+func calculateAverageSpeed(distanceMeters, elapsedSeconds float64) float64 {
+	if elapsedSeconds > 0 {
+		// TODO: this should use moving time in the future
+		return distanceMeters / elapsedSeconds // meters per second (SI unit)
+	}
+	return 0
+}
+
+// Helper function to build the Activity model
+func buildActivityModel(req CreateActivityRequest, userID string, polyline string, totalDistance float64, bounds Bounds, elevationData *valhalla.ElevationChange, elapsedSeconds, avgSpeedMs float64) *models.Activity {
+	now := time.Now()
+	startTime := time.Unix(req.Samples[0].T/1000, 0)
+	endTime := time.Unix(req.Samples[len(req.Samples)-1].T/1000, 0)
+
+	activity := &models.Activity{
+		ID:               uuid.New(),
+		UserID:           userID,
+		ClientActivityID: req.ClientActivityID,
+		Title:            req.Title,
+		Description:      req.Description,
+		ActivityType:     models.ActivityType(req.ActivityType),
+		StartTime:        startTime,
+		EndTime:          &endTime,
+		ElapsedTime:      int(elapsedSeconds),
+		DistanceM:        totalDistance,
+		AvgSpeedMps:      &avgSpeedMs,
+		ProcessingVer:    1,
+		Polyline:         &polyline,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+
+		// Set bounding box coordinates
+		BBoxMinLat: &bounds.MinLat,
+		BBoxMinLon: &bounds.MinLon,
+		BBoxMaxLat: &bounds.MaxLat,
+		BBoxMaxLon: &bounds.MaxLon,
+
+		// Set start/end coordinates
+		StartLat: &req.Samples[0].Lat,
+		StartLon: &req.Samples[0].Lon,
+		EndLat:   &req.Samples[len(req.Samples)-1].Lat,
+		EndLon:   &req.Samples[len(req.Samples)-1].Lon,
+	}
+
+	// Set elevation data if available
+	if elevationData != nil {
+		activity.ElevationGainM = &elevationData.GainMeters
+		activity.ElevationLossM = &elevationData.LossMeters
+		activity.MaxHeightM = &elevationData.MaxHeight
+		activity.MinHeightM = &elevationData.MinHeight
+	}
+
+	return activity
+}
+
+// Helper function to create and store FIT file
+func createAndStoreFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log logger.ServiceLogger) error {
+	objectKey := fmt.Sprintf("activities/%s/%s.fit", activity.UserID, activity.ID.String())
+
+	if err := createFITFile(ctx, activity, samples, objectStore, log); err != nil {
+		return err
+	}
+
+	// Set the file URL
+	activity.FileURL = &objectKey
+	return nil
+}
+
+// createActivityResult creates an ActivityResult from the Activity model only
+// This function should be used in both HTTP handlers to reduce duplication
+func createActivityResult(activity *models.Activity) ActivityResult {
+	// Calculate elapsed seconds from the activity timestamps
+	elapsedSeconds := float64(activity.ElapsedTime)
+
+	// Calculate average speed from stored data
+	avgSpeedMs := floatOrDefault(activity.AvgSpeedMps, 0.0)
+
+	return ActivityResult{
+		ID:            activity.ID.String(),
+		Title:         activity.Title,
+		Description:   stringOrDefault(activity.Description, ""),
+		Type:          string(activity.ActivityType),
+		StartTime:     activity.StartTime,
+		EndTime:       activity.EndTime,
+		ProcessingVer: activity.ProcessingVer,
+		Stats: ActivityStats{
+			ElapsedSeconds: elapsedSeconds,
+			AvgSpeedMs:     avgSpeedMs,
+			ElevationGainM: floatOrDefault(activity.ElevationGainM, 0),
+			ElevationLossM: floatOrDefault(activity.ElevationLossM, 0),
+			MaxHeightM:     floatOrDefault(activity.MaxHeightM, 0),
+			MinHeightM:     floatOrDefault(activity.MinHeightM, 0),
+			DistanceM:      activity.DistanceM,
+			Derived:        calculateDerivedStats(string(activity.ActivityType), avgSpeedMs, activity.DistanceM),
+		},
+		BBox: BoundingBox{
+			MinLat: floatOrDefault(activity.BBoxMinLat, 0),
+			MaxLat: floatOrDefault(activity.BBoxMaxLat, 0),
+			MinLon: floatOrDefault(activity.BBoxMinLon, 0),
+			MaxLon: floatOrDefault(activity.BBoxMaxLon, 0),
+		},
+		Start: Coordinate{
+			Lat: floatOrDefault(activity.StartLat, 0),
+			Lon: floatOrDefault(activity.StartLon, 0),
+		},
+		End: Coordinate{
+			Lat: floatOrDefault(activity.EndLat, 0),
+			Lon: floatOrDefault(activity.EndLon, 0),
+		},
+		Polyline:  stringOrDefault(activity.Polyline, ""),
+		CreatedAt: activity.CreatedAt,
+		UpdatedAt: activity.UpdatedAt,
 	}
 }
 
@@ -417,37 +412,12 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
-		// Get authenticated user information using go-pkgz/auth token package
-		user, err := token.GetUserInfo(r)
+		// Get authenticated user ID using the same helper function
+		userID, err := getAuthenticatedUserID(ctx, r, database, log)
 		if err != nil {
-			log.Error("Failed to get user info from token", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-
-		// The go-pkgz/auth package generates its own user IDs, but we need to map to our database user ID
-		// Extract email from the token (stored as "Name" field by go-pkgz/auth local provider)
-		userEmail := user.Name
-		if userEmail == "" {
-			log.Error("No email found in user token", nil)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		// Look up the actual database user ID using the email
-		dbUser, err := database.GetUserByEmail(ctx, userEmail)
-		if err != nil {
-			log.Error("Failed to get user from database", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-		if dbUser == nil {
-			log.Error("User not found in database", nil)
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-
-		userID := dbUser.ID
 
 		// Get user's activities from database
 		activities, err := database.GetActivitiesByUserID(ctx, userID)
@@ -457,105 +427,11 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 			return
 		}
 
-		// Transform activities to the response format
+		// Transform activities to the response format using the unified helper function
 		// Initialize as empty slice to ensure we always return [] instead of null
 		results := make([]ActivityResult, 0, len(activities))
 		for _, activity := range activities {
-			avgSpeedMs := func() float64 {
-				if activity.AvgSpeedMps != nil {
-					return *activity.AvgSpeedMps
-				}
-				return 0.0
-			}()
-
-			result := ActivityResult{
-				ID:    activity.ID.String(),
-				Title: activity.Title,
-				Description: func() string {
-					if activity.Description != nil {
-						return *activity.Description
-					}
-					return ""
-				}(),
-				Type:          string(activity.ActivityType),
-				StartTime:     activity.StartTime,
-				EndTime:       activity.EndTime,
-				ProcessingVer: activity.ProcessingVer,
-				Stats: ActivityStats{
-					ElapsedSeconds: float64(activity.ElapsedTime),
-					AvgSpeedMs:     avgSpeedMs,
-					ElevationGainM: func() float64 {
-						if activity.ElevationGainM != nil {
-							return *activity.ElevationGainM
-						}
-						return 0.0
-					}(),
-					DistanceM: activity.DistanceM,
-					Derived:   calculateDerivedStats(string(activity.ActivityType), avgSpeedMs, activity.DistanceM),
-				},
-				BBox: BoundingBox{
-					MinLat: func() float64 {
-						if activity.BBoxMinLat != nil {
-							return *activity.BBoxMinLat
-						}
-						return 0.0
-					}(),
-					MaxLat: func() float64 {
-						if activity.BBoxMaxLat != nil {
-							return *activity.BBoxMaxLat
-						}
-						return 0.0
-					}(),
-					MinLon: func() float64 {
-						if activity.BBoxMinLon != nil {
-							return *activity.BBoxMinLon
-						}
-						return 0.0
-					}(),
-					MaxLon: func() float64 {
-						if activity.BBoxMaxLon != nil {
-							return *activity.BBoxMaxLon
-						}
-						return 0.0
-					}(),
-				},
-				Start: Coordinate{
-					Lat: func() float64 {
-						if activity.StartLat != nil {
-							return *activity.StartLat
-						}
-						return 0.0
-					}(),
-					Lon: func() float64 {
-						if activity.StartLon != nil {
-							return *activity.StartLon
-						}
-						return 0.0
-					}(),
-				},
-				End: Coordinate{
-					Lat: func() float64 {
-						if activity.EndLat != nil {
-							return *activity.EndLat
-						}
-						return 0.0
-					}(),
-					Lon: func() float64 {
-						if activity.EndLon != nil {
-							return *activity.EndLon
-						}
-						return 0.0
-					}(),
-				},
-				Polyline: func() string {
-					if activity.Polyline != nil {
-						return *activity.Polyline
-					}
-					return ""
-				}(),
-				CreatedAt: activity.CreatedAt,
-				UpdatedAt: activity.UpdatedAt,
-			}
+			result := createActivityResult(&activity)
 			results = append(results, result)
 		}
 

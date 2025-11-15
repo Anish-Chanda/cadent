@@ -15,6 +15,9 @@ CREATE TABLE activities (
     elapsed_time integer NOT NULL, -- elapsed time in seconds
     distance_m numeric(12, 2) NOT NULL, -- distance in meters
     elevation_gain_m numeric(10, 2), -- elevation gain in meters (nullable for indoor activities)
+    elevation_loss_m numeric(10, 2), -- elevation loss in meters (nullable for indoor activities)
+    max_height_m numeric(10, 2), -- maximum height in meters (nullable for indoor activities)
+    min_height_m numeric(10, 2), -- minimum height in meters (nullable for indoor activities)
     avg_speed_mps numeric(10, 3), -- average speed in meters per second
     max_speed_mps numeric(10, 3), -- max speed in meters per second
     avg_hr_bpm smallint, -- average heart rate (nullable if no HR sensor)
@@ -35,12 +38,6 @@ CREATE TABLE activities (
     start_lon numeric(11, 7),
     end_lat numeric(10, 7),
     end_lon numeric(11, 7),
-    
-    -- Valhalla processing metadata
-    num_legs integer,
-    num_alternates integer,
-    num_points_poly integer,
-    val_duration_seconds numeric(10, 3), -- Valhalla calculated duration
     
     -- File storage
     file_url text,

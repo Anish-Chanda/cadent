@@ -106,13 +106,13 @@ func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activi
 		INSERT INTO activities (
 			id, user_id, client_activity_id, title, description, type,
 			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
+			elevation_loss_m, max_height_m, min_height_m,
 			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, processing_ver,
 			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
-			start_lat, start_lon, end_lat, end_lon, num_legs, num_alternates,
-			num_points_poly, val_duration_seconds, file_url, created_at, updated_at
+			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-			$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+			$21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
 		)
 	`
 
@@ -128,6 +128,9 @@ func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activi
 		activity.ElapsedTime,
 		activity.DistanceM,
 		activity.ElevationGainM,
+		activity.ElevationLossM,
+		activity.MaxHeightM,
+		activity.MinHeightM,
 		activity.AvgSpeedMps,
 		activity.MaxSpeedMps,
 		activity.AvgHRBpm,
@@ -142,10 +145,6 @@ func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activi
 		activity.StartLon,
 		activity.EndLat,
 		activity.EndLon,
-		activity.NumLegs,
-		activity.NumAlternates,
-		activity.NumPointsPoly,
-		activity.ValDurationSeconds,
 		activity.FileURL,
 		activity.CreatedAt,
 		activity.UpdatedAt,
@@ -168,10 +167,10 @@ func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) (
 		SELECT 
 			id, user_id, client_activity_id, title, description, type,
 			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
+			elevation_loss_m, max_height_m, min_height_m,
 			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, processing_ver,
 			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
-			start_lat, start_lon, end_lat, end_lon, num_legs, num_alternates,
-			num_points_poly, val_duration_seconds, file_url, created_at, updated_at
+			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
 		FROM activities 
 		WHERE user_id = $1
 		ORDER BY start_time DESC
@@ -199,6 +198,9 @@ func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) (
 			&activity.ElapsedTime,
 			&activity.DistanceM,
 			&activity.ElevationGainM,
+			&activity.ElevationLossM,
+			&activity.MaxHeightM,
+			&activity.MinHeightM,
 			&activity.AvgSpeedMps,
 			&activity.MaxSpeedMps,
 			&activity.AvgHRBpm,
@@ -213,10 +215,6 @@ func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) (
 			&activity.StartLon,
 			&activity.EndLat,
 			&activity.EndLon,
-			&activity.NumLegs,
-			&activity.NumAlternates,
-			&activity.NumPointsPoly,
-			&activity.ValDurationSeconds,
 			&activity.FileURL,
 			&activity.CreatedAt,
 			&activity.UpdatedAt,

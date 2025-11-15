@@ -32,6 +32,9 @@ type Activity struct {
 	// Distance and performance metrics
 	DistanceM      float64  `json:"distance_m" db:"distance_m"`
 	ElevationGainM *float64 `json:"elevation_gain_m" db:"elevation_gain_m"`
+	ElevationLossM *float64 `json:"elevation_loss_m" db:"elevation_loss_m"`
+	MaxHeightM     *float64 `json:"max_height_m" db:"max_height_m"`
+	MinHeightM     *float64 `json:"min_height_m" db:"min_height_m"`
 	AvgSpeedMps    *float64 `json:"avg_speed_mps" db:"avg_speed_mps"`
 	MaxSpeedMps    *float64 `json:"max_speed_mps" db:"max_speed_mps"`
 
@@ -56,12 +59,6 @@ type Activity struct {
 	StartLon *float64 `json:"start_lon" db:"start_lon"`
 	EndLat   *float64 `json:"end_lat" db:"end_lat"`
 	EndLon   *float64 `json:"end_lon" db:"end_lon"`
-
-	// Valhalla processing metadata
-	NumLegs            *int     `json:"num_legs" db:"num_legs"`
-	NumAlternates      *int     `json:"num_alternates" db:"num_alternates"`
-	NumPointsPoly      *int     `json:"num_points_poly" db:"num_points_poly"`
-	ValDurationSeconds *float64 `json:"val_duration_seconds" db:"val_duration_seconds"`
 
 	// File storage
 	FileURL *string `json:"file_url" db:"file_url"`
