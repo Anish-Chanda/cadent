@@ -3,6 +3,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import '../models/activity.dart';
 import '../utils/polyline_decoder.dart';
 import 'package:intl/intl.dart';
+import '../widgets/activity_charts.dart';
 
 
 class ActivityDetailScreen extends StatefulWidget {
@@ -264,10 +265,16 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
         
         const SizedBox(height: 24),
         
-        // Graphs placeholder
+        // Graphs (elevation / pace) section
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _buildGraphsSection(),
+          child: ActivityCharts(
+            // For now pass mock streams so charts render for local testing.
+            elevationSamples: _mockElevationSamples(),
+            elevationTimestamps: _mockElevationTimestamps(),
+            paceSamples: _mockSpeedKmhSamples(),
+            paceTimestamps: _mockPaceTimestamps(),
+          ),
         ),
         
         const SizedBox(height: 100), // Bottom padding for sheet
@@ -384,42 +391,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     );
   }
 
-  Widget _buildGraphsSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.bar_chart,
-            size: 40,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Graphs Coming Soon',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Performance analytics and charts will be available here',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Graphs are rendered by `ActivityCharts` in place of the old placeholder.
 
 
   String _formatDate(DateTime dateTime) {
@@ -439,6 +411,33 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     } else {
       return '$minutes:${twoDigits.format(secs)}';
     }
+  }
+
+  // --- Mock data helpers (for local preview until backend streams are available) ---
+  List<double> _mockElevationSamples() {
+    // Example elevation stream in meters (small synthetic route)
+    return [
+      14.2, 14.3, 14.1, 15.0, 16.2, 15.8, 17.0, 18.5, 20.2, 22.0, 24.5, 26.0, 28.0,
+      30.1, 32.0, 34.5, 36.0, 35.2, 33.0, 31.0, 29.0, 27.0, 25.0, 22.5, 20.0,
+    ];
+  }
+
+  List<double> _mockSpeedKmhSamples() {
+    // Example speed stream in m/s (converted to km/h for display)
+    final speedsMs = [2.9, 3.0, 3.1, 3.2, 3.5, 4.0, 4.2, 4.1, 3.9, 3.7, 3.5, 3.3, 3.1, 2.9];
+    return speedsMs.map((s) => s * 3.6).toList();
+  }
+
+  List<DateTime> _mockElevationTimestamps() {
+    final start = DateTime.parse('2025-11-10T15:30:00Z');
+    final samples = _mockElevationSamples();
+    return List.generate(samples.length, (i) => start.add(Duration(seconds: i)));
+  }
+
+  List<DateTime> _mockPaceTimestamps() {
+    final start = DateTime.parse('2025-11-10T15:30:00Z');
+    final samples = _mockSpeedKmhSamples();
+    return List.generate(samples.length, (i) => start.add(Duration(seconds: i)));
   }
 
   void _addRouteToMap(List<LatLng> points) async {
