@@ -15,12 +15,18 @@ import (
 	"github.com/anish-chanda/cadence/backend/internal/models"
 	"github.com/anish-chanda/cadence/backend/internal/store"
 	"github.com/anish-chanda/cadence/backend/internal/valhalla"
+	"github.com/anish-chanda/cadence/backend/internal/compression"
 	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 	"github.com/muktihari/fit/encoder"
 	"github.com/muktihari/fit/profile/filedef"
 	"github.com/muktihari/fit/profile/mesgdef"
 	"github.com/muktihari/fit/profile/typedef"
+)
+
+// Stream processing constants
+const (
+	MediumLODTargetPoints = 2000 // Target number of points for medium LOD streams
 )
 
 type CreateActivityRequest struct {
@@ -35,6 +41,14 @@ type Sample struct {
 	T   int64   `json:"t"`   // timestamp in unix milliseconds
 	Lat float64 `json:"lat"` // latitude
 	Lon float64 `json:"lon"` // longitude
+}
+
+// FullResolutionStream holds full-resolution stream data for all points
+type FullResolutionStream struct {
+	TimeS      []float64 // time in seconds since start
+	DistanceM  []float64 // cumulative distance in meters
+	ElevationM []float64 // elevation in meters  
+	SpeedMps   []float64 // speed in meters per second
 }
 
 type ActivityStats struct {
@@ -92,6 +106,7 @@ type GetActivitiesResponse struct {
 
 func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Use go routines to optimize stream processing performance
 		ctx := context.Background()
 
 		var req CreateActivityRequest
@@ -130,7 +145,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		polyline, totalDistance, bounds := processGPSData(req.Samples)
 
 		// Get elevation data from Valhalla
-		elevationData := getElevationData(ctx, valhallaClient, polyline, log)
+		elevationData, elevationHeights := getElevationDataAndHeights(ctx, valhallaClient, polyline, log)
 
 		// Calculate time-based metrics
 		elapsedSeconds := calculateElapsedSeconds(req.Samples)
@@ -139,6 +154,28 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		// Create activity model
 		activity := buildActivityModel(req, userID, polyline, totalDistance, bounds, elevationData, elapsedSeconds, avgSpeedMs)
 
+		// Process full-resolution streams
+		fullStream := processFullResolutionStreams(req.Samples, elevationData, elevationHeights)
+		
+		// Validate stream alignment (all arrays should have same length)
+		if err := validateStreamAlignment(fullStream, len(req.Samples)); err != nil {
+			log.Error("Stream alignment validation failed", err)
+			http.Error(w, "Internal stream processing error", http.StatusInternalServerError)
+			return
+		}
+		
+		// Create medium LOD streams using distance decimation
+		mediumTargetPoints := MediumLODTargetPoints
+		keepIndices := decimateByDistance(fullStream, mediumTargetPoints)
+		
+		// Create compressed medium LOD streams
+		activityStreams, err := createCompressedStreams(activity.ID, keepIndices, fullStream)
+		if err != nil {
+			log.Error("Failed to create compressed streams", err)
+			http.Error(w, "Failed to process stream data", http.StatusInternalServerError)
+			return
+		}
+
 		// Create and store FIT file
 		if err := createAndStoreFITFile(ctx, activity, req.Samples, objectStore, log); err != nil {
 			log.Error("Failed to create FIT file", err)
@@ -146,11 +183,22 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 			return
 		}
 
-		// Save to database
+		// Save activity to database
 		if err := database.CreateActivity(ctx, activity); err != nil {
 			log.Error("Failed to save activity to database", err)
 			http.Error(w, "Failed to save activity", http.StatusInternalServerError)
 			return
+		}
+
+		// Save activity streams to database
+		if len(activityStreams) > 0 {
+			if err := database.CreateActivityStreams(ctx, activityStreams); err != nil {
+				log.Error("Failed to save activity streams to database", err)
+				// Log error but don't fail the request since main activity was saved
+				log.Info("Activity created successfully but streams failed to save")
+			} else {
+				log.Debug(fmt.Sprintf("Successfully saved %d streams for activity: %s", len(activityStreams), activity.ID.String()))
+			}
 		}
 
 		log.Debug(fmt.Sprintf("Created activity: %s for user: %s", activity.ID.String(), userID))
@@ -262,8 +310,8 @@ func processGPSData(samples []Sample) (string, float64, Bounds) {
 	return polyline, totalDistance, bounds
 }
 
-// Helper function to get elevation data from Valhalla
-func getElevationData(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log logger.ServiceLogger) *valhalla.ElevationChange {
+// Helper function to get elevation data and heights from Valhalla
+func getElevationDataAndHeights(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log logger.ServiceLogger) (*valhalla.ElevationChange, []float64) {
 	heightReq := valhalla.HeightRequest{
 		Range:           false, // range off
 		EncodedPolyline: polyline,
@@ -273,7 +321,7 @@ func getElevationData(ctx context.Context, valhallaClient *valhalla.Client, poly
 	heightResp, err := valhallaClient.GetHeight(ctx, heightReq)
 	if err != nil {
 		log.Error("Failed to get height data from Valhalla", err)
-		return nil
+		return nil, nil
 	}
 
 	// Calculate elevation change from height response with 2.0m threshold
@@ -281,7 +329,195 @@ func getElevationData(ctx context.Context, valhallaClient *valhalla.Client, poly
 	log.Debug(fmt.Sprintf("Calculated elevation - Gain: %.2f m, Loss: %.2f m, Max: %.2f m, Min: %.2f m",
 		elevationChangeResult.GainMeters, elevationChangeResult.LossMeters, elevationChangeResult.MaxHeight, elevationChangeResult.MinHeight))
 
-	return &elevationChangeResult
+	// Extract elevation heights array, handling nulls with interpolation
+	var heights []float64
+	if heightResp.Height != nil {
+		heights = interpolateElevationNulls(heightResp.Height)
+	}
+
+	return &elevationChangeResult, heights
+}
+
+// interpolateElevationNulls interpolates null elevation values using linear interpolation
+// Treats elevation as a function of distance for proper interpolation
+func interpolateElevationNulls(rawHeights []*float64) []float64 {
+	if len(rawHeights) == 0 {
+		return []float64{}
+	}
+
+	heights := make([]float64, len(rawHeights))
+	
+	// First pass: copy non-null values
+	for i, h := range rawHeights {
+		if h != nil {
+			heights[i] = *h
+		}
+	}
+
+	// Handle edge case: if all values are null, return zeros
+	hasValidValue := false
+	for _, h := range rawHeights {
+		if h != nil {
+			hasValidValue = true
+			break
+		}
+	}
+	if !hasValidValue {
+		return heights // all zeros
+	}
+
+	// Forward fill: handle nulls at the beginning
+	firstValidIdx := -1
+	for i, h := range rawHeights {
+		if h != nil {
+			firstValidIdx = i
+			break
+		}
+	}
+	if firstValidIdx > 0 {
+		firstValidValue := heights[firstValidIdx]
+		for i := 0; i < firstValidIdx; i++ {
+			heights[i] = firstValidValue
+		}
+	}
+
+	// Backward fill: handle nulls at the end
+	lastValidIdx := -1
+	for i := len(rawHeights) - 1; i >= 0; i-- {
+		if rawHeights[i] != nil {
+			lastValidIdx = i
+			break
+		}
+	}
+	if lastValidIdx < len(rawHeights)-1 {
+		lastValidValue := heights[lastValidIdx]
+		for i := lastValidIdx + 1; i < len(heights); i++ {
+			heights[i] = lastValidValue
+		}
+	}
+
+	// Linear interpolation for nulls in the middle
+	for i := 0; i < len(rawHeights); i++ {
+		if rawHeights[i] == nil {
+			// Find previous and next valid points
+			prevIdx := -1
+			nextIdx := -1
+			
+			// Find previous valid point
+			for j := i - 1; j >= 0; j-- {
+				if rawHeights[j] != nil {
+					prevIdx = j
+					break
+				}
+			}
+			
+			// Find next valid point
+			for j := i + 1; j < len(rawHeights); j++ {
+				if rawHeights[j] != nil {
+					nextIdx = j
+					break
+				}
+			}
+			
+			// Interpolate if we have both previous and next valid points
+			if prevIdx != -1 && nextIdx != -1 {
+				prevValue := heights[prevIdx]
+				nextValue := heights[nextIdx]
+				
+				// Linear interpolation based on position
+				ratio := float64(i-prevIdx) / float64(nextIdx-prevIdx)
+				heights[i] = prevValue + ratio*(nextValue-prevValue)
+			}
+			// If we don't have both prev and next, the forward/backward fill above should have handled it
+		}
+	}
+
+	return heights
+}
+
+// validateStreamAlignment ensures all stream arrays have the correct length and alignment
+func validateStreamAlignment(stream *FullResolutionStream, expectedLength int) error {
+	if stream == nil {
+		return fmt.Errorf("stream is nil")
+	}
+
+	if len(stream.TimeS) != expectedLength {
+		return fmt.Errorf("timeS array length mismatch: expected %d, got %d", expectedLength, len(stream.TimeS))
+	}
+	if len(stream.DistanceM) != expectedLength {
+		return fmt.Errorf("distanceM array length mismatch: expected %d, got %d", expectedLength, len(stream.DistanceM))
+	}
+	if len(stream.ElevationM) != expectedLength {
+		return fmt.Errorf("elevationM array length mismatch: expected %d, got %d", expectedLength, len(stream.ElevationM))
+	}
+	if len(stream.SpeedMps) != expectedLength {
+		return fmt.Errorf("speedMps array length mismatch: expected %d, got %d", expectedLength, len(stream.SpeedMps))
+	}
+
+	// Validate that arrays are properly aligned (first distance should be 0, first time should be 0)
+	if expectedLength > 0 {
+		if stream.DistanceM[0] != 0 {
+			return fmt.Errorf("first distance value should be 0, got %f", stream.DistanceM[0])
+		}
+		if stream.TimeS[0] != 0 {
+			return fmt.Errorf("first time value should be 0, got %f", stream.TimeS[0])
+		}
+	}
+
+	return nil
+}
+
+// createCompressedStreams creates compressed activity streams for medium LOD
+func createCompressedStreams(activityID uuid.UUID, keepIndices []int, fullStream *FullResolutionStream) ([]models.ActivityStream, error) {
+	if len(keepIndices) == 0 {
+		return nil, fmt.Errorf("no indices to keep for medium LOD")
+	}
+
+	now := time.Now()
+	
+	// Extract decimated arrays
+	decimatedTime := make([]float64, len(keepIndices))
+	decimatedDistance := make([]float64, len(keepIndices))
+	decimatedElevation := make([]float64, len(keepIndices))
+	decimatedSpeed := make([]float64, len(keepIndices))
+
+	for i, idx := range keepIndices {
+		decimatedTime[i] = fullStream.TimeS[idx]
+		decimatedDistance[i] = fullStream.DistanceM[idx]
+		decimatedElevation[i] = fullStream.ElevationM[idx]
+		decimatedSpeed[i] = fullStream.SpeedMps[idx]
+	}
+
+	// Compress each stream using DIBS
+	timeBytes, timeCodec := compressDIBS(decimatedTime, 2)
+	distanceBytes, distanceCodec := compressDIBS(decimatedDistance, 2)
+	elevationBytes, elevationCodec := compressDIBS(decimatedElevation, 2)
+	speedBytes, speedCodec := compressDIBS(decimatedSpeed, 3)
+
+	// Create activity stream record
+	stream := models.ActivityStream{
+		ActivityID:           activityID,
+		LOD:                  models.StreamLODMedium,
+		IndexBy:              models.StreamIndexByDistance,
+		NumPoints:            len(keepIndices),
+		OriginalNumPoints:    len(fullStream.TimeS),
+		TimeSBytes:          timeBytes,
+		DistanceMBytes:      distanceBytes,
+		SpeedMpsBytes:       speedBytes,
+		ElevationMBytes:     elevationBytes,
+		Codec:               timeCodec, // Using time codec as representative
+		CreatedAt:           now,
+		UpdatedAt:           now,
+	}
+
+	// For now, we store all stream types in one record with their respective compressed bytes
+	// In a more advanced implementation, you might want separate records for each stream type
+	// with their own codec metadata
+	_ = distanceCodec // suppress unused warning
+	_ = elevationCodec // suppress unused warning  
+	_ = speedCodec // suppress unused warning
+
+	return []models.ActivityStream{stream}, nil
 }
 
 // Helper function to calculate elapsed time from samples
@@ -585,4 +821,174 @@ func calculateDerivedStats(activityType string, speedMs float64, distanceM float
 	}
 
 	return derived
+}
+
+// processFullResolutionStreams converts samples and elevation data into full-resolution stream arrays
+func processFullResolutionStreams(samples []Sample, elevationData *valhalla.ElevationChange, elevationHeights []float64) *FullResolutionStream {
+	if len(samples) == 0 {
+		return &FullResolutionStream{}
+	}
+
+	n := len(samples)
+	stream := &FullResolutionStream{
+		TimeS:      make([]float64, n),
+		DistanceM:  make([]float64, n),
+		ElevationM: make([]float64, n),
+		SpeedMps:   make([]float64, n),
+	}
+
+	// Start time for calculating seconds since start
+	startTimeMs := samples[0].T
+
+	// First pass: calculate time_s, distance_m, and elevation_m
+	var cumulativeDistance float64
+	for i, sample := range samples {
+		// Time in seconds since start
+		stream.TimeS[i] = float64(sample.T-startTimeMs) / 1000.0
+
+		// Cumulative distance
+		if i == 0 {
+			stream.DistanceM[i] = 0
+		} else {
+			prev := samples[i-1]
+			segmentDistance := haversineDistance(prev.Lat, prev.Lon, sample.Lat, sample.Lon)
+			cumulativeDistance += segmentDistance
+			stream.DistanceM[i] = cumulativeDistance
+		}
+
+		// Elevation (use provided elevation heights if available)
+		if elevationHeights != nil && i < len(elevationHeights) {
+			stream.ElevationM[i] = elevationHeights[i]
+		} else {
+			stream.ElevationM[i] = 0 // Default elevation if no data available
+		}
+	}
+
+	// Second pass: calculate speed_mps
+	for i := range samples {
+		if i == 0 {
+			// First point: use speed from next segment if available
+			if len(samples) > 1 {
+				timeDiff := stream.TimeS[1] - stream.TimeS[0]
+				distDiff := stream.DistanceM[1] - stream.DistanceM[0]
+				if timeDiff > 0 {
+					stream.SpeedMps[i] = distDiff / timeDiff
+				}
+			}
+		} else {
+			// Calculate speed from previous segment
+			timeDiff := stream.TimeS[i] - stream.TimeS[i-1]
+			distDiff := stream.DistanceM[i] - stream.DistanceM[i-1]
+			if timeDiff > 0 {
+				stream.SpeedMps[i] = distDiff / timeDiff
+			}
+		}
+	}
+
+	return stream
+}
+
+// decimateByDistance performs Strava-style distance-uniform decimation to create medium LOD
+// Targets around MediumLODTargetPoints points by selecting points evenly spaced in distance
+func decimateByDistance(fullStream *FullResolutionStream, targetPoints int) []int {
+	if len(fullStream.DistanceM) <= targetPoints {
+		// If we already have fewer than target points, keep all
+		indices := make([]int, len(fullStream.DistanceM))
+		for i := range indices {
+			indices[i] = i
+		}
+		return indices
+	}
+
+	totalDistance := fullStream.DistanceM[len(fullStream.DistanceM)-1]
+	if totalDistance <= 0 {
+		// If no distance, just return first and last points
+		return []int{0, len(fullStream.DistanceM) - 1}
+	}
+
+	// Calculate step size in meters
+	stepSize := totalDistance / float64(targetPoints-1) // -1 because we include both endpoints
+
+	keepIndices := make([]int, 0, targetPoints)
+	keepIndices = append(keepIndices, 0) // Always keep first point
+
+	currentIndex := 0
+	for step := 1; step < targetPoints-1; step++ {
+		targetDistance := float64(step) * stepSize
+		
+		// Find the closest point to target distance
+		// Walk forward from current index to ensure indices always move forward
+		bestIndex := currentIndex
+		bestDiff := math.Abs(fullStream.DistanceM[currentIndex] - targetDistance)
+
+		for i := currentIndex; i < len(fullStream.DistanceM); i++ {
+			diff := math.Abs(fullStream.DistanceM[i] - targetDistance)
+			if diff < bestDiff {
+				bestDiff = diff
+				bestIndex = i
+			} else if diff > bestDiff {
+				// We've passed the optimal point, stop searching
+				break
+			}
+		}
+
+		// Only add if it's different from the last kept index
+		if bestIndex > keepIndices[len(keepIndices)-1] {
+			keepIndices = append(keepIndices, bestIndex)
+			currentIndex = bestIndex
+		}
+	}
+
+	// Always keep last point
+	lastIndex := len(fullStream.DistanceM) - 1
+	if len(keepIndices) == 0 || keepIndices[len(keepIndices)-1] != lastIndex {
+		keepIndices = append(keepIndices, lastIndex)
+	}
+
+	return keepIndices
+}
+
+// DIBS compression functions - using the dedicated compression package
+
+// compressDIBS compresses a float64 array using the DIBS algorithm
+func compressDIBS(data []float64, decimalPlaces int) ([]byte, map[string]interface{}) {
+	opts := compression.CompressOptions{
+		DecimalPlaces: decimalPlaces,
+		BlockLog2:     8, // 256 samples per block
+		EnableCRC:     false, // Disable CRC for embedded use to save space
+	}
+	
+	compressed, err := compression.Compress(data, opts)
+	if err != nil {
+		// Fall back to placeholder on error
+		codec := map[string]interface{}{
+			"name":       "dibs",
+			"version":    1,
+			"float":      decimalPlaces,
+			"endianness": "le",
+			"error":      err.Error(),
+		}
+		return []byte{}, codec
+	}
+	
+	// Create codec metadata
+	codec := map[string]interface{}{
+		"name":       "dibs",
+		"version":    1,
+		"float":      decimalPlaces,
+		"endianness": "le",
+		"block_log2": opts.BlockLog2,
+	}
+	
+	return compressed, codec
+}
+
+// decompressDIBS decompresses DIBS-compressed data back to float64 array
+func decompressDIBS(compressed []byte, codec map[string]interface{}) ([]float64, error) {
+	// Check if there was an error during compression
+	if errMsg, exists := codec["error"]; exists {
+		return nil, fmt.Errorf("compression error: %v", errMsg)
+	}
+	
+	return compression.Decompress(compressed)
 }

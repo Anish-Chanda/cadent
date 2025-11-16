@@ -46,3 +46,37 @@ CREATE TABLE activities (
     created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- activity stream ENUMS
+CREATE TYPE stream_lod AS ENUM ('medium'); -- low is calculated on the fly based on medium
+CREATE TYPE stream_index_by AS ENUM ('distance'); -- downsampled by distance, in future could add 'time' or other methods
+
+-- activity streams table
+CREATE TABLE activity_streams (
+    activity_id uuid REFERENCES activities(id) ON DELETE CASCADE,
+    lod stream_lod NOT NULL,
+    index_by stream_index_by NOT NULL,
+
+    -- number of points in this LOD (after downsampling)
+    num_points integer NOT NULL CHECK (num_points > 0),
+    -- original number of points before downsampling
+    original_num_points integer NOT NULL CHECK (original_num_points >= num_points),
+
+    -- compressed streams
+    time_s_bytes bytea, -- seconds since start, compressed
+    distance_m_bytes bytea, -- distance in meters, compressed
+    speed_mps_bytes bytea, -- speed in meters per second, compressed
+    elevation_m_bytes bytea, -- elevation in meters, compressed
+
+    -- compression algorithm metadata
+    codec jsonb NOT NULL,
+    -- e.g. { "name": "dibs", "version": 1, "float": 2, "endianness": "le" }
+    -- the above means: DIBS codec version 1, 2 decimal places for floats, little-endian byte order
+
+
+    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (activity_id, lod, index_by)
+);
+

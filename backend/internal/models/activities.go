@@ -67,3 +67,50 @@ type Activity struct {
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
+
+// Stream data types
+type StreamLOD string
+
+const (
+	StreamLODMedium StreamLOD = "medium"
+	StreamLODLow    StreamLOD = "low"  // calculated on the fly based on medium
+	StreamLODFull   StreamLOD = "full" // original data, FIT file from objstore has to be read
+)
+
+type StreamIndexBy string
+
+const (
+	StreamIndexByDistance StreamIndexBy = "distance" // downsampled by distance
+	// In future: StreamIndexByTime StreamIndexBy = "time", maybe
+)
+
+type ActivityStream struct {
+	ActivityID        uuid.UUID     `json:"activity_id" db:"activity_id"`
+	LOD               StreamLOD     `json:"lod" db:"lod"`
+	IndexBy           StreamIndexBy `json:"index_by" db:"index_by"`
+	NumPoints         int           `json:"num_points" db:"num_points"`
+	OriginalNumPoints int           `json:"original_num_points" db:"original_num_points"`
+
+	// Compressed stream data (stored as bytea in postgres DB)
+	TimeSBytes      []byte `json:"-" db:"time_s_bytes"`      // seconds since start
+	DistanceMBytes  []byte `json:"-" db:"distance_m_bytes"`  // distance in meters
+	SpeedMpsBytes   []byte `json:"-" db:"speed_mps_bytes"`   // speed in meters per second
+	ElevationMBytes []byte `json:"-" db:"elevation_m_bytes"` // elevation in meters
+
+	// Compression metadata
+	Codec map[string]interface{} `json:"codec" db:"codec"` // JSON metadata about compression
+
+	// Timestamps
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// StreamType represents the type of stream data requested
+type StreamType string
+
+const (
+	StreamTypeTime      StreamType = "time"
+	StreamTypeDistance  StreamType = "distance"
+	StreamTypeElevation StreamType = "elevation"
+	StreamTypeSpeed     StreamType = "speed"
+)

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/anish-chanda/cadence/backend/internal/logger"
@@ -250,6 +251,188 @@ func (s *PostgresDB) CheckIdempotency(ctx context.Context, clientActivityID stri
 
 	s.log.Debug(fmt.Sprintf("Idempotency check result for %s: %t", clientActivityID, exists))
 	return exists, nil
+}
+
+// GetActivityByID retrieves a specific activity by its ID
+func (s *PostgresDB) GetActivityByID(ctx context.Context, activityID string) (*models.Activity, error) {
+	s.log.Debug(fmt.Sprintf("Fetching activity by ID: %s", activityID))
+
+	query := `
+		SELECT 
+			id, user_id, client_activity_id, title, description, type,
+			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
+			elevation_loss_m, max_height_m, min_height_m,
+			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, processing_ver,
+			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
+			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
+		FROM activities 
+		WHERE id = $1
+	`
+
+	var activity models.Activity
+	err := s.db.QueryRow(ctx, query, activityID).Scan(
+		&activity.ID,
+		&activity.UserID,
+		&activity.ClientActivityID,
+		&activity.Title,
+		&activity.Description,
+		&activity.ActivityType,
+		&activity.StartTime,
+		&activity.EndTime,
+		&activity.ElapsedTime,
+		&activity.DistanceM,
+		&activity.ElevationGainM,
+		&activity.ElevationLossM,
+		&activity.MaxHeightM,
+		&activity.MinHeightM,
+		&activity.AvgSpeedMps,
+		&activity.MaxSpeedMps,
+		&activity.AvgHRBpm,
+		&activity.MaxHRBpm,
+		&activity.ProcessingVer,
+		&activity.Polyline,
+		&activity.BBoxMinLat,
+		&activity.BBoxMinLon,
+		&activity.BBoxMaxLat,
+		&activity.BBoxMaxLon,
+		&activity.StartLat,
+		&activity.StartLon,
+		&activity.EndLat,
+		&activity.EndLon,
+		&activity.FileURL,
+		&activity.CreatedAt,
+		&activity.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.log.Debug(fmt.Sprintf("Activity not found: %s", activityID))
+			return nil, nil
+		}
+		s.log.Error(fmt.Sprintf("Database error while fetching activity: %s", activityID), err)
+		return nil, fmt.Errorf("failed to get activity: %w", err)
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully retrieved activity: %s", activityID))
+	return &activity, nil
+}
+
+// GetActivityStreams retrieves activity streams for a given activity and LOD
+func (s *PostgresDB) GetActivityStreams(ctx context.Context, activityID string, lod models.StreamLOD) ([]models.ActivityStream, error) {
+	s.log.Debug(fmt.Sprintf("Fetching activity streams for activity: %s, LOD: %s", activityID, lod))
+
+	query := `
+		SELECT 
+			activity_id, lod, index_by, num_points, original_num_points,
+			time_s_bytes, distance_m_bytes, speed_mps_bytes, elevation_m_bytes,
+			codec, created_at, updated_at
+		FROM activity_streams 
+		WHERE activity_id = $1 AND lod = $2
+		ORDER BY index_by
+	`
+
+	rows, err := s.db.Query(ctx, query, activityID, lod)
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while fetching streams for activity: %s", activityID), err)
+		return nil, fmt.Errorf("failed to get activity streams: %w", err)
+	}
+	defer rows.Close()
+
+	var streams []models.ActivityStream
+	for rows.Next() {
+		var stream models.ActivityStream
+		var codecJSON []byte
+
+		err := rows.Scan(
+			&stream.ActivityID,
+			&stream.LOD,
+			&stream.IndexBy,
+			&stream.NumPoints,
+			&stream.OriginalNumPoints,
+			&stream.TimeSBytes,
+			&stream.DistanceMBytes,
+			&stream.SpeedMpsBytes,
+			&stream.ElevationMBytes,
+			&codecJSON,
+			&stream.CreatedAt,
+			&stream.UpdatedAt,
+		)
+		if err != nil {
+			s.log.Error(fmt.Sprintf("Error scanning stream row for activity: %s", activityID), err)
+			return nil, fmt.Errorf("failed to scan activity stream: %w", err)
+		}
+
+		// Parse codec JSON
+		if len(codecJSON) > 0 {
+			var codec map[string]interface{}
+			if err := json.Unmarshal(codecJSON, &codec); err != nil {
+				s.log.Error(fmt.Sprintf("Error parsing codec JSON for activity: %s", activityID), err)
+				return nil, fmt.Errorf("failed to parse codec JSON: %w", err)
+			}
+			stream.Codec = codec
+		}
+
+		streams = append(streams, stream)
+	}
+
+	if err = rows.Err(); err != nil {
+		s.log.Error(fmt.Sprintf("Row iteration error for streams of activity: %s", activityID), err)
+		return nil, fmt.Errorf("failed to iterate activity streams: %w", err)
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully retrieved %d streams for activity: %s", len(streams), activityID))
+	return streams, nil
+}
+
+// CreateActivityStreams creates multiple activity streams in the database
+func (s *PostgresDB) CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error {
+	if len(streams) == 0 {
+		return nil // No streams to create
+	}
+
+	activityID := streams[0].ActivityID // All streams should be for same activity
+	s.log.Debug(fmt.Sprintf("Creating %d streams for activity: %s", len(streams), activityID))
+
+	query := `
+		INSERT INTO activity_streams (
+			activity_id, lod, index_by, num_points, original_num_points,
+			time_s_bytes, distance_m_bytes, speed_mps_bytes, elevation_m_bytes,
+			codec, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+		)
+	`
+
+	for _, stream := range streams {
+		codecJSON, err := json.Marshal(stream.Codec)
+		if err != nil {
+			s.log.Error(fmt.Sprintf("Error marshaling codec for activity: %s", activityID), err)
+			return fmt.Errorf("failed to marshal codec JSON: %w", err)
+		}
+
+		_, err = s.db.Exec(ctx, query,
+			stream.ActivityID,
+			stream.LOD,
+			stream.IndexBy,
+			stream.NumPoints,
+			stream.OriginalNumPoints,
+			stream.TimeSBytes,
+			stream.DistanceMBytes,
+			stream.SpeedMpsBytes,
+			stream.ElevationMBytes,
+			codecJSON,
+			stream.CreatedAt,
+			stream.UpdatedAt,
+		)
+
+		if err != nil {
+			s.log.Error(fmt.Sprintf("Database error while creating stream for activity: %s", activityID), err)
+			return fmt.Errorf("failed to create activity stream: %w", err)
+		}
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully created %d streams for activity: %s", len(streams), activityID))
+	return nil
 }
 
 // --- Other stuff ---
