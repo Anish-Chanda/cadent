@@ -1,24 +1,34 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 class HttpClient {
   HttpClient._();
 
-  static final HttpClient instance = HttpClient._();
+  // MODIFIED: Make instance replaceable for testing
+  static HttpClient _instance = HttpClient._();
+  static HttpClient get instance => _instance;
+
+  // ADDED: Reset instance for testing
+  @visibleForTesting
+  static void resetInstance() {
+    _instance = HttpClient._();
+  }
 
   late Dio dio;
+  // This can remain late final because we create a new HttpClient instance for each test
   late final PersistCookieJar cookieJar;
-  bool _cookieJarInitialized = false;
+  late String cookiePath;
+  bool cookieJarInitialized = false;
 
   Future<void> init({required String baseUrl, String? testCookieDir}) async {
-    if (!_cookieJarInitialized) {
+    if (!cookieJarInitialized) {
       //figure out cookie path
-      final cookiesPath =
-          testCookieDir ??
+      cookiePath = testCookieDir ??
           (await (() async {
             final appDocDir = await getApplicationDocumentsDirectory();
             return '${appDocDir.path}/.cookies/';
@@ -27,9 +37,9 @@ class HttpClient {
       //create persistant cookie jar
       cookieJar = PersistCookieJar(
         ignoreExpires: false,
-        storage: FileStorage(cookiesPath),
+        storage: FileStorage(cookiePath),
       );
-      _cookieJarInitialized = true;
+      cookieJarInitialized = true;
     }
 
     //create dio with base url
