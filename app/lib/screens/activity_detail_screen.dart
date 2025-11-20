@@ -313,7 +313,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             Expanded(
               child: _buildStatItem(
                 label: 'Elevation Gain',
-                value: '${widget.activity.stats!.elevationGainM.round()}',
+                value: '${widget.activity.stats!.elevationGainM}',
                 unit: 'm',
               ),
             ),
