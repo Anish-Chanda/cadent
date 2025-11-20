@@ -4,6 +4,7 @@
 // utility in the flutter_test package. For example, you can send tap and scroll
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
+import 'package:cadence/widgets/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -40,8 +41,8 @@ void main() {
     );
 
     await tester.pump(); // Let widgets rebuild with providers
-
-    expect(1, equals(1));
+    final titleFinder = find.text('Activities');
+    expect(titleFinder, findsOneWidget);
   });
 
   testWidgets('Login Screen test', (WidgetTester tester) async {
@@ -49,7 +50,7 @@ void main() {
     await tester.pumpWidget(const LoginScreen());
     expect(1, equals(1));
   });
-  testWidgets('HomeScreen test', (WidgetTester tester) async {
+  testWidgets('Navigation Bar test', (WidgetTester tester) async {
     final authProvider = await MockAuthProvider.initialize();
     await tester.pumpWidget(
       MultiProvider(
@@ -61,20 +62,46 @@ void main() {
           ),
         ],
         child: const MaterialApp(
-          home: HomeScreen(),
+          home: MainLayout(),
         ),
       ),
     );
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecorderScreen), findsOneWidget);
   });
+
   testWidgets('SettingsScreen test', (WidgetTester tester) async {
     // TODO: Add proper tests with mocked providers
     await tester.pumpWidget(const SettingsScreen());
     expect(1, equals(1));
   });
   testWidgets('RecorderScreen test', (WidgetTester tester) async {
-    // TODO: Add proper tests with mocked providers
-    await tester.pumpWidget(const RecorderScreen());
-    expect(1, equals(1));
+    final authProvider = await MockAuthProvider.initialize();
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+          ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(
+            create: (_) => ThemeProvider(AppTheme.lightTheme),
+          ),
+        ],
+        child: const MaterialApp(
+          home: RecorderScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump(); // Let widgets rebuild with providers
+    final titleFinder = find.text('Activities');
+    expect(titleFinder, findsNothing);
   });
   testWidgets('ActivityDetailScreen test', (WidgetTester tester) async {
     // TODO: Add proper tests with mocked providers
