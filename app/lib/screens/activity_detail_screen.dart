@@ -4,6 +4,7 @@ import '../models/activity.dart';
 import '../utils/polyline_decoder.dart';
 import 'package:intl/intl.dart';
 import '../widgets/activity_charts.dart';
+import '../services/streams_service.dart';
 
 
 class ActivityDetailScreen extends StatefulWidget {
@@ -20,11 +21,21 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
   MapLibreMapController? _mapController;
   Line? _routeLine;
   DraggableScrollableController? _sheetController;
+  // Streams data loaded from backend (or debug asset)
+  List<double>? _elevationSamplesLoaded;
+  List<DateTime>? _elevationTimestampsLoaded;
+  List<double>? _speedKmhSamplesLoaded;
+  List<DateTime>? _speedTimestampsLoaded;
+  List<double>? _distanceSamplesLoaded;
+  bool _loadingStreams = false;
+  String? _streamsError;
 
   @override
   void initState() {
     super.initState();
     _sheetController = DraggableScrollableController();
+    // Start loading streams for charts (use debug asset during development)
+    _loadStreams();
   }
 
   @override
@@ -268,14 +279,24 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
         // Graphs (elevation / pace) section
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: ActivityCharts(
-            // For now pass mock streams so charts render for local testing.
-            elevationSamples: _mockElevationSamples(),
-            elevationTimestamps: _mockElevationTimestamps(),
-            paceSamples: _mockSpeedKmhSamples(),
-            paceTimestamps: _mockPaceTimestamps(),
-          ),
+          child: _loadingStreams
+              ? const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()))
+              : ActivityCharts(
+                  elevationSamples: _elevationSamplesLoaded ?? _mockElevationSamples(),
+                  elevationTimestamps: _elevationTimestampsLoaded ?? _mockElevationTimestamps(),
+                  distanceSamples: _distanceSamplesLoaded ?? _mockElevationSamples(),
+                  paceSamples: _speedKmhSamplesLoaded ?? _mockSpeedKmhSamples(),
+                  paceTimestamps: _speedTimestampsLoaded ?? _mockPaceTimestamps(),
+                ),
         ),
+        if (_streamsError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Text(
+              'Streams error: ${_streamsError!}',
+              style: TextStyle(color: Colors.red[700]),
+            ),
+          ),
         
         const SizedBox(height: 100), // Bottom padding for sheet
       ],
@@ -438,6 +459,63 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     final start = DateTime.parse('2025-11-10T15:30:00Z');
     final samples = _mockSpeedKmhSamples();
     return List.generate(samples.length, (i) => start.add(Duration(seconds: i)));
+  }
+
+  // Load streams for this activity. During development we default to the
+  // debug asset so developers can preview charts without a running backend.
+  Future<void> _loadStreams() async {
+    setState(() {
+      _loadingStreams = true;
+      _streamsError = null;
+    });
+
+    try {
+      final model = await StreamsService.instance.fetchStreamsForActivity(widget.activity.id, useDebugAsset: false);
+      if (model == null) {
+        setState(() {
+          _streamsError = 'No streams returned from service';
+        });
+        return;
+      }
+
+      // Build absolute timestamps from the model's time offsets using the
+      // activity's recorded start time. If the model provided absolute
+      // datetimes the helper will still produce sensible values.
+      final times = model.timeStampsFrom(widget.activity.startTime);
+      final distance = model.numericSeries('distance');
+      final elev = model.numericSeries('elevation');
+      final speedMs = model.numericSeries('speed'); // backend commonly returns m/s
+
+      // Align lengths to the shortest series
+      var minLen = times.length;
+      if (distance.length < minLen) minLen = distance.length;
+      if (elev.length < minLen) minLen = elev.length;
+      if (speedMs.length < minLen) minLen = speedMs.length;
+      
+      final trimmedDistances = distance.take(minLen).toList();
+      final trimmedTimes = times.take(minLen).toList();
+      final trimmedElev = elev.take(minLen).map((e) => e).toList();
+      final trimmedSpeedKmh = speedMs.take(minLen).map((s) => s * 3.6).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _elevationTimestampsLoaded = trimmedTimes;
+        _elevationSamplesLoaded = trimmedElev;
+        _distanceSamplesLoaded = trimmedDistances;
+        _speedTimestampsLoaded = trimmedTimes;
+        _speedKmhSamplesLoaded = trimmedSpeedKmh;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _streamsError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingStreams = false;
+      });
+    }
   }
 
   void _addRouteToMap(List<LatLng> points) async {
