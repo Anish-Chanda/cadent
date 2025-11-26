@@ -126,6 +126,8 @@ func main() {
 			// Activity endpoints
 			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
 			r.Get("/activities", handlers.HandleGetActivities(database, *log))
+			r.Get("/name", handlers.HandleGetName(database, *log))
+			r.Post("/changeName", handlers.HandleChangeName(database, *log))
 		})
 	})
 

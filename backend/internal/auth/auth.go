@@ -64,6 +64,7 @@ func CreateUser(database db.Database, email, password string) (*models.UserRecor
 	user := &models.UserRecord{
 		ID:           userID,
 		Email:        email,
+		Name:         nil,
 		PasswordHash: &hashedPassword,
 		AuthProvider: models.AuthProviderLocal,
 		CreatedAt:    now,

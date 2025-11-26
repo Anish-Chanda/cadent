@@ -1,3 +1,4 @@
+import 'package:cadence/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -30,7 +31,59 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+
+              Consumer<SettingsProvider>(
+                builder: (context, settingsProvider, child) {
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.account_circle),
+                      title: const Text('Display Name'),
+                      subtitle: Text(
+                      settingsProvider.name.isNotEmpty
+                      ? settingsProvider.name
+                          : "Default Name",
+                      ),
+                      trailing: const Icon(Icons.edit), // optional edit icon
+                      onTap: () async {
+                        // Open dialog to enter new name
+                        final newName = await showDialog<String>(
+                          context: context,
+                          builder: (context) {
+                            String tempName = settingsProvider.name;
+                            return AlertDialog(
+                              title: const Text('Enter new display name'),
+                              content: TextField(
+                                autofocus: true,
+                                decoration: const InputDecoration(hintText: 'New name'),
+                                onChanged: (value) {
+                                  tempName = value;
+                                },
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context), // cancel
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, tempName), // submit
+                                  child: const Text('Save'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                        // Update provider if a new name was entered
+                        if (newName != null && newName.isNotEmpty) {
+                          settingsProvider.updateName(newName); // make sure your provider has this method
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
+
+          const SizedBox(height: 16),
+
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.dns),

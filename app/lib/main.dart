@@ -1,3 +1,4 @@
+import 'package:cadence/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -20,6 +21,7 @@ void main() async {
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
         ChangeNotifierProvider(create: (_) => AppSettingsController()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(
           create: (_) => ThemeProvider(AppTheme.lightTheme),
         ),

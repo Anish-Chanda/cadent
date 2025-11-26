@@ -1,3 +1,4 @@
+import 'package:cadence/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -28,12 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen:false);
 
     try {
       await authProvider.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      await settingsProvider.loadName();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
