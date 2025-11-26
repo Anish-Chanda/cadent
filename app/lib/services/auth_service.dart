@@ -5,7 +5,7 @@ class AuthService {
 
   static final AuthService instance = AuthService._();
 
-  //Must be called before using any otehr methods of AuthService
+  //Must be called before using any other methods of AuthService
   Future<void> initialize({required String serverUrl}) async {
     await HttpClient.instance.init(baseUrl: serverUrl);
   }

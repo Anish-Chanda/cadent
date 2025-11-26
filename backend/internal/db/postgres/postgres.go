@@ -33,7 +33,7 @@ func (s *PostgresDB) GetUserByEmail(ctx context.Context, email string) (*models.
 
 	// resason as why we are using extract epoch is because we are storing timestamps as int64 in the models
 	query := `
-		SELECT id, email, password_hash, auth_provider, 
+		SELECT id, email, name, password_hash, auth_provider,
 		       EXTRACT(EPOCH FROM created_at)::bigint as created_at,
 		       EXTRACT(EPOCH FROM updated_at)::bigint as updated_at
 		FROM users WHERE email = $1
@@ -45,6 +45,7 @@ func (s *PostgresDB) GetUserByEmail(ctx context.Context, email string) (*models.
 	err := s.db.QueryRow(ctx, query, email).Scan(
 		&user.ID,
 		&user.Email,
+		&user.Name,
 		&passwordHash,
 		&user.AuthProvider,
 		&user.CreatedAt,
@@ -74,13 +75,14 @@ func (s *PostgresDB) CreateUser(ctx context.Context, user *models.UserRecord) er
 	s.log.Debug(fmt.Sprintf("Creating new user with email: %s", user.Email))
 
 	query := `
-		INSERT INTO users (id, email, password_hash, auth_provider, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, to_timestamp($5), to_timestamp($6))
+		INSERT INTO users (id, email, name, password_hash, auth_provider, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7))
 	`
 
 	_, err := s.db.Exec(ctx, query,
 		user.ID,
 		user.Email,
+		user.Name,
 		user.PasswordHash,
 		user.AuthProvider,
 		user.CreatedAt,
@@ -253,6 +255,59 @@ func (s *PostgresDB) CheckIdempotency(ctx context.Context, clientActivityID stri
 	s.log.Debug(fmt.Sprintf("Idempotency check result for %s: %t", clientActivityID, exists))
 	return exists, nil
 }
+
+func (s *PostgresDB) GetNameByUserID(ctx context.Context, userID string) (string, error) {
+	s.log.Debug(fmt.Sprintf("Fetching name by id: %s", userID))
+
+	query := `
+		SELECT name
+		FROM users WHERE id = $1
+	`
+
+	var name sql.NullString
+
+	err := s.db.QueryRow(ctx, query, userID).Scan(
+		&name,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.log.Debug(fmt.Sprintf("User not found with ID: %s", userID))
+			return  "name", nil // User not found
+		}
+		s.log.Error(fmt.Sprintf("Database error while fetching name by ID: %s", userID), err)
+		return "name", fmt.Errorf("failed to get name by ID: %w", err)
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully retrieved name of user: %s", userID))
+	return name.String, nil
+}
+
+func (s *PostgresDB) ChangeNameByUserID(ctx context.Context, userID string, newName string) (bool, error) {
+	s.log.Debug(fmt.Sprintf("Updating name for user ID: %s", userID))
+
+	query := `
+		UPDATE users
+		SET name = $1
+		WHERE id = $2
+	`
+
+	cmdTag, err := s.db.Exec(ctx, query, newName, userID)
+
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while updating name for ID: %s", userID), err)
+		return false, fmt.Errorf("failed to update name: %w", err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		s.log.Debug(fmt.Sprintf("User not found with ID: %s", userID))
+		return false, nil // no user with that ID
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully updated name for user: %s", userID))
+	return true, nil
+}
+
 
 // --- Other stuff ---
 

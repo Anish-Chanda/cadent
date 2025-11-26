@@ -20,6 +20,10 @@ type Database interface {
 
 	// --- Other stuff ---
 
+    // getting and changing user name
+    GetNameByUserID(ctx context.Context, userID string) (string, error)
+    ChangeNameByUserID(ctx context.Context, userID string, newName string) (bool, error)
+
 	// establishes a database connection
 	Connect(dsn string) error
 	// closes the database connection
