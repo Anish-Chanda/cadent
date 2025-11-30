@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/muktihari/fit v0.25.1
 	github.com/rs/zerolog v1.34.0
-	golang.org/x/crypto v0.42.0
+	golang.org/x/crypto v0.45.0
 )
 
 require (
@@ -40,7 +40,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.4 // indirect
 	golang.org/x/image v0.31.0 // indirect
 	golang.org/x/oauth2 v0.31.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 )
