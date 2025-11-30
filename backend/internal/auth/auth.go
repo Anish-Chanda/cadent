@@ -46,7 +46,7 @@ func HandleLogin(database db.Database, email, password string) (bool, error) {
 }
 
 // CreateUser creates a new user with hashed password
-func CreateUser(database db.Database, email, password string) (*models.UserRecord, error) {
+func CreateUser(database db.Database, email, password, name string) (*models.UserRecord, error) {
 	// Generate unique ID
 	userID, err := generateUserID()
 	if err != nil {
@@ -64,6 +64,7 @@ func CreateUser(database db.Database, email, password string) (*models.UserRecor
 	user := &models.UserRecord{
 		ID:           userID,
 		Email:        email,
+		Name:         name,
 		PasswordHash: &hashedPassword,
 		AuthProvider: models.AuthProviderLocal,
 		CreatedAt:    now,

@@ -101,7 +101,11 @@ void main() {
         'user_id': 'u1',
       });
 
-      final userId = await AuthService.instance.signup(email: 'user@example.com', password: 'pw');
+      final userId = await AuthService.instance.signup(
+        email: 'user@example.com', 
+        password: 'pw',
+        name: 'Test User',
+      );
       expect(userId, 'u1');
     });
 
@@ -111,7 +115,11 @@ void main() {
       });
 
       expect(
-        () => AuthService.instance.signup(email: 'user@example.com', password: 'pw'),
+        () => AuthService.instance.signup(
+          email: 'user@example.com', 
+          password: 'pw',
+          name: 'Test User',
+        ),
         throwsA(isA<Exception>()),
       );
     });
@@ -122,7 +130,11 @@ void main() {
       });
 
       expect(
-        () => AuthService.instance.signup(email: 'user@example.com', password: 'pw'),
+        () => AuthService.instance.signup(
+          email: 'user@example.com', 
+          password: 'pw',
+          name: 'Test User',
+        ),
         throwsA(isA<Exception>()),
       );
     });

@@ -25,6 +25,10 @@ type Database interface {
 
 	// --- Other stuff ---
 
+	// User management methods
+	GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error)
+	UpdateUser(ctx context.Context, userID string, updates map[string]interface{}) error
+
 	// establishes a database connection
 	Connect(dsn string) error
 	// closes the database connection

@@ -12,6 +12,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -20,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -35,6 +37,7 @@ class _SignupScreenState extends State<SignupScreen> {
       await authProvider.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        name: _nameController.text.trim(),
       );
       
       if (mounted) {
@@ -179,6 +182,21 @@ class _SignupScreenState extends State<SignupScreen> {
                           child: Column(
                             children: [
                               TextFormField(
+                                controller: _nameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Name',
+                                  hintText: 'Enter your name',
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter your name';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
                                 decoration: const InputDecoration(
@@ -236,11 +254,10 @@ class _SignupScreenState extends State<SignupScreen> {
                                   hintText: 'Re-enter your password',
                                   border: const OutlineInputBorder(),
                                   suffixIcon: IconButton(
-                                    icon: Text(
-                                      _obscureConfirmPassword ? '👁' : '👁‍🗨',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                      ),
+                                    icon: Icon(
+                                      _obscureConfirmPassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
                                     ),
                                     onPressed: () {
                                       setState(() {
