@@ -26,12 +26,19 @@ class FakePathProviderPlatform extends Fake
 @GenerateMocks([Dio])
 void main() {
   late HttpClient httpClient;
+  late Directory tempDir;
   const String baseUrl = 'https://api.example.com';
-  const String testCookieDir = '/test/cookies';
 
-  setUpAll(() {
+  setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     PathProviderPlatform.instance = FakePathProviderPlatform();
+    tempDir = await Directory.systemTemp.createTemp('http_client_test_');
+  });
+
+  tearDownAll(() async {
+    if (await tempDir.exists()) {
+      await tempDir.delete(recursive: true);
+    }
   });
 
   setUp(() {
@@ -43,14 +50,14 @@ void main() {
   group('HttpClient Tests', () {
     test('init should correctly configure Dio and CookieJar with testCookieDir', () async {
       // Act
-      await httpClient.init(baseUrl: baseUrl, testCookieDir: testCookieDir);
+      await httpClient.init(baseUrl: baseUrl, testCookieDir: tempDir.path);
 
       // Assert
       expect(httpClient.dio, isA<Dio>());
       expect(httpClient.dio.options.baseUrl, baseUrl);
       expect(httpClient.dio.options.headers[HttpHeaders.contentTypeHeader], 'application/json');
       expect(httpClient.dio.interceptors, isNotEmpty);
-      expect(httpClient.cookiePath, testCookieDir);
+      expect(httpClient.cookiePath, tempDir.path);
       expect(httpClient.cookieJarInitialized, isTrue);
     });
 
@@ -65,7 +72,7 @@ void main() {
 
     test('clearCookies should call cookieJar.deleteAll', () async {
       // Arrange: Ensure client is initialized
-      await httpClient.init(baseUrl: baseUrl, testCookieDir: testCookieDir);
+      await httpClient.init(baseUrl: baseUrl, testCookieDir: tempDir.path);
 
       final testUri = Uri.parse(baseUrl);
       final cookie = Cookie('test', 'value');
