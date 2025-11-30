@@ -123,12 +123,14 @@ func main() {
 			authMiddleware := authService.Middleware()
 			r.Use(authMiddleware.Auth)
 
-			// Activity endpoints
-			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
-			r.Get("/activities", handlers.HandleGetActivities(database, *log))
-			r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
-			r.Get("/name", handlers.HandleGetName(database, *log))
-			r.Post("/changeName", handlers.HandleChangeName(database, *log))
+		// Activity endpoints
+		r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
+		r.Get("/activities", handlers.HandleGetActivities(database, *log))
+		r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
+		
+		// User endpoints
+		r.Get("/user", handlers.HandleGetUser(database, *log))
+		r.Patch("/user", handlers.HandleUpdateUser(database, *log))
 		})
 	})
 

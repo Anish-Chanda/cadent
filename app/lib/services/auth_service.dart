@@ -11,11 +11,11 @@ class AuthService {
   }
 
   // Sign up a new user. Returns the user_id on success.
-  Future<String> signup({required String email, required String password}) async {
+  Future<String> signup({required String email, required String password, required String name}) async {
     final dio = HttpClient.instance.dio;
     final response = await dio.post(
       '/signup',
-      data: {'user': email, 'passwd': password},
+      data: {'user': email, 'passwd': password, 'name': name},
     );
 
     if (response.statusCode == 201) {

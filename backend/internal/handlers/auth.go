@@ -14,6 +14,7 @@ import (
 type SignupRequest struct {
 	User   string `json:"user"`
 	Passwd string `json:"passwd"`
+	Name   string `json:"name"`
 }
 
 type SignupResponse struct {
@@ -46,11 +47,12 @@ func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerF
 		// Validate input
 		email := strings.TrimSpace(strings.ToLower(req.User))
 		password := req.Passwd
+		name := strings.TrimSpace(req.Name)
 
-		if email == "" || password == "" {
+		if email == "" || password == "" || name == "" {
 			response := SignupResponse{
 				Success: false,
-				Message: "Email and password are required",
+				Message: "Email, password, and name are required",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -106,7 +108,7 @@ func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerF
 		}
 
 		// Create new user
-		user, err := auth.CreateUser(database, email, password)
+		user, err := auth.CreateUser(database, email, password, name)
 		if err != nil {
 			log.Error("Failed to create user", err)
 			response := SignupResponse{

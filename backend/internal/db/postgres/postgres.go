@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/models"
@@ -255,32 +257,45 @@ func (s *PostgresDB) CheckIdempotency(ctx context.Context, clientActivityID stri
 	return exists, nil
 }
 
-<<<<<<< HEAD
-func (s *PostgresDB) GetNameByUserID(ctx context.Context, userID string) (string, error) {
-	s.log.Debug(fmt.Sprintf("Fetching name by id: %s", userID))
+func (s *PostgresDB) GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error) {
+	s.log.Debug(fmt.Sprintf("Fetching user by ID: %s", userID))
 
 	query := `
-		SELECT name
+		SELECT id, email, name, password_hash, auth_provider,
+		       EXTRACT(EPOCH FROM created_at)::bigint as created_at,
+		       EXTRACT(EPOCH FROM updated_at)::bigint as updated_at
 		FROM users WHERE id = $1
 	`
 
-	var name sql.NullString
+	var user models.UserRecord
+	var passwordHash sql.NullString
 
 	err := s.db.QueryRow(ctx, query, userID).Scan(
-		&name,
+		&user.ID,
+		&user.Email,
+		&user.Name,
+		&passwordHash,
+		&user.AuthProvider,
+		&user.CreatedAt,
+		&user.UpdatedAt,
 	)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			s.log.Debug(fmt.Sprintf("User not found with ID: %s", userID))
-			return  "name", nil // User not found
+			return nil, nil // User not found
 		}
-		s.log.Error(fmt.Sprintf("Database error while fetching name by ID: %s", userID), err)
-		return "name", fmt.Errorf("failed to get name by ID: %w", err)
+		s.log.Error(fmt.Sprintf("Database error while fetching user by ID: %s", userID), err)
+		return nil, fmt.Errorf("failed to get user by ID: %w", err)
 	}
 
-	s.log.Debug(fmt.Sprintf("Successfully retrieved name of user: %s", userID))
-	return name.String, nil
+	// Handle nullable password hash (this will only be available for 'local' auth provider)
+	if passwordHash.Valid {
+		user.PasswordHash = &passwordHash.String
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully retrieved user: %s", userID))
+	return &user, nil
 }
 
 // GetActivityByID retrieves a specific activity by its ID
@@ -334,6 +349,7 @@ func (s *PostgresDB) GetActivityByID(ctx context.Context, activityID string) (*m
 		&activity.UpdatedAt,
 	)
 
+	if err != nil {
 		if err == pgx.ErrNoRows {
 			s.log.Debug(fmt.Sprintf("Activity not found: %s", activityID))
 			return nil, nil
@@ -346,29 +362,56 @@ func (s *PostgresDB) GetActivityByID(ctx context.Context, activityID string) (*m
 	return &activity, nil
 }
 
-func (s *PostgresDB) ChangeNameByUserID(ctx context.Context, userID string, newName string) (bool, error) {
-	s.log.Debug(fmt.Sprintf("Updating name for user ID: %s", userID))
+func (s *PostgresDB) UpdateUser(ctx context.Context, userID string, updates map[string]interface{}) error {
+	s.log.Debug(fmt.Sprintf("Updating user ID: %s with %d fields", userID, len(updates)))
 
-	query := `
+	if len(updates) == 0 {
+		return fmt.Errorf("no updates provided")
+	}
+
+	// Build dynamic query
+	setClauses := make([]string, 0, len(updates))
+	args := make([]interface{}, 0, len(updates)+1)
+	argIndex := 1
+
+	for field, value := range updates {
+		switch field {
+		case "name", "email":
+			setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argIndex))
+			args = append(args, value)
+			argIndex++
+		default:
+			return fmt.Errorf("invalid field for update: %s", field)
+		}
+	}
+
+	// Add updated_at timestamp
+	setClauses = append(setClauses, fmt.Sprintf("updated_at = to_timestamp($%d)", argIndex))
+	args = append(args, time.Now().Unix())
+	argIndex++
+
+	// Add user ID for WHERE clause
+	args = append(args, userID)
+
+	query := fmt.Sprintf(`
 		UPDATE users
-		SET name = $1
-		WHERE id = $2
-	`
+		SET %s
+		WHERE id = $%d
+	`, strings.Join(setClauses, ", "), argIndex)
 
-	cmdTag, err := s.db.Exec(ctx, query, newName, userID)
-
+	cmdTag, err := s.db.Exec(ctx, query, args...)
 	if err != nil {
-		s.log.Error(fmt.Sprintf("Database error while updating name for ID: %s", userID), err)
-		return false, fmt.Errorf("failed to update name: %w", err)
+		s.log.Error(fmt.Sprintf("Database error while updating user ID: %s", userID), err)
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	if cmdTag.RowsAffected() == 0 {
 		s.log.Debug(fmt.Sprintf("User not found with ID: %s", userID))
-		return false, nil // no user with that ID
+		return fmt.Errorf("user not found")
 	}
 
-	s.log.Debug(fmt.Sprintf("Successfully updated name for user: %s", userID))
-	return true, nil
+	s.log.Debug(fmt.Sprintf("Successfully updated user: %s", userID))
+	return nil
 }
 
 // GetActivityStreams retrieves activity streams for a given activity and LOD
@@ -458,7 +501,7 @@ func (s *PostgresDB) CreateActivityStreams(ctx context.Context, streams []models
 	`
 
 	for _, stream := range streams {
-		codecJSON, err := json.Marshal(.Codec)
+		codecJSON, err := json.Marshal(stream.Codec)
 		if err != nil {
 			s.log.Error(fmt.Sprintf("Error marshaling codec for activity: %s", activityID), err)
 			return fmt.Errorf("failed to marshal codec JSON: %w", err)
@@ -488,7 +531,6 @@ func (s *PostgresDB) CreateActivityStreams(ctx context.Context, streams []models
 	s.log.Debug(fmt.Sprintf("Successfully created %d streams for activity: %s", len(streams), activityID))
 	return nil
 }
-
 
 // --- Other stuff ---
 

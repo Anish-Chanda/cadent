@@ -9,9 +9,6 @@ import 'package:mockito/annotations.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-// Import the generated mocks
-import 'http_client_test.mocks.dart';
-
 // Create a fake PathProviderPlatform for testing
 class FakePathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin

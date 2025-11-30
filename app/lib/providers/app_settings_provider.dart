@@ -3,15 +3,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/app_settings.dart';
 
-class AppSettingsController extends ChangeNotifier {
-  AppSettingsModel _settings = AppSettingsModel();
+class AppSettingsProvider extends ChangeNotifier {
+  AppSettingsModel _settings = AppSettingsModel.defaults();
   static const String _storageKey = 'app_settings';
 
   AppSettingsModel get settings => _settings;
   String get metricUnit => _settings.metricUnit;
   String get themeMode => _settings.themeMode;
+  
+  // Convenience getters using model features
+  bool get isMetric => _settings.isMetric;
+  bool get isImperial => _settings.isImperial;
+  bool get isDarkMode => _settings.isDarkMode;
+  bool get isLightMode => _settings.isLightMode;
+  String get metricUnitDisplayName => _settings.metricUnitDisplayName;
+  String get themeModeDisplayName => _settings.themeModeDisplayName;
 
-  AppSettingsController() {
+  AppSettingsProvider() {
     _loadSettings();
   }
 
@@ -65,12 +73,13 @@ class AppSettingsController extends ChangeNotifier {
     final newMode = _settings.themeMode == AppSettingsModel.lightTheme
         ? AppSettingsModel.darkTheme
         : AppSettingsModel.lightTheme;
+        // TODO: we need to update the apps theme too
     await setThemeMode(newMode);
   }
 
   // Reset to defaults
   Future<void> resetToDefaults() async {
-    _settings = AppSettingsModel();
+    _settings = AppSettingsModel.defaults();
     notifyListeners();
     await _saveSettings();
   }

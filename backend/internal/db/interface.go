@@ -25,9 +25,9 @@ type Database interface {
 
 	// --- Other stuff ---
 
-    // getting and changing user name
-    GetNameByUserID(ctx context.Context, userID string) (string, error)
-    ChangeNameByUserID(ctx context.Context, userID string, newName string) (bool, error)
+	// User management methods
+	GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error)
+	UpdateUser(ctx context.Context, userID string, updates map[string]interface{}) error
 
 	// establishes a database connection
 	Connect(dsn string) error
