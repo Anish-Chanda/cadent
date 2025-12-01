@@ -26,7 +26,7 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Icon(Icons.account_circle),
                   title: const Text('Account'),
                   subtitle: Text(
-                    auth.email.isNotEmpty ? auth.email : 'Not signed in',
+                    auth.email?.isNotEmpty == true ? auth.email! : 'Not signed in',
                   ),
                 ),
               ),
@@ -39,8 +39,8 @@ class SettingsScreen extends StatelessWidget {
                       leading: const Icon(Icons.account_circle),
                       title: const Text('Display Name'),
                       subtitle: Text(
-                        auth.name.isNotEmpty 
-                          ? auth.name 
+                        auth.name?.isNotEmpty == true 
+                          ? auth.name! 
                           : "Loading...", // Show loading
                       ),
                       trailing: const Icon(Icons.edit), // optional edit icon
@@ -49,7 +49,7 @@ class SettingsScreen extends StatelessWidget {
                         final newName = await showDialog<String>(
                           context: context,
                           builder: (context) {
-                            String tempName = auth.name;
+                            String tempName = auth.name ?? '';
                             return AlertDialog(
                               title: const Text('Enter new display name'),
                               content: TextField(

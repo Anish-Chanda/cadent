@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cadence/services/auth_service.dart';
 import 'package:cadence/services/http_client.dart';
 
-/// Simple Dio interceptor to return predefined responses by method + path.
+// Dio interceptor to return predefined responses by method + path.
 class MockingInterceptor extends Interceptor {
   final Map<String, _MockReply> replies = {};
 
@@ -157,45 +157,47 @@ void main() {
     });
   });
 
-  group('AuthService.checkAuthState', () {
-    test('returns true when status is logged in', () async {
-      interceptor.reply('GET', '/auth/status', statusCode: 200, data: {
-        'status': 'logged in',
+  group('AuthService.getUserProfile', () {
+    test('returns user data on 200', () async {
+      interceptor.reply('GET', '/v1/user', statusCode: 200, data: {
+        'id': 'user123',
+        'email': 'user@example.com',
+        'name': 'Test User',
       });
 
-      final result = await AuthService.instance.checkAuthState();
-      expect(result, isTrue);
+      final result = await AuthService.instance.getUserProfile();
+      expect(result, isNotNull);
+      expect(result!['id'], 'user123');
+      expect(result['email'], 'user@example.com');
     });
 
-    test('returns false when status is not logged in', () async {
-      interceptor.reply('GET', '/auth/status', statusCode: 200, data: {
-        'status': 'anonymous',
-      });
+    test('returns null on 401 unauthorized', () async {
+      interceptor.reply('GET', '/v1/user', statusCode: 401, statusMessage: 'Unauthorized');
 
-      final result = await AuthService.instance.checkAuthState();
-      expect(result, isFalse);
+      final result = await AuthService.instance.getUserProfile();
+      expect(result, isNull);
     });
 
-    test('returns false on non-200 response', () async {
-      interceptor.reply('GET', '/auth/status', statusCode: 401, statusMessage: 'Unauthorized');
+    test('returns null on 403 forbidden', () async {
+      interceptor.reply('GET', '/v1/user', statusCode: 403, statusMessage: 'Forbidden');
 
-      final result = await AuthService.instance.checkAuthState();
-      expect(result, isFalse);
+      final result = await AuthService.instance.getUserProfile();
+      expect(result, isNull);
     });
 
-    test('returns false on network error/exception', () async {
+    test('returns null on network error/exception', () async {
       interceptor.throwError(
         'GET',
-        '/auth/status',
+        '/v1/user',
         DioException(
-          requestOptions: RequestOptions(path: '/auth/status'),
+          requestOptions: RequestOptions(path: '/v1/user'),
           type: DioExceptionType.connectionError,
           error: 'connection error',
         ),
       );
 
-      final result = await AuthService.instance.checkAuthState();
-      expect(result, isFalse);
+      final result = await AuthService.instance.getUserProfile();
+      expect(result, isNull);
     });
   });
 

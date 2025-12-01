@@ -37,10 +37,10 @@ class CadenceApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'Cadence',
+          title: 'Cadent',
           debugShowCheckedModeBanner: false,
           theme: themeProvider.getTheme(),
-          home: const AppNavigator(),
+          home: const AuthWrapper(),
         );
       },
     );

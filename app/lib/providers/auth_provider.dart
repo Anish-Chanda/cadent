@@ -6,6 +6,13 @@ import '../services/http_client.dart';
 import '../services/storage_service.dart';
 import '../services/settings_service.dart';
 import '../models/user_profile.dart';
+import '../models/user.dart';
+
+enum AuthStatus {
+  unknown,
+  authenticated,
+  unauthenticated,
+}
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService.instance;
@@ -15,32 +22,29 @@ class AuthProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   
-  bool _isCheckingAuthState = false;
-  bool get isCheckingAuthState => _isCheckingAuthState;
-  
-  bool _isAuthenticated = false;
-  bool get isAuthenticated => _isAuthenticated;
+  AuthStatus _status = AuthStatus.unknown;
+  AuthStatus get status => _status;
   
   String _serverUrl = '';
   String get serverUrl => _serverUrl;
 
-  String _email = '';
-  String get email => _email;
+  User? _currentUser;
+  User? get currentUser => _currentUser;
 
-  String _name = '';
-  String get name => _name;
-
-  String _userId = '';
-  String get userId => _userId;
+  // Direct access to user properties - nullable to indicate when no user is authenticated, these should ideally
+  // never be accessed when status is unauthenticated, the authwrapper send the user to the login screen.
+  String? get email => _currentUser?.email;
+  String? get name => _currentUser?.name;
+  String? get userId => _currentUser?.id;
 
   UserProfile? get userProfile {
-    if (!_isAuthenticated || _userId.isEmpty || _email.isEmpty) {
+    if (_currentUser == null) {
       return null;
     }
     return UserProfile(
-      id: _userId,
-      email: _email,
-      name: _name,
+      id: _currentUser!.id,
+      email: _currentUser!.email,
+      name: _currentUser!.name,
     );
   }
 
@@ -61,32 +65,31 @@ class AuthProvider with ChangeNotifier {
     return provider;
   }
 
-  // Check authentication state by making a test API call
+  // Check authentication state by getting user profile from API
   Future<void> _checkAuthState() async {
-    log('Checking auth state...');
-    _isCheckingAuthState = true;
+    _status = AuthStatus.unknown;
     notifyListeners();
 
     try {
-      _isAuthenticated = await _authService.checkAuthState();
-      log('Auth state check result: $_isAuthenticated');
+      final userData = await _authService.getUserProfile();
       
-      // If authenticated, load user profile
-      if (_isAuthenticated) {
-        log('User is authenticated, loading profile...');
-        await _loadUserProfile();
+      if (userData != null) {
+        log('User is authenticated, setting user data...');
+        _currentUser = User(
+          id: userData['id'] as String,
+          email: userData['email'] as String,
+          name: userData['name'] as String,
+        );
+        _status = AuthStatus.authenticated;
+        log('Loaded user profile: ${_currentUser!.name} (${_currentUser!.email})');
       } else {
         log('User is not authenticated, clearing user data...');
-        _clearUserData();
+        _setUnauthenticated();
       }
     } catch (e) {
       log('Auth state check failed: $e');
-      _isAuthenticated = false;
-      _clearUserData();
+      _setUnauthenticated();
     }
-
-    _isCheckingAuthState = false;
-    notifyListeners();
   }
 
   // Load user profile data
@@ -95,16 +98,22 @@ class AuthProvider with ChangeNotifier {
       log('Loading user profile...');
       final profile = await _settingsService.getUserProfile();
       if (profile != null) {
-        _userId = profile.id;
-        _email = profile.email;
-        _name = profile.name;
+        _currentUser = User(
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+        );
+        _status = AuthStatus.authenticated;
         log('Loaded user profile: ${profile.name} (${profile.email})');
       } else {
         log('getUserProfile returned null - user profile not found');
+        _setUnauthenticated();
       }
     } catch (e) {
       log('Failed to load user profile: $e');
+      _setUnauthenticated();
     }
+    notifyListeners();
   }
 
   // Change serverUrl, persist it, and re-initialize Dio so its baseUrl updates.
@@ -114,10 +123,11 @@ class AuthProvider with ChangeNotifier {
     _serverUrl = newUrl;
     notifyListeners();
 
-    // Persist the new URL:
+    // Persist the new URL
     await StorageService.saveServerUrl(newUrl);
 
-    // Re-init only Dio’s baseUrl; reuse the same cookieJar
+    // Re-init only Dio’s baseUrl, reuse the same cookieJar, if these are valid the user will remain logged in.
+    // sothe case where a user migrates their instance to a new server.
     await HttpClient.instance.init(baseUrl: _serverUrl);
 
     notifyListeners();
@@ -129,10 +139,9 @@ class AuthProvider with ChangeNotifier {
 
     try {
       await _authService.login(email: email, password: password);
-      _isAuthenticated = true;
       
-      // Store the email immediately after successful login
-      _email = email;
+      // Create a temporary user with the email - profile will be loaded right after
+      _currentUser = User(id: '', email: email, name: '');
       
       // Load complete user profile data
       await _loadUserProfile();
@@ -140,10 +149,8 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _isAuthenticated = false;
       _isLoading = false;
-      _clearUserData();
-      notifyListeners();
+      _setUnauthenticated();
       rethrow;
     }
   }
@@ -165,25 +172,23 @@ class AuthProvider with ChangeNotifier {
       await _authService.login(email: email, password: password);
       log('Auto-login after signup successful');
       
-      _isAuthenticated = true;
-      _email = email;
+      _currentUser = User(id: userId, email: email, name: name);
+      _status = AuthStatus.authenticated;
       _isLoading = false;
       notifyListeners();
       return userId;
     } catch (e) {
       log('Signup/auto-login failed: $e');
-      _isAuthenticated = false;
       _isLoading = false;
-      notifyListeners();
+      _setUnauthenticated();
       rethrow;
     }
   }
 
-  // Clear user data
-  void _clearUserData() {
-    _userId = '';
-    _email = '';
-    _name = '';
+  // Helper method to set unauthenticated state
+  void _setUnauthenticated() {
+    _currentUser = null;
+    _status = AuthStatus.unauthenticated;
   }
 
   // Logout user and clear authentication state
@@ -193,20 +198,19 @@ class AuthProvider with ChangeNotifier {
 
     try {
       await _authService.logout();
-      _isAuthenticated = false;
     } catch (e) {
       // Even if logout fails, clear local state
-      _isAuthenticated = false;
+      log('Logout failed: $e');
     }
 
-    _clearUserData();
+    _setUnauthenticated();
     _isLoading = false;
     notifyListeners();
   }
 
   // Update user profile (name, email, etc.)
   Future<bool> updateUserProfile({String? name, String? email}) async {
-    if (!_isAuthenticated) {
+    if (_status != AuthStatus.authenticated) {
       log('Cannot update profile: user not authenticated');
       return false;
     }
@@ -218,9 +222,11 @@ class AuthProvider with ChangeNotifier {
       );
       
       if (updatedProfile != null) {
-        _userId = updatedProfile.id;
-        _email = updatedProfile.email;
-        _name = updatedProfile.name;
+        _currentUser = User(
+          id: updatedProfile.id,
+          email: updatedProfile.email,
+          name: updatedProfile.name,
+        );
         notifyListeners();
         log('User profile updated successfully');
         return true;
