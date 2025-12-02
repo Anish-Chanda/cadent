@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/auth"
 	"github.com/anish-chanda/cadence/backend/internal/db"
 	"github.com/anish-chanda/cadence/backend/internal/db/postgres"
 	"github.com/anish-chanda/cadence/backend/internal/handlers"
@@ -85,7 +84,7 @@ func main() {
 		}),
 		TokenDuration:  time.Duration(cfg.TokenDuration) * time.Minute, // token expires in X minutes
 		CookieDuration: time.Duration(cfg.CookieDuration) * time.Hour,  // cookie expires in X hours
-		Issuer:         "cadence",
+		Issuer:         "cadent",
 		URL:            cfg.BaseURL,
 		DisableXSRF:    true,
 		AvatarStore:    avatar.NewLocalFS(cfg.AvatarPath),
@@ -94,7 +93,7 @@ func main() {
 	// Create auth service with providers
 	authService := authpkg.NewService(authOptions)
 	authService.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
-		return auth.HandleLogin(database, user, password)
+		return handlers.HandleLogin(database, user, password)
 	}))
 
 	// Create router
@@ -102,8 +101,6 @@ func main() {
 
 	// Add middlewares
 	router.Use(middleware.Logger)
-	// router.Use(middleware.Recoverer)
-	// router.Use(middleware.RealIP)
 
 	// Mount auth routes
 	authHandler, avatarHandler := authService.Handlers()
@@ -126,6 +123,11 @@ func main() {
 			// Activity endpoints
 			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
 			r.Get("/activities", handlers.HandleGetActivities(database, *log))
+			r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
+
+			// User endpoints
+			r.Get("/user", handlers.HandleGetUser(database, *log))
+			r.Patch("/user", handlers.HandleUpdateUser(database, *log))
 		})
 	})
 

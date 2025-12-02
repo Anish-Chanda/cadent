@@ -84,7 +84,7 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
           Navigator.pop(context, {
             'action': 'resume'

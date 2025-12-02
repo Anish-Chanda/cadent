@@ -1,21 +1,24 @@
 import '../services/http_client.dart';
 
+// AuthService handles API communication for authentication
+// This service is responsible only for making HTTP requests
+// State management is handled by AuthProvider
 class AuthService {
   AuthService._();
 
   static final AuthService instance = AuthService._();
 
-  //Must be called before using any otehr methods of AuthService
+  // Must be called before using any other methods of AuthService
   Future<void> initialize({required String serverUrl}) async {
     await HttpClient.instance.init(baseUrl: serverUrl);
   }
 
   // Sign up a new user. Returns the user_id on success.
-  Future<String> signup({required String email, required String password}) async {
+  Future<String> signup({required String email, required String password, required String name}) async {
     final dio = HttpClient.instance.dio;
     final response = await dio.post(
       '/signup',
-      data: {'user': email, 'passwd': password},
+      data: {'user': email, 'passwd': password, 'name': name},
     );
 
     if (response.statusCode == 201) {
@@ -32,6 +35,7 @@ class AuthService {
     }
   }
 
+  // Authenticate user with email and password
   Future<void> login({required String email, required String password}) async {
     final dio = HttpClient.instance.dio;
     final response = await dio.post(
@@ -49,22 +53,22 @@ class AuthService {
     }
   }
 
-  // Check if user is currently authenticated using the auth status endpoint
-  Future<bool> checkAuthState() async {
+  // Check authentication status and get user data using the user endpoint
+  Future<Map<String, dynamic>?> getUserProfile() async {
     try {
       final dio = HttpClient.instance.dio;
-      // Use the built-in auth status endpoint from go-pkgz/auth
-      final response = await dio.get('/auth/status');
+      // Use the /v1/user endpoint - returns user data if authenticated, 401 if not
+      final response = await dio.get('/v1/user');
 
-      // If we get a successful response (200), user is authenticated
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        return data['status'] == 'logged in';
+        return response.data as Map<String, dynamic>;
       }
-      return false;
+      return null;
     } catch (e) {
       // Any error (network, 401, 403, etc.) means not authenticated
-      return false;
+      // TODO: Implement token refreshes in the backend, we will need a refreshcache and if the cookie
+      // is still valid then we can refresh the token, or we can implement our sesssion mgmt in the backend.
+      return null;
     }
   }
 

@@ -17,6 +17,7 @@ func TestUserRecord_Fields(t *testing.T) {
 	user := UserRecord{
 		ID:           "test-id-123",
 		Email:        "test@example.com",
+		Name:         "Johnson",
 		PasswordHash: &passwordHash,
 		AuthProvider: AuthProviderLocal,
 		CreatedAt:    1234567890,

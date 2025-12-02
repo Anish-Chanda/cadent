@@ -4,23 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 class LocationPermissionService {
-  static final GeolocatorPlatform _geolocatorPlatform = GeolocatorPlatform.instance;
+  // REMOVED: The static final field that was caching the instance.
 
   /// Checks if location services are enabled and permissions are granted
   /// Returns true if everything is ready for location access
   static Future<bool> hasLocationPermission() async {
     try {
       // Check if location services are enabled
-      bool serviceEnabled = await _geolocatorPlatform.isLocationServiceEnabled();
+      bool serviceEnabled = await GeolocatorPlatform.instance.isLocationServiceEnabled();
       if (!serviceEnabled) {
         return false;
       }
 
       // Check current permission status
-      LocationPermission permission = await _geolocatorPlatform.checkPermission();
-      
-      return permission == LocationPermission.whileInUse || 
-             permission == LocationPermission.always;
+      LocationPermission permission = await GeolocatorPlatform.instance.checkPermission();
+
+      return permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
     } catch (e) {
       log('Error checking location permissions: $e');
       return false;
@@ -33,7 +33,7 @@ class LocationPermissionService {
   static Future<bool> requestLocationPermission({BuildContext? context}) async {
     try {
       // Check if location services are enabled
-      bool serviceEnabled = await _geolocatorPlatform.isLocationServiceEnabled();
+      bool serviceEnabled = await GeolocatorPlatform.instance.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (context != null && context.mounted) {
           //TODO: create a centralized way to show these messages
@@ -48,18 +48,18 @@ class LocationPermissionService {
       }
 
       // Check current permission status
-      LocationPermission permission = await _geolocatorPlatform.checkPermission();
-      
+      LocationPermission permission = await GeolocatorPlatform.instance.checkPermission();
+
       // If already granted, return true
-      if (permission == LocationPermission.whileInUse || 
+      if (permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always) {
         return true;
       }
 
       // If denied, request permission
       if (permission == LocationPermission.denied) {
-        permission = await _geolocatorPlatform.requestPermission();
-        
+        permission = await GeolocatorPlatform.instance.requestPermission();
+
         if (permission == LocationPermission.denied) {
           if (context != null && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -87,8 +87,8 @@ class LocationPermissionService {
       }
 
       // Check final permission status
-      return permission == LocationPermission.whileInUse || 
-             permission == LocationPermission.always;
+      return permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
     } catch (e) {
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -104,11 +104,11 @@ class LocationPermissionService {
 
   /// Gets the current location permission status without requesting
   static Future<LocationPermission> getPermissionStatus() async {
-    return await _geolocatorPlatform.checkPermission();
+    return await GeolocatorPlatform.instance.checkPermission();
   }
 
   /// Opens app settings for the user to manually grant permissions
   static Future<bool> openAppSettings() async {
-    return await _geolocatorPlatform.openAppSettings();
+    return await GeolocatorPlatform.instance.openAppSettings();
   }
 }
