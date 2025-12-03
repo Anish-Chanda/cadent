@@ -118,13 +118,13 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: flutter-test-data
-          path: .  # keeps app/coverage/... and app/tests.output
+          path: app
 
       - name: Download Go test artifacts
         uses: actions/download-artifact@v6
         with:
           name: go-test-data
-          path: .  # keeps backend/report.json and backend/coverage.out
+          path: backend
       
       - name: Prepare Flutter pubspec for Sonar
         run: cp app/pubspec.yaml pubspec.yaml
