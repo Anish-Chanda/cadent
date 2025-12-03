@@ -115,6 +115,9 @@ jobs:
         with:
           name: go-test-data
           path: .  # keeps backend/report.json and backend/coverage.out
+      
+      - name: Prepare Flutter pubspec for Sonar
+        run: cp app/pubspec.yaml pubspec.yaml
 
       - name: OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
