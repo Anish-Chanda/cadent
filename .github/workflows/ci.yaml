@@ -36,7 +36,7 @@ jobs:
           # Run tests
           flutter test
           # Generate machine-readable test output for sonar-flutter
-          flutter test --machine > tests.output
+          flutter test --machine --coverage > tests.output
       
       - name: Upload Flutter test artifacts
         uses: actions/upload-artifact@v5
