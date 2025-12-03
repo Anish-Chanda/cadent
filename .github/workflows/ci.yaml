@@ -126,7 +126,7 @@ jobs:
           args: >
             --format HTML
             --enableExperimental
-            --failOnCVSS 0
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
