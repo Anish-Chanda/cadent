@@ -23,7 +23,23 @@ func CalculateElevationChange(heightResp *HeightResponse, segmentThreshold float
 		MinHeight:  math.Inf(1),  // Start with positive infinity
 	}
 
-	if heightResp == nil || len(heightResp.Height) < 2 {
+	if heightResp == nil || len(heightResp.Height) == 0 {
+		// Handle completely empty case
+		result.MaxHeight = 0
+		result.MinHeight = 0
+		return result
+	}
+
+	// Special handling for single point case
+	if len(heightResp.Height) == 1 {
+		if heightResp.Height[0] != nil {
+			height := *heightResp.Height[0]
+			result.MaxHeight = height
+			result.MinHeight = height
+		} else {
+			result.MaxHeight = 0
+			result.MinHeight = 0
+		}
 		return result
 	}
 
@@ -47,6 +63,11 @@ func CalculateElevationChange(heightResp *HeightResponse, segmentThreshold float
 	}
 
 	if len(validHeights) < 2 {
+		if len(validHeights) == 0 {
+			// No valid heights at all - set to 0
+			result.MaxHeight = 0
+			result.MinHeight = 0
+		}
 		return result
 	}
 
