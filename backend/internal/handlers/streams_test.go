@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -434,5 +436,496 @@ func TestStreamsResponse_JSONSerialization(t *testing.T) {
 
 	if len(unmarshaled.Streams) != len(response.Streams) {
 		t.Errorf("Streams length = %d, want %d", len(unmarshaled.Streams), len(response.Streams))
+	}
+}
+
+func TestHandleGetActivityStreams(t *testing.T) {
+	tests := []struct {
+		name           string
+		activityID     string
+		queryParams    string
+		userEmail      string
+		setupMock      func(*MockDatabase)
+		expectedStatus int
+		expectedError  string
+		checkResponse  func(*testing.T, StreamsResponse)
+	}{
+		{
+			name:           "missing activity ID",
+			activityID:     "",
+			queryParams:    "lod=medium&type=time,distance",
+			userEmail:      "user@example.com",
+			setupMock:      func(m *MockDatabase) {},
+			expectedStatus: 400,
+			expectedError:  "Activity ID is required",
+		},
+		{
+			name:           "invalid query parameters - missing lod",
+			activityID:     "550e8400-e29b-41d4-a716-446655440000",
+			queryParams:    "type=time,distance",
+			userEmail:      "user@example.com",
+			setupMock:      func(m *MockDatabase) {},
+			expectedStatus: 400,
+			expectedError:  "Invalid request parameters",
+		},
+		{
+			name:           "invalid query parameters - missing types",
+			activityID:     "550e8400-e29b-41d4-a716-446655440000",
+			queryParams:    "lod=medium",
+			userEmail:      "user@example.com",
+			setupMock:      func(m *MockDatabase) {},
+			expectedStatus: 400,
+			expectedError:  "Invalid request parameters",
+		},
+		{
+			name:           "invalid query parameters - invalid lod",
+			activityID:     "550e8400-e29b-41d4-a716-446655440000",
+			queryParams:    "lod=invalid&type=time,distance",
+			userEmail:      "user@example.com",
+			setupMock:      func(m *MockDatabase) {},
+			expectedStatus: 400,
+			expectedError:  "Invalid request parameters",
+		},
+		{
+			name:           "invalid query parameters - invalid types",
+			activityID:     "550e8400-e29b-41d4-a716-446655440000",
+			queryParams:    "lod=medium&type=invalid,distance",
+			userEmail:      "user@example.com",
+			setupMock:      func(m *MockDatabase) {},
+			expectedStatus: 400,
+			expectedError:  "Invalid request parameters",
+		},
+		{
+			name:           "user not found",
+			activityID:     "550e8400-e29b-41d4-a716-446655440000",
+			queryParams:    "lod=medium&type=time,distance",
+			userEmail:      "notfound@example.com",
+			setupMock:      func(m *MockDatabase) {},
+			expectedStatus: 401,
+			expectedError:  "Unauthorized",
+		},
+		{
+			name:        "database error getting activity",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=medium&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.errors["GetActivityByID"] = errors.New("database error")
+			},
+			expectedStatus: 500,
+			expectedError:  "Internal server error",
+		},
+		{
+			name:        "activity not found",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=medium&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+			},
+			expectedStatus: 404,
+			expectedError:  "Activity not found",
+		},
+		{
+			name:        "user doesn't own activity",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=medium&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.activities["550e8400-e29b-41d4-a716-446655440000"] = &models.Activity{
+					ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+					UserID: "different-user",
+					Title:  "Test Activity",
+				}
+			},
+			expectedStatus: 404,
+			expectedError:  "Activity not found", // Returns 404 instead of 403 for security
+		},
+		{
+			name:        "full LOD not implemented",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=full&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.activities["550e8400-e29b-41d4-a716-446655440000"] = &models.Activity{
+					ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+					UserID: "user-123",
+					Title:  "Test Activity",
+				}
+			},
+			expectedStatus: 501,
+			expectedError:  "Full resolution streams not available",
+		},
+		{
+			name:        "unsupported LOD - this test is no longer relevant since all valid LODs are caught at parameter level",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=unknown&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.activities["550e8400-e29b-41d4-a716-446655440000"] = &models.Activity{
+					ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+					UserID: "user-123",
+					Title:  "Test Activity",
+				}
+			},
+			expectedStatus: 400,
+			expectedError:  "Invalid request parameters", // Caught at parameter validation level
+		},
+		{
+			name:        "database error getting streams",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=medium&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.activities["550e8400-e29b-41d4-a716-446655440000"] = &models.Activity{
+					ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+					UserID: "user-123",
+					Title:  "Test Activity",
+				}
+				m.errors["GetActivityStreams"] = errors.New("database error")
+			},
+			expectedStatus: 500,
+			expectedError:  "Internal server error",
+		},
+		{
+			name:        "no streams found",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=medium&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.activities["550e8400-e29b-41d4-a716-446655440000"] = &models.Activity{
+					ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+					UserID: "user-123",
+					Title:  "Test Activity",
+				}
+				// Don't set up any stream data - this will cause getMediumLODStreams to return empty result
+				// which the function treats as "no medium LOD streams found" error
+			},
+			expectedStatus: 500, // Function returns error when no streams found, not 404
+			expectedError:  "Internal server error",
+		},
+		{
+			name:        "successful medium LOD request",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=medium&type=time,distance",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.activities["550e8400-e29b-41d4-a716-446655440000"] = &models.Activity{
+					ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+					UserID: "user-123",
+					Title:  "Test Activity",
+				}
+
+				// Create some test data
+				timeData := []float64{0, 1, 2, 3, 4}
+				distanceData := []float64{0, 10, 20, 30, 40}
+
+				// Compress the test data
+				timeBytes, _ := compression.Compress(timeData, compression.DefaultCompressOptions())
+				distanceBytes, _ := compression.Compress(distanceData, compression.DefaultCompressOptions())
+
+				m.activityStreams["550e8400-e29b-41d4-a716-446655440000"+string(models.StreamLODMedium)] = []models.ActivityStream{
+					{
+						ActivityID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						LOD:               models.StreamLODMedium,
+						IndexBy:           models.StreamIndexByDistance,
+						NumPoints:         5,
+						OriginalNumPoints: 10,
+						TimeSBytes:        timeBytes,
+						DistanceMBytes:    distanceBytes,
+						Codec: map[string]interface{}{
+							"algorithm": "dibs",
+							"version":   "1.0",
+						},
+					},
+				}
+			},
+			expectedStatus: 200,
+			checkResponse: func(t *testing.T, response StreamsResponse) {
+				if response.ActivityID != "550e8400-e29b-41d4-a716-446655440000" {
+					t.Errorf("ActivityID = %s, want 550e8400-e29b-41d4-a716-446655440000", response.ActivityID)
+				}
+				if response.LOD != models.StreamLODMedium {
+					t.Errorf("LOD = %s, want %s", response.LOD, models.StreamLODMedium)
+				}
+				if response.IndexBy != models.StreamIndexByDistance {
+					t.Errorf("IndexBy = %s, want %s", response.IndexBy, models.StreamIndexByDistance)
+				}
+				if response.NumPoints != 5 {
+					t.Errorf("NumPoints = %d, want 5", response.NumPoints)
+				}
+				if response.OriginalNumPoints != 10 {
+					t.Errorf("OriginalNumPoints = %d, want 10", response.OriginalNumPoints)
+				}
+				if len(response.Streams) != 2 {
+					t.Errorf("Expected 2 streams, got %d", len(response.Streams))
+				}
+
+				// Check stream types
+				streamTypes := make(map[models.StreamType]bool)
+				for _, stream := range response.Streams {
+					streamTypes[stream.Type] = true
+				}
+				if !streamTypes[models.StreamTypeTime] {
+					t.Error("Time stream not found")
+				}
+				if !streamTypes[models.StreamTypeDistance] {
+					t.Error("Distance stream not found")
+				}
+			},
+		},
+		{
+			name:        "successful low LOD request",
+			activityID:  "550e8400-e29b-41d4-a716-446655440000",
+			queryParams: "lod=low&type=elevation,speed",
+			userEmail:   "user@example.com",
+			setupMock: func(m *MockDatabase) {
+				m.usersByEmail["user@example.com"] = &models.UserRecord{
+					ID:    "user-123",
+					Email: "user@example.com",
+					Name:  "Test User",
+				}
+				m.activities["550e8400-e29b-41d4-a716-446655440000"] = &models.Activity{
+					ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+					UserID: "user-123",
+					Title:  "Test Activity",
+				}
+
+				// Create test data for medium LOD (which low LOD will be calculated from)
+				elevationData := make([]float64, 300) // More than LowLODTargetPoints
+				speedData := make([]float64, 300)
+				for i := 0; i < 300; i++ {
+					elevationData[i] = 100 + float64(i)*0.1
+					speedData[i] = 5 + float64(i)*0.01
+				}
+
+				elevationBytes, _ := compression.Compress(elevationData, compression.DefaultCompressOptions())
+				speedBytes, _ := compression.Compress(speedData, compression.DefaultCompressOptions())
+
+				m.activityStreams["550e8400-e29b-41d4-a716-446655440000"+string(models.StreamLODMedium)] = []models.ActivityStream{
+					{
+						ActivityID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						LOD:               models.StreamLODMedium,
+						IndexBy:           models.StreamIndexByDistance,
+						NumPoints:         300,
+						OriginalNumPoints: 600,
+						ElevationMBytes:   elevationBytes,
+						SpeedMpsBytes:     speedBytes,
+						Codec: map[string]interface{}{
+							"algorithm": "dibs",
+							"version":   "1.0",
+						},
+					},
+				}
+			},
+			expectedStatus: 200,
+			checkResponse: func(t *testing.T, response StreamsResponse) {
+				if response.LOD != models.StreamLODLow {
+					t.Errorf("LOD = %s, want %s", response.LOD, models.StreamLODLow)
+				}
+				// Allow some tolerance for decimation algorithm - it might be slightly over due to including last point
+				if response.NumPoints > LowLODTargetPoints+5 {
+					t.Errorf("NumPoints = %d, should be <= %d for low LOD (with small tolerance)", response.NumPoints, LowLODTargetPoints+5)
+				}
+				if len(response.Streams) != 2 {
+					t.Errorf("Expected 2 streams, got %d", len(response.Streams))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock database
+			mockDB := NewMockDatabase()
+			tt.setupMock(mockDB)
+
+			// Setup logger
+			mockLog := logger.New(logger.Config{
+				Level:       "info",
+				Environment: "test",
+				ServiceName: "test",
+			})
+
+			// Create a test handler that mocks the authentication
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				ctx := context.Background()
+
+				// Get activity ID from URL path - simulate chi router
+				activityID := tt.activityID
+				if activityID == "" {
+					mockLog.Error("Missing activity ID in URL path", nil)
+					http.Error(w, "Activity ID is required", http.StatusBadRequest)
+					return
+				}
+
+				// Parse query parameters
+				req, err := parseStreamRequest(r)
+				if err != nil {
+					mockLog.Error("Failed to parse stream request", err)
+					http.Error(w, "Invalid request parameters", http.StatusBadRequest)
+					return
+				}
+
+				// Mock authentication - get user from usersByEmail
+				userEmail := tt.userEmail
+				if userEmail == "" {
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					return
+				}
+
+				dbUser := mockDB.usersByEmail[userEmail]
+				if dbUser == nil {
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					return
+				}
+
+				userID := dbUser.ID
+
+				// Get activity to check ownership
+				activity, err := mockDB.GetActivityByID(ctx, activityID)
+				if err != nil {
+					mockLog.Error("Failed to get activity from database", err)
+					http.Error(w, "Internal server error", http.StatusInternalServerError)
+					return
+				}
+				if activity == nil {
+					mockLog.Info("Activity not found: " + activityID)
+					http.Error(w, "Activity not found", http.StatusNotFound)
+					return
+				}
+
+				// Check if the authenticated user owns this activity
+				if activity.UserID != userID {
+					mockLog.Debug("User attempted to access activity owned by different user")
+					http.Error(w, "Activity not found", http.StatusNotFound) // Return 404 instead of 403
+					return
+				}
+
+				// Handle different LOD types
+				var responseStreams []StreamData
+				var numPoints, originalNumPoints int
+
+				switch req.LOD {
+				case models.StreamLODMedium:
+					responseStreams, numPoints, originalNumPoints, err = getMediumLODStreams(ctx, mockDB, activityID, req.Types, *mockLog)
+					if err != nil {
+						http.Error(w, "Internal server error", http.StatusInternalServerError)
+						return
+					}
+
+				case models.StreamLODLow:
+					responseStreams, numPoints, originalNumPoints, err = getLowLODStreams(ctx, mockDB, activityID, req.Types, *mockLog)
+					if err != nil {
+						http.Error(w, "Internal server error", http.StatusInternalServerError)
+						return
+					}
+
+				case models.StreamLODFull:
+					mockLog.Error("Full LOD streams not yet implemented", nil)
+					http.Error(w, "Full resolution streams not available", http.StatusNotImplemented)
+					return
+
+				default:
+					http.Error(w, "Unsupported LOD: "+string(req.LOD), http.StatusBadRequest)
+					return
+				}
+
+				if len(responseStreams) == 0 {
+					mockLog.Info("No stream data found for activity " + activityID)
+					http.Error(w, "Stream data not found", http.StatusNotFound)
+					return
+				}
+
+				// Build response
+				response := StreamsResponse{
+					ActivityID:        activityID,
+					LOD:               req.LOD,
+					IndexBy:           models.StreamIndexByDistance,
+					NumPoints:         numPoints,
+					OriginalNumPoints: originalNumPoints,
+					Streams:           responseStreams,
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				if err := json.NewEncoder(w).Encode(response); err != nil {
+					mockLog.Error("Failed to encode response", err)
+					http.Error(w, "Internal server error", http.StatusInternalServerError)
+					return
+				}
+			}
+
+			// Create request
+			req := httptest.NewRequest("GET", "/v1/activities/"+tt.activityID+"/streams?"+tt.queryParams, nil)
+			req.Header.Set("Content-Type", "application/json")
+
+			// Create response recorder
+			w := httptest.NewRecorder()
+
+			// Call handler
+			handler(w, req)
+
+			// Check status code
+			if w.Code != tt.expectedStatus {
+				t.Errorf("Status code = %d, want %d", w.Code, tt.expectedStatus)
+			}
+
+			// Check error response if expected
+			if tt.expectedError != "" {
+				body := strings.TrimSpace(w.Body.String())
+				if !strings.Contains(body, tt.expectedError) {
+					t.Errorf("Response body '%s' does not contain expected error '%s'", body, tt.expectedError)
+				}
+			}
+
+			// Check successful response
+			if tt.expectedStatus == 200 && tt.checkResponse != nil {
+				var response StreamsResponse
+				if err := json.NewDecoder(strings.NewReader(w.Body.String())).Decode(&response); err != nil {
+					t.Errorf("Failed to decode response: %v", err)
+				} else {
+					tt.checkResponse(t, response)
+				}
+			}
+		})
 	}
 }

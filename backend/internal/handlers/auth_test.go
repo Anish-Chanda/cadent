@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/models"
 )
 
@@ -576,5 +579,246 @@ func BenchmarkVerifyPassword(b *testing.B) {
 		if err != nil {
 			b.Fatalf("verifyPassword failed: %v", err)
 		}
+	}
+}
+
+// mockLogger for testing handlers
+type mockLogger struct{}
+
+func (m *mockLogger) WithContext(key, value string) interface{}                     { return m }
+func (m *mockLogger) WithFields(fields map[string]interface{}) interface{}          { return m }
+func (m *mockLogger) Debug(msg string, fields ...map[string]interface{})            {}
+func (m *mockLogger) Info(msg string, fields ...map[string]interface{})             {}
+func (m *mockLogger) Warn(msg string, fields ...map[string]interface{})             {}
+func (m *mockLogger) Error(msg string, err error, fields ...map[string]interface{}) {}
+func (m *mockLogger) Fatal(msg string, err error, fields ...map[string]interface{}) {}
+func (m *mockLogger) Panic(msg string, err error, fields ...map[string]interface{}) {}
+func (m *mockLogger) GetZerolog() interface{}                                       { return nil }
+
+func TestSignupHandler(t *testing.T) {
+	tests := []struct {
+		name           string
+		method         string
+		requestBody    string
+		mockSetup      func(*mockDatabase)
+		expectedStatus int
+		expectedBody   string
+		contentType    string
+	}{
+		{
+			name:           "method not allowed",
+			method:         "GET",
+			requestBody:    "",
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 405,
+			contentType:    "",
+		},
+		{
+			name:           "invalid JSON",
+			method:         "POST",
+			requestBody:    `{"invalid": json}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 400,
+			expectedBody:   `{"success":false,"user_id":"","message":"Invalid request format"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:           "empty email",
+			method:         "POST",
+			requestBody:    `{"user":"","passwd":"password123","name":"Test User"}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 400,
+			expectedBody:   `{"success":false,"user_id":"","message":"Email, password, and name are required"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:           "empty password",
+			method:         "POST",
+			requestBody:    `{"user":"test@example.com","passwd":"","name":"Test User"}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 400,
+			expectedBody:   `{"success":false,"user_id":"","message":"Email, password, and name are required"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:           "empty name",
+			method:         "POST",
+			requestBody:    `{"user":"test@example.com","passwd":"password123","name":""}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 400,
+			expectedBody:   `{"success":false,"user_id":"","message":"Email, password, and name are required"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:           "invalid email format",
+			method:         "POST",
+			requestBody:    `{"user":"invalid-email","passwd":"password123","name":"Test User"}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 400,
+			expectedBody:   `{"success":false,"user_id":"","message":"Invalid email format"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:           "password too short",
+			method:         "POST",
+			requestBody:    `{"user":"test@example.com","passwd":"12345","name":"Test User"}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 400,
+			expectedBody:   `{"success":false,"user_id":"","message":"Password must be at least 6 characters long"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:        "database error on user check",
+			method:      "POST",
+			requestBody: `{"user":"test@example.com","passwd":"password123","name":"Test User"}`,
+			mockSetup: func(m *mockDatabase) {
+				m.getUserError = errors.New("database connection error")
+			},
+			expectedStatus: 500,
+			expectedBody:   `{"success":false,"user_id":"","message":"Internal server error"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:        "user already exists",
+			method:      "POST",
+			requestBody: `{"user":"existing@example.com","passwd":"password123","name":"Test User"}`,
+			mockSetup: func(m *mockDatabase) {
+				m.users["existing@example.com"] = &models.UserRecord{
+					ID:    "existing-id",
+					Email: "existing@example.com",
+					Name:  "Existing User",
+				}
+			},
+			expectedStatus: 409,
+			expectedBody:   `{"success":false,"user_id":"","message":"User with this email already exists"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:        "database error on user creation",
+			method:      "POST",
+			requestBody: `{"user":"new@example.com","passwd":"password123","name":"Test User"}`,
+			mockSetup: func(m *mockDatabase) {
+				m.createUserError = errors.New("failed to insert user")
+			},
+			expectedStatus: 500,
+			expectedBody:   `{"success":false,"user_id":"","message":"Failed to create user account"}`,
+			contentType:    "application/json",
+		},
+		{
+			name:           "successful signup",
+			method:         "POST",
+			requestBody:    `{"user":"success@example.com","passwd":"password123","name":"Success User"}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 201,
+			contentType:    "application/json",
+		},
+		{
+			name:           "case insensitive email",
+			method:         "POST",
+			requestBody:    `{"user":"CaseTest@EXAMPLE.COM","passwd":"password123","name":"Case User"}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 201,
+			contentType:    "application/json",
+		},
+		{
+			name:           "email with whitespace",
+			method:         "POST",
+			requestBody:    `{"user":"  whitespace@example.com  ","passwd":"password123","name":"  Whitespace User  "}`,
+			mockSetup:      func(m *mockDatabase) {},
+			expectedStatus: 201,
+			contentType:    "application/json",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock database
+			mockDB := newMockDatabase()
+			tt.mockSetup(mockDB)
+
+			// Setup mock logger
+			mockLog := logger.New(logger.Config{
+				Level:       "info",
+				Environment: "test",
+				ServiceName: "test",
+			})
+
+			// Create handler
+			handler := SignupHandler(mockDB, *mockLog)
+
+			// Create request
+			req := httptest.NewRequest(tt.method, "/signup", strings.NewReader(tt.requestBody))
+			req.Header.Set("Content-Type", "application/json")
+
+			// Create response recorder
+			w := httptest.NewRecorder()
+
+			// Call handler
+			handler.ServeHTTP(w, req)
+
+			// Check status code
+			if w.Code != tt.expectedStatus {
+				t.Errorf("Status code = %d, want %d", w.Code, tt.expectedStatus)
+			}
+
+			// Check content type if specified
+			if tt.contentType != "" {
+				if w.Header().Get("Content-Type") != tt.contentType {
+					t.Errorf("Content-Type = %s, want %s", w.Header().Get("Content-Type"), tt.contentType)
+				}
+			}
+
+			// Check response body if specified
+			if tt.expectedBody != "" {
+				body := strings.TrimSpace(w.Body.String())
+				if body != tt.expectedBody {
+					t.Errorf("Response body = %s, want %s", body, tt.expectedBody)
+				}
+			}
+
+			// For successful cases, verify response structure
+			if tt.expectedStatus == 201 {
+				var response SignupResponse
+				if err := json.NewDecoder(strings.NewReader(w.Body.String())).Decode(&response); err != nil {
+					t.Errorf("Failed to decode response: %v", err)
+				}
+				if !response.Success {
+					t.Error("Response success should be true")
+				}
+				if response.UserID == "" {
+					t.Error("Response should contain user ID")
+				}
+				if response.Message != "User created successfully" {
+					t.Errorf("Response message = %s, want 'User created successfully'", response.Message)
+				}
+
+				// Verify user was actually created in the mock database
+				email := ""
+				if strings.Contains(tt.requestBody, "success@example.com") {
+					email = "success@example.com"
+				} else if strings.Contains(tt.requestBody, "CaseTest@EXAMPLE.COM") {
+					email = "casetest@example.com" // Should be normalized to lowercase
+				} else if strings.Contains(tt.requestBody, "whitespace@example.com") {
+					email = "whitespace@example.com" // Should be trimmed
+				}
+
+				if email != "" {
+					user := mockDB.users[email]
+					if user == nil {
+						t.Error("User should have been created in database")
+					} else {
+						if user.Email != email {
+							t.Errorf("User email = %s, want %s", user.Email, email)
+						}
+						if user.AuthProvider != models.AuthProviderLocal {
+							t.Errorf("User auth provider = %s, want %s", user.AuthProvider, models.AuthProviderLocal)
+						}
+						if user.PasswordHash == nil || *user.PasswordHash == "" {
+							t.Error("User should have password hash set")
+						}
+					}
+				}
+			}
+		})
 	}
 }
