@@ -511,10 +511,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
         _streamsError = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _loadingStreams = false;
       });
+      }
     }
   }
 
