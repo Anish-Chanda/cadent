@@ -2,6 +2,7 @@ import 'package:cadence/screens/home_screen.dart';
 import 'package:cadence/widgets/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:mocktail/mocktail.dart';
 
 import 'Mocks/mock_auth_provider.dart';
 import 'package:cadence/providers/auth_provider.dart';
@@ -15,7 +16,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('Initial Page is Home Screen', (WidgetTester tester) async {
-    final authProvider = await MockAuthProvider.initialize();
+    final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -38,7 +42,10 @@ void main() {
   });
 
   testWidgets('Change Screen to Settings', (WidgetTester tester) async {
-    final authProvider = await MockAuthProvider.initialize();
+    final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -63,7 +70,10 @@ void main() {
   });
 
   testWidgets('Change Screen to Home', (WidgetTester tester) async {
-    final authProvider = await MockAuthProvider.initialize();
+    final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -93,7 +103,10 @@ void main() {
   });
 
   testWidgets('Change Screen to Recording', (WidgetTester tester) async {
-    final authProvider = await MockAuthProvider.initialize();
+    final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [

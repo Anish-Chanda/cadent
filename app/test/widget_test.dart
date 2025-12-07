@@ -7,6 +7,7 @@
 import 'package:cadence/widgets/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:mocktail/mocktail.dart';
 
 import 'Mocks/mock_auth_provider.dart';
 import 'package:cadence/providers/auth_provider.dart';
@@ -24,8 +25,10 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
 
   testWidgets('Cadent test', (WidgetTester tester) async {
-    final authProvider = await MockAuthProvider.initialize();
-    authProvider.setAuthenticated(true);  // Set authenticated to show main content
+    final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -47,6 +50,9 @@ void main() {
 
   testWidgets('Login Screen test', (WidgetTester tester) async {
     final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.unauthenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -58,7 +64,10 @@ void main() {
     expect(1, equals(1));
   });
   testWidgets('Navigation Bar test', (WidgetTester tester) async {
-    final authProvider = await MockAuthProvider.initialize();
+    final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -87,6 +96,9 @@ void main() {
 
   testWidgets('SettingsScreen test', (WidgetTester tester) async {
     final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -99,7 +111,10 @@ void main() {
     expect(1, equals(1));
   });
   testWidgets('RecorderScreen test', (WidgetTester tester) async {
-    final authProvider = await MockAuthProvider.initialize();
+    final authProvider = MockAuthProvider();
+    when(() => authProvider.status).thenReturn(AuthStatus.authenticated);
+    when(() => authProvider.isLoading).thenReturn(false);
+    when(() => authProvider.serverUrl).thenReturn('http://test.com');
     await tester.pumpWidget(
       MultiProvider(
         providers: [
