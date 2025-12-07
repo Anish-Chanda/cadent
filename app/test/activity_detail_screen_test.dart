@@ -154,7 +154,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('ELEVATION GAIN'), findsOneWidget);
-      expect(find.text('50'), findsOneWidget);
+      expect(find.text('50.0'), findsOneWidget);
       expect(find.text('m'), findsOneWidget);
     });
 
@@ -214,20 +214,6 @@ void main() {
       expect(find.text('km/h'), findsOneWidget);
     });
 
-    testWidgets('displays graphs coming soon section', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
-
-      await tester.pumpAndSettle();
-
-      expect(find.text('Graphs Coming Soon'), findsOneWidget);
-      expect(
-        find.text('Performance analytics and charts will be available here'),
-        findsOneWidget,
-      );
-      expect(find.byIcon(Icons.bar_chart), findsOneWidget);
-    });
 
     testWidgets('displays drag handle', (tester) async {
       await tester.pumpWidget(

@@ -20,14 +20,15 @@ void main() {
       when(
         () => mockAuthProvider.serverUrl,
       ).thenReturn('http://mock-server.test');
-      when(() => mockAuthProvider.isAuthenticated).thenReturn(false);
-      when(() => mockAuthProvider.email).thenReturn('');
+      when(() => mockAuthProvider.status).thenReturn(AuthStatus.unauthenticated);
+      when(() => mockAuthProvider.email).thenReturn(null);
 
       // Stub async methods with default behavior
       when(
         () => mockAuthProvider.signUp(
           email: any(named: 'email'),
           password: any(named: 'password'),
+          name: any(named: 'name'),
         ),
       ).thenAnswer((_) async => 'mock-user-id');
 
@@ -58,8 +59,9 @@ void main() {
       // Verify form fields
       expect(
         find.byType(TextFormField),
-        findsNWidgets(3),
-      ); // Email, Password, Confirm Password
+        findsNWidgets(4),
+      ); // Name, Email, Password, Confirm Password
+      expect(find.text('Name'), findsOneWidget);
       expect(find.text('Email'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
       expect(find.text('Confirm Password'), findsOneWidget);

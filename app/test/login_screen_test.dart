@@ -21,10 +21,10 @@ void main() {
       when(
         () => mockAuthProvider.serverUrl,
       ).thenReturn('http://mock-server.test');
-      when(() => mockAuthProvider.isAuthenticated).thenReturn(false);
+      when(() => mockAuthProvider.status).thenReturn(AuthStatus.unauthenticated);
       when(
         () => mockAuthProvider.email,
-      ).thenReturn(''); // Empty string instead of null
+      ).thenReturn(null); // Nullable email
 
       // Stub async methods with default behavior
       when(
@@ -147,7 +147,7 @@ void main() {
         ),
       ).thenAnswer((_) async {
         // Simulate successful login by updating the mock state
-        when(() => mockAuthProvider.isAuthenticated).thenReturn(true);
+        when(() => mockAuthProvider.status).thenReturn(AuthStatus.authenticated);
         when(() => mockAuthProvider.email).thenReturn('test@example.com');
       });
 
@@ -183,7 +183,7 @@ void main() {
       ).called(1);
 
       // Verify authentication state
-      expect(mockAuthProvider.isAuthenticated, true);
+      expect(mockAuthProvider.status, AuthStatus.authenticated);
       expect(mockAuthProvider.email, 'test@example.com');
     });
 
@@ -222,7 +222,7 @@ void main() {
       // Verify error is shown and user is not logged in
       expect(find.byType(SnackBar), findsOneWidget);
       expect(find.textContaining('Login failed'), findsOneWidget);
-      expect(mockAuthProvider.isAuthenticated, false);
+      expect(mockAuthProvider.status, AuthStatus.unauthenticated);
     });
 
     testWidgets('updates server URL through dialog', (tester) async {

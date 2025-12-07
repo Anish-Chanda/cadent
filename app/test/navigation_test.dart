@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'Mocks/MockAuthProvider.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/activities_provider.dart';
+import 'package:cadence/providers/app_settings_provider.dart';
 import 'package:cadence/providers/theme_provider.dart';
 import 'package:cadence/utils/app_theme.dart';
 import 'package:cadence/screens/recorder_screen.dart';
@@ -20,6 +21,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
           ),
@@ -42,6 +44,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
           ),
@@ -66,6 +69,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
           ),

@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'Mocks/MockAuthProvider.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/activities_provider.dart';
+import 'package:cadence/providers/app_settings_provider.dart';
 import 'package:cadence/providers/theme_provider.dart';
 import 'package:cadence/router.dart';
 import 'package:cadence/utils/app_theme.dart';
@@ -27,11 +28,13 @@ void main() {
 
   testWidgets('Cadent test', (WidgetTester tester) async {
     final authProvider = await MockAuthProvider.initialize();
+    authProvider.setAuthenticated(true);  // Set authenticated to show main content
     await tester.pumpWidget(
       MultiProvider(
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
           ),
@@ -46,8 +49,15 @@ void main() {
   });
 
   testWidgets('Login Screen test', (WidgetTester tester) async {
-    // TODO: Add proper tests with mocked providers
-    await tester.pumpWidget(const LoginScreen());
+    final authProvider = MockAuthProvider();
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ],
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
     expect(1, equals(1));
   });
   testWidgets('Navigation Bar test', (WidgetTester tester) async {
@@ -57,6 +67,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
           ),
@@ -78,8 +89,16 @@ void main() {
   });
 
   testWidgets('SettingsScreen test', (WidgetTester tester) async {
-    // TODO: Add proper tests with mocked providers
-    await tester.pumpWidget(const SettingsScreen());
+    final authProvider = MockAuthProvider();
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+          ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
+        ],
+        child: const MaterialApp(home: SettingsScreen()),
+      ),
+    );
     expect(1, equals(1));
   });
   testWidgets('RecorderScreen test', (WidgetTester tester) async {
@@ -89,6 +108,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
           ),
@@ -109,8 +129,25 @@ void main() {
     expect(1, equals(1));
   });
   testWidgets('FinishActivityScreen test', (WidgetTester tester) async {
-    // TODO: Add proper tests with mocked providers
-    await tester.pumpWidget(const FinishActivityScreen(formattedTime: '1:24:49', formattedDistance: '5 mi', activityName: "testActivity"));
+    final authProvider = MockAuthProvider();
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+          ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(
+            create: (_) => ThemeProvider(AppTheme.lightTheme),
+          ),
+        ],
+        child: const MaterialApp(
+          home: FinishActivityScreen(
+            formattedTime: '1:24:49',
+            formattedDistance: '5 mi',
+            activityName: 'testActivity',
+          ),
+        ),
+      ),
+    );
     expect(1, equals(1));
   });
 }
