@@ -3,7 +3,7 @@ import 'package:cadence/widgets/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'Mocks/MockAuthProvider.dart';
+import 'Mocks/mock_auth_provider.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/activities_provider.dart';
 import 'package:cadence/providers/app_settings_provider.dart';

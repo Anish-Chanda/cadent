@@ -69,14 +69,15 @@ class _ActivityChartsState extends State<ActivityCharts> {
     final elevations = s.numericSeries('elevation');
     final speeds = s.numericSeries('speed'); // m/s
     // Prefer an explicit distance series from the backend. Support several common keys.
-    List<double> _getDistanceSeries() {
+    List<double> getDistanceSeries() {
       final candidates = ['distance', 'distance_total', 'distance_cumulative', 'dist', 'cumdist', 'distance_km'];
       for (final k in candidates) {
         if (s.streams.containsKey(k)) {
           final vals = s.numericSeries(k);
           if (vals.isEmpty) continue;
           if (k == 'distance_km') {
-            return vals.map((v) => v * 1000.0).toList();
+            return vals.map((v) => v * 1000.0)
+      .toList();
           }
           return vals;
         }
@@ -85,12 +86,13 @@ class _ActivityChartsState extends State<ActivityCharts> {
       return s.numericSeries('distance');
     }
 
-    final distances = _getDistanceSeries(); // meters
+    final distances = getDistanceSeries(); // meters
 
     final hasElevation = elevations.isNotEmpty && distances.isNotEmpty;
     final hasSpeed = speeds.isNotEmpty && distances.isNotEmpty;
 
-    final speedsKmH = speeds.map((v) => v < 0 ? 0.0 : v * 3.6).toList(); // m/s -> km/h, clamp negatives
+    final speedsKmH = speeds.map((v) => v < 0 ? 0.0 : v * 3.6)
+      .toList(); // m/s -> km/h, clamp negatives
     // splits now represent time per completed kilometer in seconds
     final splitsAll = _calculateSplitsTimePerKm(distances, speeds);
     final totalKm = (distances.isNotEmpty ? (distances.last ~/ 1000) : 0);
@@ -144,10 +146,12 @@ class _ActivityChartsState extends State<ActivityCharts> {
       // try to compute per-sample elapsed seconds from timestamps if available
       List<double> elapsedSecs = [];
       if (timestamps != null && timestamps.isNotEmpty) {
-        elapsedSecs = timestamps.map((t) => t.difference(timestamps.first).inSeconds.toDouble()).toList();
+        elapsedSecs = timestamps.map((t) => t.difference(timestamps.first).inSeconds.toDouble())
+      .toList();
       } else if (widget.paceSamples != null && widget.paceSamples!.isNotEmpty) {
         // paceSamples are expected in km/h for legacy mocks, convert to m/s
-        final speedsMs = widget.paceSamples!.map((v) => v / 3.6).toList();
+        final speedsMs = widget.paceSamples!.map((v) => v / 3.6)
+      .toList();
         elapsedSecs = _computeElapsedSecondsFromDistancesSpeeds(distances, speedsMs);
       }
 
@@ -158,7 +162,8 @@ class _ActivityChartsState extends State<ActivityCharts> {
       // the collection literal (which Dart doesn't allow).
       List<double> splitsLegacy = [];
       if (hasSpeed && widget.paceSamples != null && widget.paceSamples!.isNotEmpty) {
-        final speedsMs = widget.paceSamples!.map((v) => v / 3.6).toList();
+        final speedsMs = widget.paceSamples!.map((v) => v / 3.6)
+      .toList();
         final splitsAllLegacy = _calculateSplitsTimePerKm(distances, speedsMs);
         final totalKmLegacy = distances.isNotEmpty ? (distances.last ~/ 1000) : 0;
         splitsLegacy = totalKmLegacy > 0 ? splitsAllLegacy.take(totalKmLegacy).toList() : <double>[];
@@ -376,8 +381,16 @@ class _ActivityChartsState extends State<ActivityCharts> {
 
       // pick speed for this segment; if missing, use last known or small epsilon
       double sp = 0.0;
-      if (i < speed.length) sp = speed[i]; else if (speed.isNotEmpty) sp = speed.last; else sp = 0.0;
-      if (sp <= 0.01) sp = 0.5; // fallback m/s to avoid division by zero
+      if (i < speed.length) {
+        sp = speed[i];
+      } else if (speed.isNotEmpty) {
+        sp = speed.last;
+      } else {
+        sp = 0.0;
+      }
+      if (sp <= 0.01) {
+        sp = 0.5; // fallback m/s to avoid division by zero
+      }
 
       // time to traverse whole delta at current speed (not stored separately)
 
@@ -480,11 +493,15 @@ class _ActivityChartsState extends State<ActivityCharts> {
     final chartName = rawChartId.isNotEmpty ? rawChartId.split('(').first.trim() : (_hoverChart == 'splits' ? 'Splits' : xLabel.split('(').first.trim());
     Color chartColor = Colors.black;
     final lc = chartName.toLowerCase();
-    if (lc.contains('elev')) chartColor = Colors.orange;
-    else if (lc.contains('speed')) chartColor = Colors.blue;
-    else if (lc.contains('split') || lc == 'km') chartColor = Colors.green;
+    if (lc.contains('elev')) {
+      chartColor = Colors.orange;
+    } else if (lc.contains('speed')) {
+      chartColor = Colors.blue;
+    } else if (lc.contains('split') || lc == 'km') {
+      chartColor = Colors.green;
+    }
 
-    String _parseLabelName(String label) {
+    String parseLabelName(String label) {
       // Extract text before '(' if present
       if (label.contains('(')) {
         return label.split('(').first.trim();
@@ -492,7 +509,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
       return label.trim();
     }
 
-    String _parseLabelUnit(String label) {
+    String parseLabelUnit(String label) {
       if (label.contains('(') && label.contains(')')) {
         final start = label.indexOf('(');
         final end = label.indexOf(')', start + 1);
@@ -515,15 +532,23 @@ class _ActivityChartsState extends State<ActivityCharts> {
       final xv = (xvals != null && idx < xvals.length) ? xvals[idx] : double.nan;
       final yv = (yvals != null && idx < yvals.length) ? yvals[idx] : double.nan;
 
-      final xName = _parseLabelName(xLabel.isNotEmpty ? xLabel : 'X');
-      final xUnit = _parseLabelUnit(xLabel);
-      final yName = _parseLabelName(yLabel.isNotEmpty ? yLabel : 'Y');
-      final yUnit = _parseLabelUnit(yLabel);
+      final xName = parseLabelName(xLabel.isNotEmpty ? xLabel : 'X');
+      final xUnit = parseLabelUnit(xLabel);
+      final yName = parseLabelName(yLabel.isNotEmpty ? yLabel : 'Y');
+      final yUnit = parseLabelUnit(yLabel);
 
       String xText;
-      if (xv.isNaN) xText = 'n/a'; else xText = isTime ? _formatDurationFromDouble(xv) : xv.toStringAsFixed(2);
+      if (xv.isNaN) {
+        xText = 'n/a';
+      } else {
+        xText = isTime ? _formatDurationFromDouble(xv) : xv.toStringAsFixed(2);
+      }
       String yText;
-      if (yv.isNaN) yText = 'n/a'; else yText = yv.toStringAsFixed(1);
+      if (yv.isNaN) {
+        yText = 'n/a';
+      } else {
+        yText = yv.toStringAsFixed(1);
+      }
 
       // Build lines: Label - value (unit)
       lines.add(Text('$xName - $xText${xUnit.isNotEmpty ? ' ($xUnit)' : ''}', style: TextStyle(fontSize: 12)));
@@ -621,10 +646,11 @@ class _SingleLinePainterDistance extends CustomPainter {
           : leftPad + ((xv - minX) / (maxX - minX)) * chartW;
       final norm = (yv - minYP) / rangeY;
       final dy = topPad + (1 - norm) * chartH;
-      if (i == 0)
+      if (i == 0) {
         path.moveTo(dx, dy);
-      else
+      } else {
         path.lineTo(dx, dy);
+      }
     }
     canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2.0..isAntiAlias = true);
 
@@ -726,7 +752,11 @@ class _SingleLinePainterLegacy extends CustomPainter {
       final dx = leftPad + (i / (samples.length - 1)) * chartW;
       final norm = (samples[i] - minVP) / rangeV;
       final dy = topPad + (1 - norm) * chartH;
-      if (i == 0) path.moveTo(dx, dy); else path.lineTo(dx, dy);
+      if (i == 0) {
+        path.moveTo(dx, dy);
+      } else {
+        path.lineTo(dx, dy);
+      }
     }
     canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2.0..isAntiAlias = true);
 

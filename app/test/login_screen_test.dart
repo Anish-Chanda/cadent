@@ -3,11 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:cadence/screens/auth/login_screen.dart';
-import 'package:cadence/screens/auth/signup_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 
-// Create the mock class
-class MockAuthProvider extends Mock implements AuthProvider {}
+import 'Mocks/mock_auth_provider.dart';
 
 void main() {
   group('LoginScreen', () {
