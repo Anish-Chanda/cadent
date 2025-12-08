@@ -15,11 +15,21 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/stdlib"
 )
 
+// pgxConnIface is a package-private interface for pgx connection methods
+// This allows for easy mocking in tests
+type pgxConnIface interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Close(ctx context.Context) error
+}
+
 type PostgresDB struct {
-	db    *pgx.Conn
+	db    pgxConnIface
 	sqlDB *sql.DB
 	log   logger.ServiceLogger
 }
