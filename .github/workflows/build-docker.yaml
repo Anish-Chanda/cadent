@@ -26,7 +26,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: . 
-          file: ./backend/Dockerfile 
+          file: ./Dockerfile 
           push: true
           tags: ghcr.io/anish-chanda/backend-service:test
           cache-from: type=gha
