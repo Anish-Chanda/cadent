@@ -28,6 +28,6 @@ jobs:
           context: . 
           file: ./backend/Dockerfile 
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/backend-service:test
+          tags: ghcr.io/anish-chanda/backend-service:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
