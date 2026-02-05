@@ -1,5 +1,4 @@
 import 'dart:developer';
-import 'dart:ui' show FontFeature;
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,6 +7,12 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import '../controllers/recording_controller.dart';
 import '../models/recording_session_model.dart';
 import '../services/activities_service.dart';
+import '../widgets/recorder/recording_map_view.dart';
+import '../widgets/recorder/recording_status_bar.dart';
+import '../widgets/recorder/recording_floating_card.dart';
+import '../widgets/recorder/recording_stats_compact.dart';
+import '../widgets/recorder/recording_stats_full.dart';
+import '../widgets/recorder/activity_type_selector.dart';
 import 'finish_activity_screen.dart';
 
 class RecorderScreen extends StatefulWidget {
@@ -298,49 +303,10 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   void _showActivityTypeSelector() {
-    showModalBottomSheet<WorkoutType>(
+    ActivityTypeSelector.show(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Select Activity Type',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ...WorkoutType.values.map((type) => 
-              ListTile(
-                title: Text(
-                  type.displayName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                trailing: _controller.model.activityType == type 
-                  ? const Icon(Icons.check, color: Colors.blue)
-                  : null,
-                onTap: () {
-                  _setActivityType(type);
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
+      currentType: _controller.model.activityType,
+      onTypeSelected: _setActivityType,
     );
   }
 
@@ -356,18 +322,86 @@ class _RecorderScreenState extends State<RecorderScreen> {
       body: Stack(
         children: [
           // Base Map Layer (Full Screen) - Hidden when card is expanded
-          if (!_isMapExpanded) _buildMapLayer(),
+          if (!_isMapExpanded)
+            RecordingMapView(
+              onMapCreated: (controller) async {
+                _mapController = controller;
+              },
+              positions: model.positions,
+            ),
           
           // Full Screen Data View when expanded
-          if (_isMapExpanded) _buildFullScreenDataView(model),
+          if (_isMapExpanded)
+            Container(
+              color: Colors.white,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
+                  child: Column(
+                    children: [
+                      // Collapse Button
+                      Row(
+                        children: [
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: _toggleMapView,
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: const Icon(
+                                Icons.expand_more,
+                                color: Colors.black54,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      // Full Data View
+                      Expanded(
+                        child: RecordingStatsFull(
+                          model: model,
+                          onStart: _startRecording,
+                          onPause: _pauseRecording,
+                          onResume: _resumeRecording,
+                          onFinish: _finishRecording,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           
           // Top Status Bar (always on top)
-          SafeArea(child: _buildTopStatusBar(model)),
-          
-          // Location Button moved to top status bar
+          SafeArea(
+            child: RecordingStatusBar(
+              model: model,
+              onBack: () => Navigator.pop(context),
+              onCenterLocation: _centerMapOnLocation,
+              onDiscard: model.isCompleted ? _discardActivity : _discardRecording,
+            ),
+          ),
           
           // Bottom Floating Card (only when not expanded)
-          if (!_isMapExpanded) _buildBottomFloatingCard(model),
+          if (!_isMapExpanded)
+            RecordingFloatingCard(
+              onTap: _toggleMapView,
+              child: RecordingStatsCompact(
+                model: model,
+                onActivityTypeSelect: _showActivityTypeSelector,
+                onStart: _startRecording,
+                onPause: _pauseRecording,
+                onResume: _resumeRecording,
+                onFinish: _finishRecording,
+              ),
+            ),
         ],
       ),
     );
@@ -401,703 +435,5 @@ class _RecorderScreenState extends State<RecorderScreen> {
       log('Failed to center map on location: $e');
     }
   }
-
-  Widget _buildMapLayer() {
-    // TODO: replace with our basemap server
-    return MapLibreMap(
-      styleString: 'https://tiles.openfreemap.org/styles/liberty',
-      initialCameraPosition: const CameraPosition(
-        target: LatLng(37.7749, -122.4194), // Default to San Francisco
-        zoom: 14.0,
-      ),
-      myLocationEnabled: true,
-      myLocationTrackingMode: MyLocationTrackingMode.tracking,
-      myLocationRenderMode: MyLocationRenderMode.normal,
-      onMapCreated: (MapLibreMapController controller) async {
-        _mapController = controller;
-        log('Map controller created');
-        
-        // Try to get current location first
-        try {
-          final currentLocation = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              timeLimit: Duration(seconds: 10), // Increased timeout
-            ),
-          );          
-          // Move camera to current location
-          await controller.moveCamera(
-            CameraUpdate.newLatLngZoom(
-              LatLng(currentLocation.latitude, currentLocation.longitude),
-              16.0,
-            ),
-          );
-        } catch (e) {
-          log('Failed to get current location: $e');
-          
-          // Fallback to recorded positions if available
-          if (_controller.model.positions.isNotEmpty) {
-            final lastLocation = _controller.model.positions.last;
-            log('Using last recorded position: ${lastLocation.latitude}, ${lastLocation.longitude}');
-            await controller.moveCamera(
-              CameraUpdate.newLatLngZoom(
-                LatLng(lastLocation.latitude, lastLocation.longitude),
-                16.0,
-              ),
-            );
-          } else {
-            log('No recorded positions available, staying at default location');
-          }
-        }
-      },
-    );
-  }
-
-  Widget _buildBottomFloatingCard(RecordingSessionModel model) {
-    return Positioned(
-      bottom: 30,
-      left: 16,
-      right: 16,
-      child: GestureDetector(
-        onTap: _toggleMapView,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag Handle
-              Container(
-                padding: const EdgeInsets.all(12),
-                child: Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Data Content
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: _buildCompactDataView(model),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFullScreenDataView(RecordingSessionModel model) {
-    return Container(
-      color: Colors.white,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 80, 20, 20), // Top padding for status bar
-          child: Column(
-            children: [
-              // Collapse Button
-              Row(
-                children: [
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: _toggleMapView,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: const Icon(
-                        Icons.expand_more,
-                        color: Colors.black54,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Full Data View
-              Expanded(
-                child: _buildFullDataView(model),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopStatusBar(RecordingSessionModel model) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          // Back Button
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
-              onPressed: () => Navigator.pop(context),
-              padding: EdgeInsets.zero,
-            ),
-          ),
-          
-          const Spacer(),
-          
-          const Spacer(),
-          
-          // Center Map Button
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              onPressed: _centerMapOnLocation,
-              icon: const Icon(
-                Icons.my_location,
-                color: Colors.blue,
-                size: 20,
-              ),
-              padding: EdgeInsets.zero,
-            ),
-          ),
-          
-          // Actions Menu
-          if (model.isActive || model.isCompleted)
-            Container(
-              margin: const EdgeInsets.only(left: 8),
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                onPressed: model.isCompleted ? _discardActivity : _discardRecording,
-                padding: EdgeInsets.zero,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-
-
-  Widget _buildCompactDataView(RecordingSessionModel model) {
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Activity Type Selector (only when idle)
-          if (model.isIdle) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _showActivityTypeSelector,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            model.activityType.displayName,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const Spacer(),
-                          const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // Top row: Time (left) and Control buttons (right)
-          Row(
-            children: [
-              // Time section
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Time',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      model.formattedTime,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Control buttons based on state
-              Row(
-                children: [
-                  // Pause/Resume Button - show when recording or paused
-                  _RecordingControlButton(
-                    model: model,
-                    onPause: _pauseRecording,
-                    onResume: _resumeRecording,
-                  ),
-
-                  // Finish Button - show when recording or paused
-                  if (model.isRecording || model.isPaused) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _finishRecording,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(
-                          Icons.stop,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // Start Recording button when idle
-                  if (model.isIdle)
-                    GestureDetector(
-                      onTap: _startRecording,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: const Text(
-                          'Start',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Bottom row: Stats (Distance and Speed)
-          if (model.isActive || model.isCompleted) 
-            Row(
-              children: [
-                Expanded(
-                  child: _buildCompactStat(model.formattedDistance, 'Distance'),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: _buildCompactStat(
-                    model.isRecording ? model.formattedSpeed : '--',
-                    'Speed'
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFullDataView(RecordingSessionModel model) {
-    return Column(
-      children: [
-        // Recording Status Indicator
-        if (model.isActive) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: model.isRecording ? Colors.red : Colors.orange,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  model.isRecording ? Icons.fiber_manual_record : Icons.pause,
-                  color: Colors.white,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  model.isRecording ? 'RECORDING' : 'PAUSED',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
-
-        // Time Display
-        Text(
-          model.formattedTime,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 56,
-            fontWeight: FontWeight.w300,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
-        ),
-        Text(
-          'Running Time',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 32),
-
-        // Distance Display
-        Text(
-          model.formattedDistance,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 40,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        Text(
-          'Distance',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // Speed Display (only show when recording)
-        if (model.isRecording) ...[
-          Text(
-            model.formattedSpeed,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 32,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          Text(
-            'Current Speed',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-
-        const Spacer(),
-
-        // Control Buttons
-        _buildControlButtons(model),
-      ],
-    );
-  }
-
-  Widget _buildCompactStat(String value, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildControlButtons(RecordingSessionModel model) {
-    if (model.isIdle) {
-      return Container(
-        width: double.infinity,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4CAF50), Color(0xFF45a049)],
-          ),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: ElevatedButton(
-          onPressed: _startRecording,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-          ),
-          child: const Text(
-            'Start Recording',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (model.isRecording) {
-      return Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.orange,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: ElevatedButton(
-                onPressed: _pauseRecording,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Pause',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: ElevatedButton(
-                onPressed: _finishRecording,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Finish',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (model.isPaused) {
-      return Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 60,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4CAF50), Color(0xFF45a049)],
-                ),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: ElevatedButton(
-                onPressed: _resumeRecording,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Resume',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: ElevatedButton(
-                onPressed: _finishRecording,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Finish',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (model.isCompleted) {
-      // Activity is completed - user should use finish screen to save
-      // This state shouldn't be visible as finish screen is immediately pushed
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: const Text(
-          'Activity completed. Use the finish screen to save or continue recording.',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black87,
-            fontStyle: FontStyle.italic,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
 }
 
-class _RecordingControlButton extends StatelessWidget {
-  final RecordingSessionModel model;
-  final VoidCallback onPause;
-  final VoidCallback onResume;
-
-  const _RecordingControlButton({
-    required this.model,
-    required this.onPause,
-    required this.onResume,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (!model.isRecording && !model.isPaused) {
-      return const SizedBox.shrink();
-    }
-
-    return GestureDetector(
-      onTap: () {
-        if (model.isRecording) {
-          onPause();
-        } else if (model.isPaused) {
-          onResume();
-        }
-      },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: model.isRecording ? Colors.orange : Colors.blue,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Icon(
-          model.isRecording ? Icons.pause : Icons.play_arrow,
-          color: Colors.white,
-          size: 20,
-        ),
-      ),
-    );
-  }
-}
