@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../widgets/auth/auth_logo.dart';
+import '../../widgets/auth/auth_header.dart';
+import '../../widgets/auth/server_url_widget.dart';
+import '../../widgets/global/app_text_form_field.dart';
+import '../../widgets/global/password_form_field.dart';
+import '../../widgets/global/primary_button.dart';
+import '../../widgets/global/text_link_button.dart';
+import '../../utils/validators.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -46,62 +53,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showServerUrlDialog() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final controller = TextEditingController(text: authProvider.serverUrl);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Server URL'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Enter the server URL for your Cadence instance:'),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Server URL',
-                hintText: 'http://cadence.local',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a server URL';
-                }
-                try {
-                  Uri.parse(value.trim());
-                  return null;
-                } catch (e) {
-                  return 'Please enter a valid URL';
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final newUrl = controller.text.trim();
-              if (newUrl.isNotEmpty) {
-                await authProvider.updateServerUrl(newUrl);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,19 +69,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // App Logo/Title
-                        Image.asset(
-                          'assets/icon/logofull.png',
-                          height: 180,
-                        ),
+                        const AuthLogo(),
                         const SizedBox(height: 24),
-                        const Text(
-                          'Welcome!',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        const AuthHeader(title: 'Welcome!'),
                         const SizedBox(height: 56),
 
                         // Login Form
@@ -138,77 +79,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           key: _formKey,
                           child: Column(
                             children: [
-                              TextFormField(
+                              AppTextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
-                                  hintText: 'Enter your email address',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your email';
-                                  }
-                                  if (!value.contains('@')) {
-                                    return 'Please enter a valid email';
-                                  }
-                                  return null;
-                                },
+                                labelText: 'Email',
+                                hintText: 'Enter your email address',
+                                validator: Validators.email,
                               ),
                               const SizedBox(height: 16),
-                              TextFormField(
+                              PasswordFormField(
                                 controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                decoration: InputDecoration(
-                                  labelText: 'Password',
-                                  hintText: 'Enter your password',
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter your password';
-                                  }
-                                  return null;
-                                },
+                                validator: Validators.password,
                               ),
                               const SizedBox(height: 24),
 
                               // Login Button
                               Consumer<AuthProvider>(
                                 builder: (context, auth, child) {
-                                  return SizedBox(
-                                    width: double.infinity,
-                                    height: 48,
-                                    child: ElevatedButton(
-                                      onPressed: auth.isLoading ? null : _handleLogin,
-                                      child: auth.isLoading
-                                          ? const SizedBox(
-                                              height: 20,
-                                              width: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            )
-                                          : Text(
-                                              'Login',
-                                              style: TextStyle(
-                                                  color: Theme.of(context).primaryColor,
-                                                  fontSize: 16),
-                                            ),
-                                    ),
+                                  return PrimaryButton(
+                                    text: 'Login',
+                                    onPressed: _handleLogin,
+                                    isLoading: auth.isLoading,
+                                    textColor: Colors.white,
                                   );
                                 },
                               ),
@@ -219,7 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const Text("Don't have an account? "),
-                                  TextButton(
+                                  TextLinkButton(
+                                    text: 'Sign up',
                                     onPressed: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
@@ -227,12 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       );
                                     },
-                                    child: Text(
-                                        'Sign up',
-                                      style: TextStyle(
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    ),
                                   ),
                                 ],
                               ),
@@ -246,56 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               // Server URL Widget
-              Consumer<AuthProvider>(
-                builder: (context, auth, child) {
-                  return InkWell(
-                    onTap: _showServerUrlDialog,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Logging into:',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).textTheme.bodySmall?.color,
-                                  ),
-                                ),
-                                Text(
-                                  auth.serverUrl,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            '→',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Theme.of(context).textTheme.bodySmall?.color,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+              const ServerUrlWidget(),
             ],
           ),
         ),

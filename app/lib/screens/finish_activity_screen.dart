@@ -1,6 +1,9 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import '../widgets/global/app_text_form_field.dart';
+import '../widgets/global/summary_stat_card.dart';
+import '../widgets/global/primary_button.dart';
 
 class FinishActivityScreen extends StatefulWidget {
   final String formattedTime;
@@ -142,16 +145,16 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildSummaryStatCard(
-                          'Time',
-                          widget.formattedTime,
+                        child: SummaryStatCard(
+                          label: 'Time',
+                          value: widget.formattedTime,
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: _buildSummaryStatCard(
-                          'Distance',
-                          widget.formattedDistance,
+                        child: SummaryStatCard(
+                          label: 'Distance',
+                          value: widget.formattedDistance,
                         ),
                       ),
                     ],
@@ -172,26 +175,13 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
+            AppTextFormField(
               controller: _titleController,
               focusNode: _titleFocus,
-              decoration: InputDecoration(
-                hintText: 'Enter activity title',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
+              hintText: 'Enter activity title',
               textInputAction: TextInputAction.next,
               onSubmitted: (_) => _descriptionFocus.requestFocus(),
+              onChanged: (_) {},
             ),
             
             const SizedBox(height: 24),
@@ -206,26 +196,13 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
+            AppTextFormField(
               controller: _descriptionController,
               focusNode: _descriptionFocus,
               maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Add a description (optional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
+              hintText: 'Add a description (optional)',
               textInputAction: TextInputAction.done,
+              onChanged: (_) {},
             ),
             
             const SizedBox(height: 40),
@@ -234,45 +211,21 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: PrimaryButton(
+                    text: 'Discard',
                     onPressed: _discardActivity,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Discard',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red,
-                      ),
-                    ),
+                    backgroundColor: Colors.white,
+                    textColor: Colors.red,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton(
+                  child: PrimaryButton(
+                    text: 'Save Activity',
                     onPressed: _saveActivity,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Save Activity',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                    backgroundColor: Colors.blue,
+                    textColor: Colors.white,
                   ),
                 ),
               ],
@@ -282,36 +235,5 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
       ), // Close Scaffold body (SingleChildScrollView)
     ), // Close Scaffold
     ); // Close PopScope
-  }
-
-  Widget _buildSummaryStatCard(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
