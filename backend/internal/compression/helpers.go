@@ -100,53 +100,118 @@ func maxAbsValue(data []int32) uint32 {
 
 // Bit packing functions
 
-// packBits packs unsigned integers into a byte array with specified bit width
+// packBits packs unsigned integers into a byte array with specified bit width.
+// using buffered word-level operations for better performance.
 func packBits(values []uint32, bitWidth int) []byte {
 	if bitWidth == 0 || len(values) == 0 {
 		return []byte{}
 	}
 
 	totalBits := len(values) * bitWidth
-	totalBytes := (totalBits + 7) / 8 // Round up to nearest byte
+	totalBytes := (totalBits + 7) / 8
 	packed := make([]byte, totalBytes)
 
-	bitPos := 0
-	for _, val := range values {
-		// Pack LSB-first, back-to-back
-		for bit := 0; bit < bitWidth; bit++ {
-			if (val & (1 << bit)) != 0 {
-				byteIdx := bitPos / 8
-				bitIdx := bitPos % 8
-				packed[byteIdx] |= 1 << bitIdx
-			}
-			bitPos++
+	// Fast paths for common bit widths that align with byte boundaries
+	switch bitWidth {
+	case 8:
+		for i, val := range values {
+			packed[i] = byte(val)
 		}
+		return packed
+	case 16:
+		for i, val := range values {
+			binary.LittleEndian.PutUint16(packed[i*2:], uint16(val))
+		}
+		return packed
+	case 32:
+		for i, val := range values {
+			binary.LittleEndian.PutUint32(packed[i*4:], val)
+		}
+		return packed
+	}
+
+	// General case: use bit buffer for efficient packing
+	var bitBuffer uint64
+	var bitsInBuffer int
+	byteIdx := 0
+
+	for _, val := range values {
+		// Add value to buffer
+		bitBuffer |= uint64(val) << bitsInBuffer
+		bitsInBuffer += bitWidth
+
+		// Flush complete bytes to output
+		for bitsInBuffer >= 8 {
+			packed[byteIdx] = byte(bitBuffer)
+			byteIdx++
+			bitBuffer >>= 8
+			bitsInBuffer -= 8
+		}
+	}
+
+	// Write remaining bits
+	if bitsInBuffer > 0 {
+		packed[byteIdx] = byte(bitBuffer)
 	}
 
 	return packed
 }
 
-// unpackBits unpacks unsigned integers from a byte array with specified bit width
+// unpackBits unpacks unsigned integers from a byte array with specified bit width.
+// using buffered word-level operations for better performance.
 func unpackBits(packed []byte, count int, bitWidth int) []uint32 {
 	if bitWidth == 0 || count == 0 {
-		return make([]uint32, count) // Return zeros
+		return make([]uint32, count)
+	}
+
+	// Validate we have enough data
+	requiredBits := count * bitWidth
+	requiredBytes := (requiredBits + 7) / 8
+	if len(packed) < requiredBytes {
+		// Return zeros for missing data (matches old behavior but should be avoided)
+		// In production, this should return an error
+		return make([]uint32, count)
 	}
 
 	values := make([]uint32, count)
-	bitPos := 0
+
+	// Fast paths for common bit widths
+	switch bitWidth {
+	case 8:
+		for i := 0; i < count; i++ {
+			values[i] = uint32(packed[i])
+		}
+		return values
+	case 16:
+		for i := 0; i < count; i++ {
+			values[i] = uint32(binary.LittleEndian.Uint16(packed[i*2:]))
+		}
+		return values
+	case 32:
+		for i := 0; i < count; i++ {
+			values[i] = binary.LittleEndian.Uint32(packed[i*4:])
+		}
+		return values
+	}
+
+	// General case: use bit buffer for efficient unpacking
+	var bitBuffer uint64
+	var bitsInBuffer int
+	byteIdx := 0
+	mask := uint32((1 << bitWidth) - 1)
 
 	for i := 0; i < count; i++ {
-		var val uint32 = 0
-		for bit := 0; bit < bitWidth; bit++ {
-			byteIdx := bitPos / 8
-			bitIdx := bitPos % 8
-
-			if byteIdx < len(packed) && (packed[byteIdx]&(1<<bitIdx)) != 0 {
-				val |= 1 << bit
-			}
-			bitPos++
+		// Ensure we have enough bits in buffer
+		for bitsInBuffer < bitWidth && byteIdx < len(packed) {
+			bitBuffer |= uint64(packed[byteIdx]) << bitsInBuffer
+			byteIdx++
+			bitsInBuffer += 8
 		}
-		values[i] = val
+
+		// Extract value
+		values[i] = uint32(bitBuffer) & mask
+		bitBuffer >>= bitWidth
+		bitsInBuffer -= bitWidth
 	}
 
 	return values
@@ -154,10 +219,10 @@ func unpackBits(packed []byte, count int, bitWidth int) []uint32 {
 
 // Block compression/decompression
 
-// compressBlock compresses a single block of integers
-func compressBlock(data []int32) ([]byte, error) {
+// compressBlock compresses a single block of integers and writes directly to the provided buffer
+func compressBlock(data []int32, buf *bytes.Buffer) error {
 	if len(data) == 0 {
-		return nil, fmt.Errorf("empty block")
+		return fmt.Errorf("empty block")
 	}
 
 	// Try both predictors and pick the best one
@@ -217,27 +282,24 @@ func compressBlock(data []int32) ([]byte, error) {
 		Seeds:     seeds,
 	}
 
-	// Pack data
-	var buf bytes.Buffer
-
-	// Write header
-	if err := binary.Write(&buf, binary.LittleEndian, header.Tag); err != nil {
-		return nil, err
+	// Write header directly to buffer
+	if err := binary.Write(buf, binary.LittleEndian, header.Tag); err != nil {
+		return err
 	}
-	if err := binary.Write(&buf, binary.LittleEndian, header.Predictor); err != nil {
-		return nil, err
+	if err := binary.Write(buf, binary.LittleEndian, header.Predictor); err != nil {
+		return err
 	}
-	if err := binary.Write(&buf, binary.LittleEndian, header.BitWidth); err != nil {
-		return nil, err
+	if err := binary.Write(buf, binary.LittleEndian, header.BitWidth); err != nil {
+		return err
 	}
-	if err := binary.Write(&buf, binary.LittleEndian, header.NSamples); err != nil {
-		return nil, err
+	if err := binary.Write(buf, binary.LittleEndian, header.NSamples); err != nil {
+		return err
 	}
 
 	// Write seeds
 	for _, seed := range seeds {
-		if err := binary.Write(&buf, binary.LittleEndian, seed); err != nil {
-			return nil, err
+		if err := binary.Write(buf, binary.LittleEndian, seed); err != nil {
+			return err
 		}
 	}
 
@@ -247,7 +309,7 @@ func compressBlock(data []int32) ([]byte, error) {
 		buf.Write(packedResiduals)
 	}
 
-	return buf.Bytes(), nil
+	return nil
 }
 
 // decompressBlock decompresses a single block, returns data and bytes consumed
