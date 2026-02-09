@@ -17,8 +17,17 @@ type Database interface {
 	CreateActivity(ctx context.Context, activity *models.Activity) error
 	GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error)
 	CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error)
+	GetActivityByID(ctx context.Context, activityID string) (*models.Activity, error)
+	
+	// --- Activity Streams ---
+	GetActivityStreams(ctx context.Context, activityID string, lod models.StreamLOD) ([]models.ActivityStream, error)
+	CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error
 
 	// --- Other stuff ---
+
+	// User management methods
+	GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error)
+	UpdateUser(ctx context.Context, userID string, updates map[string]interface{}) error
 
 	// establishes a database connection
 	Connect(dsn string) error
