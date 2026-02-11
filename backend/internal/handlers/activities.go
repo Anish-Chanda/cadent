@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anish-chanda/cadence/backend/internal/compression"
 	"github.com/anish-chanda/cadence/backend/internal/db"
 	"github.com/anish-chanda/cadence/backend/internal/geo"
 	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/models"
 	"github.com/anish-chanda/cadence/backend/internal/store"
 	"github.com/anish-chanda/cadence/backend/internal/valhalla"
-	"github.com/anish-chanda/cadence/backend/internal/compression"
 	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 	"github.com/muktihari/fit/encoder"
@@ -47,7 +47,7 @@ type Sample struct {
 type FullResolutionStream struct {
 	TimeS      []float64 // time in seconds since start
 	DistanceM  []float64 // cumulative distance in meters
-	ElevationM []float64 // elevation in meters  
+	ElevationM []float64 // elevation in meters
 	SpeedMps   []float64 // speed in meters per second
 }
 
@@ -156,18 +156,18 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 
 		// Process full-resolution streams
 		fullStream := processFullResolutionStreams(req.Samples, elevationData, elevationHeights)
-		
+
 		// Validate stream alignment (all arrays should have same length)
 		if err := validateStreamAlignment(fullStream, len(req.Samples)); err != nil {
 			log.Error("Stream alignment validation failed", err)
 			http.Error(w, "Internal stream processing error", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Create medium LOD streams using distance decimation
 		mediumTargetPoints := MediumLODTargetPoints
 		keepIndices := decimateByDistance(fullStream, mediumTargetPoints)
-		
+
 		// Create compressed medium LOD streams
 		activityStreams, err := createCompressedStreams(activity.ID, keepIndices, fullStream)
 		if err != nil {
@@ -346,7 +346,7 @@ func interpolateElevationNulls(rawHeights []*float64) []float64 {
 	}
 
 	heights := make([]float64, len(rawHeights))
-	
+
 	// First pass: copy non-null values
 	for i, h := range rawHeights {
 		if h != nil {
@@ -402,7 +402,7 @@ func interpolateElevationNulls(rawHeights []*float64) []float64 {
 			// Find previous and next valid points
 			prevIdx := -1
 			nextIdx := -1
-			
+
 			// Find previous valid point
 			for j := i - 1; j >= 0; j-- {
 				if rawHeights[j] != nil {
@@ -410,7 +410,7 @@ func interpolateElevationNulls(rawHeights []*float64) []float64 {
 					break
 				}
 			}
-			
+
 			// Find next valid point
 			for j := i + 1; j < len(rawHeights); j++ {
 				if rawHeights[j] != nil {
@@ -418,12 +418,12 @@ func interpolateElevationNulls(rawHeights []*float64) []float64 {
 					break
 				}
 			}
-			
+
 			// Interpolate if we have both previous and next valid points
 			if prevIdx != -1 && nextIdx != -1 {
 				prevValue := heights[prevIdx]
 				nextValue := heights[nextIdx]
-				
+
 				// Linear interpolation based on position
 				ratio := float64(i-prevIdx) / float64(nextIdx-prevIdx)
 				heights[i] = prevValue + ratio*(nextValue-prevValue)
@@ -474,7 +474,7 @@ func createCompressedStreams(activityID uuid.UUID, keepIndices []int, fullStream
 	}
 
 	now := time.Now()
-	
+
 	// Extract decimated arrays
 	decimatedTime := make([]float64, len(keepIndices))
 	decimatedDistance := make([]float64, len(keepIndices))
@@ -496,26 +496,26 @@ func createCompressedStreams(activityID uuid.UUID, keepIndices []int, fullStream
 
 	// Create activity stream record
 	stream := models.ActivityStream{
-		ActivityID:           activityID,
-		LOD:                  models.StreamLODMedium,
-		IndexBy:              models.StreamIndexByDistance,
-		NumPoints:            len(keepIndices),
-		OriginalNumPoints:    len(fullStream.TimeS),
-		TimeSBytes:          timeBytes,
-		DistanceMBytes:      distanceBytes,
-		SpeedMpsBytes:       speedBytes,
-		ElevationMBytes:     elevationBytes,
-		Codec:               timeCodec, // Using time codec as representative
-		CreatedAt:           now,
-		UpdatedAt:           now,
+		ActivityID:        activityID,
+		LOD:               models.StreamLODMedium,
+		IndexBy:           models.StreamIndexByDistance,
+		NumPoints:         len(keepIndices),
+		OriginalNumPoints: len(fullStream.TimeS),
+		TimeSBytes:        timeBytes,
+		DistanceMBytes:    distanceBytes,
+		SpeedMpsBytes:     speedBytes,
+		ElevationMBytes:   elevationBytes,
+		Codec:             timeCodec, // Using time codec as representative
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	// For now, we store all stream types in one record with their respective compressed bytes
 	// In a more advanced implementation, you might want separate records for each stream type
 	// with their own codec metadata
-	_ = distanceCodec // suppress unused warning
-	_ = elevationCodec // suppress unused warning  
-	_ = speedCodec // suppress unused warning
+	_ = distanceCodec  // suppress unused warning
+	_ = elevationCodec // suppress unused warning
+	_ = speedCodec     // suppress unused warning
 
 	return []models.ActivityStream{stream}, nil
 }
@@ -811,7 +811,7 @@ func calculateDerivedStats(activityType string, speedMs float64, distanceM float
 			speedMph := speedMs * 2.236936 // m/s to mph
 			derived.SpeedKmh = &speedKmh
 			derived.SpeedMph = &speedMph
-		case "run":
+		case "running":
 			// For running activities, show pace in seconds per km and per mile
 			paceSPerKm := 1000.0 / speedMs     // seconds per km
 			paceSPerMile := 1609.344 / speedMs // seconds per mile
@@ -915,7 +915,7 @@ func decimateByDistance(fullStream *FullResolutionStream, targetPoints int) []in
 	currentIndex := 0
 	for step := 1; step < targetPoints-1; step++ {
 		targetDistance := float64(step) * stepSize
-		
+
 		// Find the closest point to target distance
 		// Walk forward from current index to ensure indices always move forward
 		bestIndex := currentIndex
@@ -954,10 +954,10 @@ func decimateByDistance(fullStream *FullResolutionStream, targetPoints int) []in
 func compressDIBS(data []float64, decimalPlaces int) ([]byte, map[string]interface{}) {
 	opts := compression.CompressOptions{
 		DecimalPlaces: decimalPlaces,
-		BlockLog2:     8, // 256 samples per block
+		BlockLog2:     8,     // 256 samples per block
 		EnableCRC:     false, // Disable CRC for embedded use to save space
 	}
-	
+
 	compressed, err := compression.Compress(data, opts)
 	if err != nil {
 		// Fall back to placeholder on error
@@ -970,7 +970,7 @@ func compressDIBS(data []float64, decimalPlaces int) ([]byte, map[string]interfa
 		}
 		return []byte{}, codec
 	}
-	
+
 	// Create codec metadata
 	codec := map[string]interface{}{
 		"name":       "dibs",
@@ -979,7 +979,7 @@ func compressDIBS(data []float64, decimalPlaces int) ([]byte, map[string]interfa
 		"endianness": "le",
 		"block_log2": opts.BlockLog2,
 	}
-	
+
 	return compressed, codec
 }
 
@@ -989,6 +989,6 @@ func decompressDIBS(compressed []byte, codec map[string]interface{}) ([]float64,
 	if errMsg, exists := codec["error"]; exists {
 		return nil, fmt.Errorf("compression error: %v", errMsg)
 	}
-	
+
 	return compression.Decompress(compressed)
 }

@@ -3,7 +3,7 @@ import 'package:geolocator/geolocator.dart';
 enum RecordingState { idle, recording, paused, completed }
 
 enum WorkoutType { 
-  running('Running', 'run'), 
+  running('Running', 'running'), 
   roadBiking('Road Biking', 'road_bike');
   
   const WorkoutType(this.displayName, this.apiName);
