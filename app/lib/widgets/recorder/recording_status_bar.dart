@@ -28,11 +28,11 @@ class RecordingStatusBar extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
             ),
             child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
+              icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color, size: 20),
               onPressed: onBack,
               padding: EdgeInsets.zero,
             ),
@@ -47,14 +47,14 @@ class RecordingStatusBar extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
             ),
             child: IconButton(
               onPressed: onCenterLocation,
-              icon: const Icon(
+              icon: Icon(
                 Icons.my_location,
-                color: Colors.blue,
+                color: Theme.of(context).colorScheme.primary,
                 size: 20,
               ),
               padding: EdgeInsets.zero,
@@ -68,11 +68,11 @@ class RecordingStatusBar extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error, size: 20),
                 onPressed: onDiscard,
                 padding: EdgeInsets.zero,
               ),

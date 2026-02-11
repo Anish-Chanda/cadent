@@ -20,6 +20,8 @@ class RecordingControlButton extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final ThemeData theme = Theme.of(context);
+
     return GestureDetector(
       onTap: () {
         if (model.isRecording) {
@@ -32,12 +34,12 @@ class RecordingControlButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: model.isRecording ? Colors.orange : Colors.blue,
+          color: model.isRecording ? theme.colorScheme.error : theme.colorScheme.primary,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Icon(
           model.isRecording ? Icons.pause : Icons.play_arrow,
-          color: Colors.white,
+          color: model.isRecording ? theme.colorScheme.onError : theme.colorScheme.onPrimary,
           size: 20,
         ),
       ),
