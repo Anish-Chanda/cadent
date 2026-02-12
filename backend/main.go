@@ -32,6 +32,13 @@ func main() {
 
 	log := logger.New(logConfig)
 
+	// Log version information
+	if Version == "" || BuildHash == "" {
+		log.Warn("Running development build - version info not injected")
+	} else {
+		log.Info(fmt.Sprintf("Starting Cadent API - Version: %s, Build: %s", Version, BuildHash))
+	}
+
 	// Initialize storage
 	log.Info("Initializing storage")
 	storageConfig, err := store.ParseStorageDSN(cfg.StorageDsn)
