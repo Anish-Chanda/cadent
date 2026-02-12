@@ -4,7 +4,7 @@ enum RecordingState { idle, recording, paused, completed }
 
 enum WorkoutType { 
   running('Running', 'running'), 
-  roadBiking('Road Biking', 'road_bike');
+  roadBiking('Road Biking', 'road_biking');
   
   const WorkoutType(this.displayName, this.apiName);
   final String displayName;
