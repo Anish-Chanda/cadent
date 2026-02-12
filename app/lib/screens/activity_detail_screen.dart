@@ -218,7 +218,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          widget.activity.activityType == 'road_bike' 
+                          widget.activity.activityType == 'road_biking'
                               ? Icons.directions_bike 
                               : Icons.directions_run,
                           size: 16,
@@ -226,7 +226,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          widget.activity.activityType == 'road_bike' ? 'Ride' : 'Run',
+                          widget.activity.activityType == 'road_biking' ? 'Ride' : 'Run',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -340,7 +340,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: widget.activity.activityType == 'road_bike'
+              child: widget.activity.activityType == 'road_biking'
                   ? _buildStatItem(
                       label: 'Avg Speed',
                       value: widget.activity.stats!.derived.speedKmh!.toStringAsFixed(2),
