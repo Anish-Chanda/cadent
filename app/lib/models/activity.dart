@@ -148,10 +148,10 @@ class Activity {
   // Helper getters for display using derived data
   double get distanceKm => stats?.derived.distanceKm ?? 0.0;
   double get distanceMiles => stats?.derived.distanceMiles ?? 0.0;
-  
-  String get formattedDistance => '${distanceKm.toStringAsFixed(2)} Km';
-  
-  String get formattedElevation => stats?.elevationGainM != null ? '${stats!.elevationGainM} m' : '0 m';
+  String get formattedDistanceKm => distanceKm.toStringAsFixed(2);
+  String get formattedDistanceMi => distanceMiles.toStringAsFixed(2);
+  String get formattedElevationM => stats?.elevationGainM != null ? '${stats!.elevationGainM}' : '0';
+  String get formattedElevationFt => stats?.elevationGainM != null ? '${stats!.elevationGainM * 3.28}' : '0';
   
   String get formattedDuration {
     final elapsedTime = stats?.elapsedSeconds.round() ?? 0;
@@ -164,27 +164,27 @@ class Activity {
   }
 
   // helper getters for speed and pace
-  String get formattedSpeed {
-    if (stats?.derived.speedKmh != null) {
-      return '${stats!.derived.speedKmh!.toStringAsFixed(1)} km/h';
-    } else if (stats?.derived.speedMph != null) {
-      return '${stats!.derived.speedMph!.toStringAsFixed(1)} mph';
-    }
-    return 'N/A';
-  }
+  String get formattedSpeedKph => stats?.derived.speedKmh!.toStringAsFixed(1) ?? '0.0';
+  String get formattedSpeedMph => stats?.derived.speedMph!.toStringAsFixed(1) ?? '0.0';
 
-  String get formattedPace {
+
+  String get formattedPaceKm {
     if (stats?.derived.paceSPerKm != null) {
       final paceSec = stats!.derived.paceSPerKm!;
       final minutes = paceSec ~/ 60;
       final seconds = (paceSec % 60).round();
-      return '$minutes:${seconds.toString().padLeft(2, '0')}/km';
-    } else if (stats?.derived.paceSPerMile != null) {
-      final paceSec = stats!.derived.paceSPerMile!;
-      final minutes = paceSec ~/ 60;
-      final seconds = (paceSec % 60).round();
-      return '$minutes:${seconds.toString().padLeft(2, '0')}/mi';
+      return '$minutes:${seconds.toString().padLeft(2, '0')}';
     }
     return 'N/A';
   }
+  String get formattedPaceMi {
+    if (stats?.derived.paceSPerMile != null) {
+      final paceSec = stats!.derived.paceSPerMile!;
+      final minutes = paceSec ~/ 60;
+      final seconds = (paceSec % 60).round();
+      return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    }
+    return 'N/A';
+  }
+
 }
