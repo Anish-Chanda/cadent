@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '../models/activity.dart';
+import '../providers/app_settings_provider.dart';
 import '../utils/polyline_decoder.dart';
 import 'package:intl/intl.dart';
 import '../widgets/activity_charts.dart';
 import '../services/streams_service.dart';
+import 'package:provider/provider.dart';
+
 
 
 class ActivityDetailScreen extends StatefulWidget {
   final Activity activity;
+
 
   const ActivityDetailScreen({super.key, required this.activity});
 
@@ -53,6 +57,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     _sheetController?.dispose();
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +308,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     );
   }
 
+
   Widget _buildStatsGrid() {
+    final metersOrMiles = context.read<AppSettingsProvider>().metricUnitDisplayName;
     return Column(
       children: [
         // Primary stats row
@@ -312,8 +319,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             Expanded(
               child: _buildStatItem(
                 label: 'Distance',
-                value: widget.activity.stats!.derived.distanceKm.toStringAsFixed(2),
-                unit: 'km',
+                value: metersOrMiles == 'Meters' ? widget.activity.formattedDistanceKm : widget.activity.formattedDistanceMi,
+                unit: metersOrMiles == 'Meters' ? 'km' : 'mi',
               ),
             ),
             const SizedBox(width: 16),
@@ -334,8 +341,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             Expanded(
               child: _buildStatItem(
                 label: 'Elevation Gain',
-                value: '${widget.activity.stats!.elevationGainM}',
-                unit: 'm',
+                value: metersOrMiles == 'Meters' ? widget.activity.formattedElevationM : widget.activity.formattedElevationFt,
+                unit: metersOrMiles == 'Meters' ? 'm' : 'ft',
               ),
             ),
             const SizedBox(width: 16),
@@ -343,13 +350,13 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
               child: widget.activity.activityType == 'road_biking'
                   ? _buildStatItem(
                       label: 'Avg Speed',
-                      value: widget.activity.stats!.derived.speedKmh!.toStringAsFixed(2),
-                      unit: 'km/h',
+                      value: metersOrMiles == 'Meters' ? widget.activity.formattedSpeedKph : widget.activity.formattedSpeedMph,
+                      unit: metersOrMiles == 'Meters' ? 'kph' : 'mph',
                     )
                   : _buildStatItem(
                       label: 'Avg Pace',
-                      value: widget.activity.formattedPace,
-                      unit: '',
+                      value: metersOrMiles == 'Meters' ? widget.activity.formattedPaceKm : widget.activity.formattedPaceMi,
+                      unit: context.read<AppSettingsProvider>().metricUnitDisplayName == 'Meters' ? '/km' : '/mi',
                     ),
             ),
           ],
