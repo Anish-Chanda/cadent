@@ -36,16 +36,20 @@ class _MainLayoutState extends State<MainLayout> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: SizedBox(
+          width: 60,
+          height: 60,
+      child: FloatingActionButton(
         onPressed: _onRecordTapped,
         backgroundColor: const Color(0xFF3B82F6),
         foregroundColor: Colors.white,
+        shape: const CircleBorder(),
         child: const Icon(Icons.fiber_manual_record, size: 28),
-      ),
+      )),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
+        notchMargin: 4,
         child: SizedBox(
           height: 60,
           child: Row(
