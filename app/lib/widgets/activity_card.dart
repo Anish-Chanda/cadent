@@ -22,8 +22,10 @@ class ActivityCard extends StatelessWidget {
       },
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -35,7 +37,7 @@ class ActivityCard extends StatelessWidget {
               ),
               child: SizedBox(
                 height: 200,
-                child: _buildMap(),
+                child: _buildMap(context),
               ),
             ),
             // Content section
@@ -46,7 +48,9 @@ class ActivityCard extends StatelessWidget {
                 children: [
                   Text(
                     activity.title,
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ) ?? const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -56,6 +60,7 @@ class ActivityCard extends StatelessWidget {
                     children: [
                       // Distance - left aligned with title
                       _buildStat(
+                        context: context,
                         icon: Icons.straighten,
                         label: 'Distance',
                         value: activity.formattedDistance,
@@ -64,6 +69,7 @@ class ActivityCard extends StatelessWidget {
                       Expanded(
                         child: Center(
                           child: _buildStat(
+                            context: context,
                             icon: Icons.terrain,
                             label: 'Elevation',
                             value: activity.formattedElevation,
@@ -72,6 +78,7 @@ class ActivityCard extends StatelessWidget {
                       ),
                       // Time - right aligned with padding
                       _buildStat(
+                        context: context,
                         icon: Icons.access_time,
                         label: 'Time',
                         value: activity.formattedDuration,
@@ -87,7 +94,7 @@ class ActivityCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMap() {
+  Widget _buildMap(BuildContext context) {
     // Default center if no coordinates available
     LatLng center = const LatLng(43.65107, 7.22560); // Nice, France default
     List<LatLng> polylinePoints = [];
@@ -133,7 +140,7 @@ class ActivityCard extends StatelessWidget {
             polylines: [
               Polyline(
                 points: polylinePoints,
-                color: const Color(0xFF3B82F6), // Blue color
+                color: Theme.of(context).colorScheme.primary,
                 strokeWidth: 4.0,
               ),
             ],
@@ -143,18 +150,18 @@ class ActivityCard extends StatelessWidget {
             markers: [
               Marker(
                 point: LatLng(activity.start!.lat, activity.start!.lon),
-                child: const Icon(
+                child: Icon(
                   Icons.play_circle_filled,
-                  color: Colors.green,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 20,
                 ),
               ),
               if (activity.end != null)
                 Marker(
                   point: LatLng(activity.end!.lat, activity.end!.lon),
-                  child: const Icon(
+                  child: Icon(
                     Icons.stop_circle,
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                     size: 20,
                   ),
                 ),
@@ -164,20 +171,22 @@ class ActivityCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStat({required IconData icon, required String label, required String value}) {
+  Widget _buildStat({required BuildContext context, required IconData icon, required String label, required String value}) {
     return Column(
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: Colors.grey[600]),
+            Icon(icon, size: 16, color: Theme.of(context).colorScheme.outline),
             const SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w500,
+              ) ?? TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.outline,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -186,7 +195,9 @@ class ActivityCard extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ) ?? const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),

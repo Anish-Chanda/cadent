@@ -24,7 +24,7 @@ class ErrorStateWidget extends StatelessWidget {
           Icon(
             icon,
             size: iconSize,
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.error.withOpacity(0.6),
           ),
           const SizedBox(height: 16),
           Padding(
@@ -32,9 +32,11 @@ class ErrorStateWidget extends StatelessWidget {
             child: Text(
               message ?? 'An error occurred',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ) ?? TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),

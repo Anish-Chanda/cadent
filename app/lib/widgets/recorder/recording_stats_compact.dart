@@ -49,7 +49,6 @@ class RecordingStatsCompact extends StatelessWidget {
                     const Spacer(),
                     const Icon(
                       Icons.keyboard_arrow_down,
-                      color: Colors.grey,
                       size: 20,
                     ),
                   ],
@@ -93,12 +92,16 @@ class RecordingStatsCompact extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: model.isRecording ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+                          color: model.isRecording
+                              ? Theme.of(context).colorScheme.secondary
+                              : Theme.of(context).colorScheme.primary,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Icon(
                           model.isRecording ? Icons.pause : Icons.play_arrow,
-                          color: model.isRecording ? Theme.of(context).colorScheme.onError : Theme.of(context).colorScheme.onPrimary,
+                          color: model.isRecording
+                              ? Theme.of(context).colorScheme.onSecondary
+                              : Theme.of(context).colorScheme.onPrimary,
                           size: 20,
                         ),
                       ),

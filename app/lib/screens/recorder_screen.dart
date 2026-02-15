@@ -99,10 +99,12 @@ class _RecorderScreenState extends State<RecorderScreen> {
       }
       
       // Add new route line
+      final theme = Theme.of(context);
+      final lineColor = '#${theme.colorScheme.primary.value.toRadixString(16).padLeft(8, '0').substring(2)}';
       _mapController!.addLine(
         LineOptions(
           geometry: latLngs,
-          lineColor: "#2196F3", // Blue color for the route TODO: it would be better to a have a contants file for colors/theme
+          lineColor: lineColor,
           lineWidth: 4.0,
           lineOpacity: 0.8,
         ),
@@ -245,7 +247,9 @@ class _RecorderScreenState extends State<RecorderScreen> {
             content: Text(success 
               ? 'Activity saved successfully!' 
               : 'Failed to save activity. Please try again.'),
-            backgroundColor: success ? Colors.green : Colors.red,
+            backgroundColor: success
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -277,10 +281,12 @@ class _RecorderScreenState extends State<RecorderScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Discard'),
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
             ),
+            child: const Text('Discard'),
+          ),
         ],
       ),
     );
@@ -333,7 +339,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
           // Full Screen Data View when expanded
           if (_isMapExpanded)
             Container(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
@@ -349,13 +355,13 @@ class _RecorderScreenState extends State<RecorderScreen> {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: Colors.grey[100],
+                                color: Theme.of(context).colorScheme.surfaceVariant,
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.grey[300]!),
+                                border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.4)),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.expand_more,
-                                color: Colors.black54,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 size: 24,
                               ),
                             ),

@@ -30,7 +30,7 @@ class CompactStat extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: labelColor ?? Colors.grey,
+            color: labelColor ?? Theme.of(context).colorScheme.outline,
             fontSize: labelFontSize,
           ),
         ),
@@ -38,7 +38,7 @@ class CompactStat extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? Colors.black87,
+            color: valueColor ?? Theme.of(context).colorScheme.onSurface,
             fontSize: valueFontSize,
             fontWeight: valueFontWeight,
           ),

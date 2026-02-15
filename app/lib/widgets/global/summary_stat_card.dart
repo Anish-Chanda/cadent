@@ -33,9 +33,9 @@ class SummaryStatCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.white,
+        color: backgroundColor ?? Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor ?? Colors.grey[200]!),
+        border: Border.all(color: borderColor ?? Theme.of(context).colorScheme.outline.withOpacity(0.2)),
       ),
       child: Column(
         children: [
@@ -44,7 +44,7 @@ class SummaryStatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: valueFontSize,
               fontWeight: valueFontWeight,
-              color: valueColor ?? Colors.black87,
+              color: valueColor ?? Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),

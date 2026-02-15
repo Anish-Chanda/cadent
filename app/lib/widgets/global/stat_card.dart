@@ -46,7 +46,7 @@ class StatCard extends StatelessWidget {
           style: TextStyle(
             fontSize: valueFontSize,
             fontWeight: valueFontWeight,
-            color: valueColor ?? Colors.black87,
+            color: valueColor ?? Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
@@ -54,7 +54,7 @@ class StatCard extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: labelFontSize,
-            color: labelColor ?? Colors.grey[600],
+            color: labelColor ?? Theme.of(context).colorScheme.outline,
           ),
         ),
       ],

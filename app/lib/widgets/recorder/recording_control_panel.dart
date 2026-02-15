@@ -58,34 +58,34 @@ class RecordingControlPanel extends StatelessWidget {
       return Row(
         children: [
           Expanded(
-                child: Container(
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary,
+            child: Container(
+              height: 60,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondary,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: ElevatedButton(
+                onPressed: onPause,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: ElevatedButton(
-                    onPressed: onPause,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Text(
-                      'Pause',
-                      style: TextStyle(fontSize: 16, color: theme.colorScheme.onSecondary),
-                    ),
-                  ),
                 ),
+                child: Text(
+                  'Pause',
+                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onSecondary),
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
+                color: theme.colorScheme.error,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: ElevatedButton(
@@ -99,7 +99,7 @@ class RecordingControlPanel extends StatelessWidget {
                 ),
                 child: Text(
                   'Finish',
-                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onPrimary),
+                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onError),
                 ),
               ),
             ),
@@ -141,7 +141,7 @@ class RecordingControlPanel extends StatelessWidget {
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
+                color: theme.colorScheme.error,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: ElevatedButton(
@@ -155,7 +155,7 @@ class RecordingControlPanel extends StatelessWidget {
                 ),
                 child: Text(
                   'Finish',
-                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onPrimary),
+                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onError),
                 ),
               ),
             ),
