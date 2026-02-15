@@ -11,7 +11,7 @@ GO_MAIN = main
 
 include .env
 
-.PHONY: install-deps test build build-api build-apk run-api run-app docker-build-api set-version clean-version dev-up dev-down help
+.PHONY: install-deps test build build-api build-apk run-api run-app docker-build-api set-version clean-version dev-up dev-down test-e2e-process test-e2e-clean test-e2e-api help
 .DEFAULT_GOAL := help
 
 help: ## Show this help message
@@ -96,3 +96,24 @@ run-app: set-version ## Run mobile app on connected device
 	@echo "Running Flutter application..."
 	cd $(FRONTEND_DIR) && flutter run
 	@$(MAKE) clean-version
+
+# ==== E2E Testing Targets ====
+
+test-e2e-process: ## Process #include directives in hurl test files
+	@echo "Processing includes in test files..."
+	@cd tests && ./process-includes.sh api
+
+test-e2e-clean: ## Remove processed includes from hurl test files (retains #include directives)
+	@echo "Cleaning processed includes from test files..."
+	@cd tests && ./clean-includes.sh api
+
+test-e2e-api: test-e2e-process ## Process includes and run hurl e2e tests
+	@echo "Running hurl e2e tests..."
+	@if ! command -v hurl &> /dev/null; then \
+		echo "Error: hurl is not installed. Please install it first."; \
+		echo "Visit: https://hurl.dev/docs/installation.html"; \
+		exit 1; \
+	fi
+	@hurl --test --glob "tests/api/**/*.hurl"
+	@echo ""
+	@echo "Note: Run 'make test-e2e-clean' to clean processed includes if needed"

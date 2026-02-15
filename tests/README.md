@@ -1,0 +1,1 @@
+We will be using this tests folder to write end to end tests for the beckend and the web, unit tests can be found in their respective folders.
