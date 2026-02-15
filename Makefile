@@ -99,6 +99,9 @@ run-app: set-version ## Run mobile app on connected device
 
 # ==== E2E Testing Targets ====
 
+# Optional flags for hurl tests (e.g., make test-e2e-api HURL_FLAGS="--jobs 1 --verbose")
+HURL_FLAGS ?=
+
 test-e2e-process: ## Process #include directives in hurl test files
 	@echo "Processing includes in test files..."
 	@cd tests && ./process-includes.sh api
@@ -107,13 +110,6 @@ test-e2e-clean: ## Remove processed includes from hurl test files (retains #incl
 	@echo "Cleaning processed includes from test files..."
 	@cd tests && ./clean-includes.sh api
 
-test-e2e-api: test-e2e-process ## Process includes and run hurl e2e tests
+test-e2e-api: test-e2e-process ## Process includes and run hurl e2e tests (excludes common/ directory)
 	@echo "Running hurl e2e tests..."
-	@if ! command -v hurl &> /dev/null; then \
-		echo "Error: hurl is not installed. Please install it first."; \
-		echo "Visit: https://hurl.dev/docs/installation.html"; \
-		exit 1; \
-	fi
-	@hurl --test --glob "tests/api/**/*.hurl"
-	@echo ""
-	@echo "Note: Run 'make test-e2e-clean' to clean processed includes if needed"
+	@find tests/api -name "*.hurl" -not -path "*/common/*" -print0 | xargs -0 hurl --test $(HURL_FLAGS)
