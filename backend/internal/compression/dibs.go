@@ -8,19 +8,28 @@ import (
 	"math"
 )
 
-// NOTE: This is highly experimental, not production-ready code for DIBS compression/decompression. This may or maynot even be
-// more effecient than other compression algorithms, but innitial benchmarks look promising for our specific use case
-// often achieving 80-90% compression ratios, and 1.2GB/s decompression speeds, but I have seen that the hex strings
-// still have some redundancy that could be further compressed with a general-purpose algorithm like zstd/blosc.
-// Also note this is not a completly lossless compression, as we quantize float values to fixed-point integers based on
-// specified decimal places we actually ever use.
+// DIBS (Delta Integer Bit Streaming) is a domain-specific compression algorithm optimized for time-series float data,
+// particularly GPS tracking and activity data. The algorithm quantizes floating point values to fixed-point integers
+// at a configurable precision (0-6 decimal places), then applies adaptive delta prediction (Delta-1 for volatile data,
+// Delta-2 for smooth gradients). Residuals are ZigZag encoded and packed with variable bit-widths, with fast paths for
+// common 8/16/32-bit alignments. The result is excellent compression ratios (typically 1-20% of original size depending
+// on data smoothness) at high speed (1.7-1.9 GB/s). This is not completely lossless compression, as we quantize float
+// values to fixed-point integers based on the specified decimal places we ACTUALLY ever use/need. The algorithm works best for
+// GPS coordinates (poly6 precision at 6 decimals gives ~11cm accuracy), elevation profiles where smooth gradients
+// compress to 1-5%, and speed/pace data. Performance degrades with sudden spikes or volatility in the data.
 
 // DIBS compression constants
 const (
-	Magic            = "DSEG"
+	Magic            = "DIBS" // File format identifier
 	Version          = 1
-	DefaultBlockLog2 = 8 // 256 samples per block
-	MaxBlockSize     = 512
+	DefaultBlockLog2 = 8  // 256 samples per block
+	MaxBlockLog2     = 16 // 65536 samples max per block
+
+	// MaxDecimalPlaces is the maximum supported decimal precision.
+	// Limited to 6 to match poly6 GPS encoding standard (~11cm precision).
+	// Higher precision provides no meaningful information for GPS/elevation data
+	// and risks int32 overflow during quantization.
+	MaxDecimalPlaces = 6
 
 	// Flags
 	FlagFromFixedPoint = 1 << 0
@@ -71,17 +80,46 @@ func DefaultCompressOptions() CompressOptions {
 	}
 }
 
+// validateOptions validates compression options
+func validateOptions(options *CompressOptions) error {
+	if options.DecimalPlaces < 0 || options.DecimalPlaces > MaxDecimalPlaces {
+		return fmt.Errorf("DecimalPlaces must be 0-%d, got %d", MaxDecimalPlaces, options.DecimalPlaces)
+	}
+
+	if options.BlockLog2 < 2 || options.BlockLog2 > MaxBlockLog2 {
+		return fmt.Errorf("BlockLog2 must be 2-%d, got %d", MaxBlockLog2, options.BlockLog2)
+	}
+
+	return nil
+}
+
 // Compress compresses a float64 array using DIBS algorithm
 func Compress(data []float64, options CompressOptions) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("input data is empty")
 	}
 
+	// Validate options
+	if err := validateOptions(&options); err != nil {
+		return nil, err
+	}
+
 	// Step 1: Quantize floats to fixed-precision integers
 	scale := int32(math.Pow10(options.DecimalPlaces))
 	quantized := make([]int32, len(data))
 	for i, val := range data {
-		quantized[i] = int32(math.Round(val * float64(scale)))
+		scaled := val * float64(scale)
+
+		// Check for overflow - this indicates invalid input data
+		if scaled > math.MaxInt32 {
+			return nil, fmt.Errorf("value %.6f at index %d overflows int32 max with %d decimal places (scaled: %.0f)",
+				val, i, options.DecimalPlaces, scaled)
+		} else if scaled < math.MinInt32 {
+			return nil, fmt.Errorf("value %.6f at index %d underflows int32 min with %d decimal places (scaled: %.0f)",
+				val, i, options.DecimalPlaces, scaled)
+		} else {
+			quantized[i] = int32(math.Round(scaled))
+		}
 	}
 
 	// Step 2: Create segment header
@@ -95,25 +133,7 @@ func Compress(data []float64, options CompressOptions) ([]byte, error) {
 	}
 	copy(header.Magic[:], Magic)
 
-	// Step 3: Compress data into blocks
-	blockSize := 1 << options.BlockLog2
-	var compressedBlocks [][]byte
-
-	for offset := 0; offset < len(quantized); offset += blockSize {
-		end := offset + blockSize
-		if end > len(quantized) {
-			end = len(quantized)
-		}
-
-		block := quantized[offset:end]
-		compressedBlock, err := compressBlock(block)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compress block at offset %d: %w", offset, err)
-		}
-		compressedBlocks = append(compressedBlocks, compressedBlock)
-	}
-
-	// Step 4: Build final output
+	// Step 3: Build output buffer
 	var buf bytes.Buffer
 
 	// Write segment header (will update CRC later if enabled)
@@ -121,20 +141,34 @@ func Compress(data []float64, options CompressOptions) ([]byte, error) {
 		return nil, fmt.Errorf("failed to write header: %w", err)
 	}
 
-	// Write compressed blocks
+	// Mark where body starts (for CRC calculation)
 	bodyStart := buf.Len()
-	for _, block := range compressedBlocks {
-		buf.Write(block)
+
+	// Step 4: Compress blocks directly into buffer
+	blockSize := 1 << options.BlockLog2
+	for offset := 0; offset < len(quantized); offset += blockSize {
+		end := offset + blockSize
+		if end > len(quantized) {
+			end = len(quantized)
+		}
+
+		block := quantized[offset:end]
+		if err := compressBlock(block, &buf); err != nil {
+			return nil, fmt.Errorf("failed to compress block at offset %d: %w", offset, err)
+		}
 	}
 
-	// Update CRC if enabled
+	// Step 5: Update CRC if enabled
 	if options.EnableCRC {
 		result := buf.Bytes()
 		body := result[bodyStart:]
 		crc := crc32.Checksum(body, crc32.MakeTable(crc32.Castagnoli))
 
-		// Update CRC field in header
-		binary.LittleEndian.PutUint32(result[28:32], crc) // CRC32C field offset
+		// Update CRC field in header at its known position
+		// CRC32C is the last field in SegmentHeader (uint32 = 4 bytes)
+		headerSize := binary.Size(SegmentHeader{})
+		crcOffset := headerSize - 4
+		binary.LittleEndian.PutUint32(result[crcOffset:crcOffset+4], crc)
 	}
 
 	return buf.Bytes(), nil

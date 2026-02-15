@@ -39,8 +39,7 @@ void main() {
 
       // Verify buttons
       expect(find.text('Discard'), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsOneWidget);
-      expect(find.byType(OutlinedButton), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsNWidgets(2)); // Both PrimaryButtons use ElevatedButton internally
     });
 
     testWidgets('initializes title with default value', (tester) async {

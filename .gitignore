@@ -43,3 +43,5 @@ Thumbs.db
 
 # storage files
 data/
+
+.github/*.md

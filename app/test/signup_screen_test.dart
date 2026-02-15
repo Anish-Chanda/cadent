@@ -52,7 +52,7 @@ void main() {
       expect(find.text('Create your account to get started'), findsOneWidget);
       expect(find.text('Create Account'), findsOneWidget);
       expect(find.text("Already have an account? "), findsOneWidget);
-      expect(find.text('Login'), findsOneWidget);
+      expect(find.text('Log in'), findsOneWidget);
       expect(find.text('Logging into:'), findsOneWidget);
 
       // Verify form fields
