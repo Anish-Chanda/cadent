@@ -9,16 +9,16 @@ GO_APP_NAME = api
 GO_BUILD_DIR = bin
 GO_MAIN = main
 
-include .env
+-include .env
 
-.PHONY: install-deps test build build-api build-apk run-api run-app docker-build-api set-version clean-version dev-up dev-down help
+.PHONY: install-deps test build build-api build-apk run-api run-app docker-build-api set-version clean-version dev-up dev-down test-e2e-process test-e2e-clean test-e2e-api help
 .DEFAULT_GOAL := help
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Targets:'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 
 # ==== Version Management ====
@@ -96,3 +96,20 @@ run-app: set-version ## Run mobile app on connected device
 	@echo "Running Flutter application..."
 	cd $(FRONTEND_DIR) && flutter run
 	@$(MAKE) clean-version
+
+# ==== E2E Testing Targets ====
+
+# Optional flags for hurl tests (e.g., make test-e2e-api HURL_FLAGS="--jobs 1 --verbose")
+HURL_FLAGS ?=
+
+test-e2e-process: ## Process #include directives in hurl test files
+	@echo "Processing includes in test files..."
+	@cd tests && ./process-includes.sh api
+
+test-e2e-clean: ## Remove processed includes from hurl test files (retains #include directives)
+	@echo "Cleaning processed includes from test files..."
+	@cd tests && ./clean-includes.sh api
+
+test-e2e-api: test-e2e-process ## Process includes and run hurl e2e tests (excludes common/ directory)
+	@echo "Running hurl e2e tests..."
+	@find tests/api -name "*.hurl" -not -path "*/common/*" -print0 | xargs -0 hurl --test $(HURL_FLAGS)

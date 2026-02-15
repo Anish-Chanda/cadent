@@ -39,6 +39,7 @@ jobs:
           flutter test --machine --coverage > tests.output
       
       - name: Upload Flutter test artifacts
+        if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v5
         with:
           name: flutter-test-data
@@ -76,6 +77,7 @@ jobs:
           go test -coverprofile=coverage.out  ./...
       
       - name: Upload Go test artifacts
+        if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v5
         with:
           name: go-test-data
@@ -84,13 +86,84 @@ jobs:
             backend/coverage.out
           if-no-files-found: error
           retention-days: 1
+
+  e2e-test-api:
+    name: End-to-End API Tests
+    runs-on: ubuntu-latest
+    needs: [unit-test-backend]
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: cadence_user
+          POSTGRES_PASSWORD: cadence_password
+          POSTGRES_DB: cadence_db
+        options: >-
+          --health-cmd "pg_isready -U cadence_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    env:
+      POSTGRES_DSN: "postgresql://cadence_user:cadence_password@localhost:5432/cadence_db?sslmode=disable"
+      PORT: "8080"
+      JWT_SECRET: "test-jwt-secret-key-for-ci-only"
+      VALHALLA_URL: ""
+      ENVIRONMENT: "test"
+      LOG_LEVEL: "info"
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      
+      - name: Install hurl
+        run: |
+          curl -LO https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb
+          sudo dpkg -i hurl_7.1.0_amd64.deb
+      
+      - name: Build API Docker image
+        run: |
+          docker build \
+            --build-arg API_VERSION=ci-test \
+            --build-arg BUILD_HASH=${{ github.sha }} \
+            -t cadent-api:test \
+            .
+      
+      - name: Start backend API container
+        run: |
+          docker run -d \
+            --name cadent-api \
+            --network host \
+            -e POSTGRES_DSN="$POSTGRES_DSN" \
+            -e PORT="$PORT" \
+            -e JWT_SECRET="$JWT_SECRET" \
+            -e VALHALLA_URL="$VALHALLA_URL" \
+            -e ENVIRONMENT="$ENVIRONMENT" \
+            -e LOG_LEVEL="$LOG_LEVEL" \
+            cadent-api:test
+          # Wait for API to be ready
+          timeout 30 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done' || exit 1
+      
+      - name: Run E2E tests
+        run: make test-e2e-api
+      
+      - name: Show API logs on failure
+        if: failure()
+        run: docker logs cadent-api
+      
+      - name: Stop backend API container
+        if: always()
+        run: docker rm -f cadent-api || true
   
-  # Run SonarQube analysis only on pushes to main branch
+  # Run SonarQube analysis only on pushes to main branch (skip when running locally with act)
   sonar-analysis:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !github.event.act
     name: SonarQube Analysis
     runs-on: ubuntu-latest
-    needs: [unit-test-app, unit-test-backend]
+    needs: [unit-test-app, e2e-test-api]
     permissions:
       contents: read
     
@@ -115,12 +188,14 @@ jobs:
         run: flutter pub get
 
       - name: Download Flutter test artifacts
+        if: ${{ !env.ACT }}
         uses: actions/download-artifact@v6
         with:
           name: flutter-test-data
           path: app
 
       - name: Download Go test artifacts
+        if: ${{ !env.ACT }}
         uses: actions/download-artifact@v6
         with:
           name: go-test-data
@@ -130,6 +205,7 @@ jobs:
         run: cp app/pubspec.yaml pubspec.yaml
 
       - name: OWASP Dependency-Check
+        if: ${{ !env.ACT }}
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: cadent

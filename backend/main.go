@@ -109,6 +109,13 @@ func main() {
 	// Add middlewares
 	router.Use(middleware.Logger)
 
+	// Health check endpoint
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"status":"ok"}`)
+	})
+
 	// Mount auth routes
 	authHandler, avatarHandler := authService.Handlers()
 	router.Mount("/auth", authHandler)
