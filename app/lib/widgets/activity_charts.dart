@@ -119,15 +119,15 @@ class _ActivityChartsState extends State<ActivityCharts> {
               isSelected: [_showDistance, !_showDistance],
               onPressed: (i) => setState(() => _showDistance = (i == 0)),
               borderRadius: BorderRadius.circular(6),
-              selectedBorderColor: Colors.blue.shade700,
-              fillColor: Colors.blue.shade50,
-              color: Colors.black87,
-              selectedColor: Colors.blue.shade900,
+              selectedBorderColor: Theme.of(context).colorScheme.primary,
+              fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: Theme.of(context).colorScheme.onSurface,
+              selectedColor: Theme.of(context).colorScheme.primary,
               children: [Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Distance')), Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Time'))],
             ),
           ),
-        if (hasElevation) _buildLineChartDistance(context, xForCharts, elevations, Colors.orange, 'Elevation (m)', _showDistance ? 'Distance (km)' : 'Time', 'Elevation (m)', xIsTime: !_showDistance),
-        if (hasSpeed) _buildLineChartDistance(context, xForCharts, speedsKmH, Colors.blue, 'Speed (km/h)', _showDistance ? 'Distance (km)' : 'Time', 'Speed (km/h)', yMin: 0, xIsTime: !_showDistance),
+        if (hasElevation) _buildLineChartDistance(context, xForCharts, elevations, Theme.of(context).colorScheme.secondary, 'Elevation (m)', _showDistance ? 'Distance (km)' : 'Time', 'Elevation (m)', xIsTime: !_showDistance),
+        if (hasSpeed) _buildLineChartDistance(context, xForCharts, speedsKmH, Theme.of(context).colorScheme.primary, 'Speed (km/h)', _showDistance ? 'Distance (km)' : 'Time', 'Speed (km/h)', yMin: 0, xIsTime: !_showDistance),
         if (splits.isNotEmpty) _buildSplitsBarChart(context, splits, 'Km', 'Time per km', isTime: true),
       ]
     ]);
@@ -182,15 +182,15 @@ class _ActivityChartsState extends State<ActivityCharts> {
                 isSelected: [_showDistance, !_showDistance],
                 onPressed: (i) => setState(() => _showDistance = (i == 0)),
                 borderRadius: BorderRadius.circular(6),
-                selectedBorderColor: Colors.blue.shade700,
-                fillColor: Colors.blue.shade50,
-                color: Colors.black87,
-                selectedColor: Colors.blue.shade900,
+                selectedBorderColor: Theme.of(context).colorScheme.primary,
+                fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.onSurface,
+                selectedColor: Theme.of(context).colorScheme.primary,
                 children: [Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Distance')), Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Time'))],
               ),
             ),
-          if (hasElevation) _buildLineChartDistance(context, xForCharts, widget.elevationSamples!, Colors.orange, 'Elevation (m)', _showDistance ? 'Distance (km)' : 'Time', 'Elevation (m)', xIsTime: !_showDistance),
-          if (hasSpeed) _buildLineChartDistance(context, xForCharts, widget.paceSamples!, Colors.blue, 'Speed (km/h)', _showDistance ? 'Distance (km)' : 'Time', 'Speed (km/h)', yMin: 0, xIsTime: !_showDistance),
+          if (hasElevation) _buildLineChartDistance(context, xForCharts, widget.elevationSamples!, Theme.of(context).colorScheme.secondary, 'Elevation (m)', _showDistance ? 'Distance (km)' : 'Time', 'Elevation (m)', xIsTime: !_showDistance),
+          if (hasSpeed) _buildLineChartDistance(context, xForCharts, widget.paceSamples!, Theme.of(context).colorScheme.primary, 'Speed (km/h)', _showDistance ? 'Distance (km)' : 'Time', 'Speed (km/h)', yMin: 0, xIsTime: !_showDistance),
           if (splitsLegacy.isNotEmpty) _buildSplitsBarChart(context, splitsLegacy, 'Km', 'Time per km', isTime: true),
         ]
       ]);
@@ -202,8 +202,8 @@ class _ActivityChartsState extends State<ActivityCharts> {
       const SizedBox(height: 12),
       if (!hasElevation && !hasSpeed) _buildPlaceholder(context, 'No streams available')
       else ...[
-        if (hasElevation) _buildLineChartLegacy(context, widget.elevationSamples!, timestamps, Colors.orange, 'Elevation (m)'),
-        if (hasSpeed) _buildLineChartLegacy(context, widget.paceSamples!, timestamps, Colors.blue, 'Speed (km/h)'),
+        if (hasElevation) _buildLineChartLegacy(context, widget.elevationSamples!, timestamps, Theme.of(context).colorScheme.secondary, 'Elevation (m)'),
+        if (hasSpeed) _buildLineChartLegacy(context, widget.paceSamples!, timestamps, Theme.of(context).colorScheme.primary, 'Speed (km/h)'),
         if (hasSpeed) _buildSplitsBarChartLegacy(context, widget.paceSamples, timestamps),
       ]
     ]);
@@ -213,7 +213,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
         const SizedBox(height: 8),
@@ -264,9 +264,9 @@ class _ActivityChartsState extends State<ActivityCharts> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Splits (km)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green)),
+        Text('Splits (km)', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.tertiary)),
         const SizedBox(height: 8),
         SizedBox(
           height: 80,
@@ -314,7 +314,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
         const SizedBox(height: 8),
@@ -352,7 +352,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
   Widget _buildPlaceholder(BuildContext context, String title) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Row(children: [
         Icon(Icons.show_chart, size: 28, color: Colors.grey[400]),
         const SizedBox(width: 12),
@@ -558,7 +558,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
 
     return Material(
       elevation: 2,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(6),
       child: Container(
         padding: const EdgeInsets.all(8),

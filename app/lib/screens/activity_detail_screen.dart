@@ -78,17 +78,17 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             maxChildSize: 0.9,
             builder: (context, scrollController) {
               return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black26,
+                      color: Theme.of(context).shadowColor.withOpacity(0.2),
                       blurRadius: 10,
-                      offset: Offset(0, -5),
+                      offset: const Offset(0, -5),
                     ),
                   ],
                 ),
@@ -111,13 +111,20 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
         child: Row(
           children: [
             Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(25),
+                color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Theme.of(context).iconTheme.color,
+                  size: 20,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
+                padding: EdgeInsets.zero,
               ),
             ),
           ],
@@ -194,7 +201,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -211,7 +218,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
+                      color: Theme.of(context).colorScheme.secondaryContainer,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
@@ -222,7 +229,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                               ? Icons.directions_bike 
                               : Icons.directions_run,
                           size: 16,
-                          color: Colors.orange.shade700,
+                          color: Theme.of(context).colorScheme.onSecondaryContainer,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -230,7 +237,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Colors.orange.shade700,
+                            color: Theme.of(context).colorScheme.onSecondaryContainer,
                           ),
                         ),
                       ],
@@ -241,7 +248,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                     _formatDate(widget.activity.startTime),
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.outline,
                     ),
                   ),
                 ],
@@ -249,17 +256,19 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
               const SizedBox(height: 12),
               Text(
                 widget.activity.title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ) ?? const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
                 _formatDate(widget.activity.startTime),
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.outline,
                 ),
               ),
             ],
@@ -294,7 +303,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Text(
               'Streams error: ${_streamsError!}',
-              style: TextStyle(color: Colors.red[700]),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
         
@@ -366,7 +375,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -377,7 +386,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.outline,
               letterSpacing: 0.5,
             ),
           ),
@@ -388,11 +397,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             children: [
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ) ?? const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               if (unit.isNotEmpty) ...[
                 const SizedBox(width: 4),
@@ -400,7 +410,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                   unit,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.outline,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

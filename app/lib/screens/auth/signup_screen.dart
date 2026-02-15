@@ -48,7 +48,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Account created successfully! Welcome to Cadence!'),
+            content: Text('Account created successfully! Welcome to Cadent!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -107,7 +107,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         const SizedBox(height: 24),
                         const AuthHeader(
-                          title: 'Join Cadence',
+                          title: 'Join Cadent',
                           subtitle: 'Create your account to get started',
                         ),
                         const SizedBox(height: 48),

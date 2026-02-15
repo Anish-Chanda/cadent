@@ -48,7 +48,7 @@ void main() {
 
       // Verify main elements
       expect(find.text('Sign Up'), findsOneWidget); // AppBar title
-      expect(find.text('Join Cadence'), findsOneWidget);
+      expect(find.text('Join Cadent'), findsOneWidget);
       expect(find.text('Create your account to get started'), findsOneWidget);
       expect(find.text('Create Account'), findsOneWidget);
       expect(find.text("Already have an account? "), findsOneWidget);

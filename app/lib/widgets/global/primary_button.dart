@@ -35,8 +35,8 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveWidth = width ?? double.infinity;
-    final effectiveBackgroundColor = backgroundColor ?? Theme.of(context).primaryColor;
-    final effectiveTextColor = textColor ?? Colors.white;
+    final effectiveBackgroundColor = backgroundColor ?? Theme.of(context).colorScheme.primary;
+    final effectiveTextColor = textColor ?? Theme.of(context).colorScheme.onPrimary;
 
     Widget button = SizedBox(
       width: effectiveWidth,

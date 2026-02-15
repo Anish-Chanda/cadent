@@ -34,12 +34,24 @@ class CadenceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
+    return Consumer2<AppSettingsProvider, ThemeProvider>(
+      builder: (context, settingsController, themeProvider, child) {
+        final ThemeData appTheme = settingsController.isDarkMode
+            ? AppTheme.darkTheme
+            : AppTheme.lightTheme;
+
+        // Keep ThemeProvider in sync for any other consumers that may use it
+        if (themeProvider.getTheme() != appTheme) {
+          // Avoid notifying during build if already equal
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            themeProvider.setTheme(appTheme);
+          });
+        }
+
         return MaterialApp(
           title: 'Cadent',
           debugShowCheckedModeBanner: false,
-          theme: themeProvider.getTheme(),
+          theme: appTheme,
           home: const AuthWrapper(),
         );
       },

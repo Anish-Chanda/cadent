@@ -17,7 +17,10 @@ class AuthHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ) ?? const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
           ),
@@ -27,7 +30,9 @@ class AuthHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             subtitle!,
-            style: const TextStyle(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.outline,
+            ) ?? const TextStyle(
               fontSize: 16,
               color: Colors.grey,
             ),

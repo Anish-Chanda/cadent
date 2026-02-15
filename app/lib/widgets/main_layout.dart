@@ -36,16 +36,20 @@ class _MainLayoutState extends State<MainLayout> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: SizedBox(
+          width: 60,
+          height: 60,
+      child: FloatingActionButton(
         onPressed: _onRecordTapped,
-        backgroundColor: const Color(0xFF3B82F6),
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        shape: const CircleBorder(),
         child: const Icon(Icons.fiber_manual_record, size: 28),
-      ),
+      )),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
+        notchMargin: 4,
         child: SizedBox(
           height: 60,
           child: Row(
@@ -91,7 +95,7 @@ class _MainLayoutState extends State<MainLayout> {
           children: [
             Icon(
               icon,
-              color: isSelected ? const Color(0xFF3B82F6) : Colors.grey,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
               size: 22,
             ),
             const SizedBox(height: 2),
@@ -99,7 +103,7 @@ class _MainLayoutState extends State<MainLayout> {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: isSelected ? const Color(0xFF3B82F6) : Colors.grey,
+                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               textAlign: TextAlign.center,
