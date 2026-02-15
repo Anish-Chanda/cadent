@@ -9,7 +9,7 @@ GO_APP_NAME = api
 GO_BUILD_DIR = bin
 GO_MAIN = main
 
-include .env
+-include .env
 
 .PHONY: install-deps test build build-api build-apk run-api run-app docker-build-api set-version clean-version dev-up dev-down test-e2e-process test-e2e-clean test-e2e-api help
 .DEFAULT_GOAL := help
