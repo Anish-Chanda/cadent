@@ -62,7 +62,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      body: Consumer<AppSettingsProvider>(
+        builder: (context, settings, child) => Stack(
         children: [
           // Full-screen map
           _buildFullScreenMap(),
@@ -105,6 +106,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             },
           ),
         ],
+      ),
       ),
     );
   }

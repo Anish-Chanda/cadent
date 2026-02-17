@@ -14,7 +14,7 @@ void main() {
         id: '1',
         title: 'Morning Run',
         description: 'A nice morning run',
-        activityType: 'run',
+        activityType: 'running',
         startTime: DateTime(2024, 1, 15, 8, 30),
         endTime: DateTime(2024, 1, 15, 9, 0),
         stats: ActivityStats(
@@ -84,7 +84,7 @@ void main() {
         id: '2',
         title: 'Evening Ride',
         description: 'Evening cycling session',
-        activityType: 'road_bike',
+        activityType: 'road_biking',
         startTime: DateTime(2024, 1, 15, 18, 30),
         endTime: DateTime(2024, 1, 15, 20, 0),
         stats: ActivityStats(
@@ -174,7 +174,7 @@ void main() {
         id: '2',
         title: 'Evening Ride',
         description: 'Evening cycling session',
-        activityType: 'road_bike',
+        activityType: 'road_biking',
         startTime: DateTime(2024, 1, 15, 18, 30),
         endTime: DateTime(2024, 1, 15, 20, 0),
         stats: ActivityStats(
@@ -276,7 +276,7 @@ void main() {
         id: '3',
         title: 'Long Run',
         description: 'A very long run',
-        activityType: 'run',
+        activityType: 'running',
         startTime: DateTime(2024, 1, 15, 8, 0),
         endTime: DateTime(2024, 1, 15, 11, 30),
         stats: ActivityStats(
