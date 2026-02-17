@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
- 
-
 import '../models/streams.dart';
 
 String _formatDurationFromDouble(double secondsD) {
