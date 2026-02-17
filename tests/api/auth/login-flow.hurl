@@ -1,113 +1,120 @@
-# Setup: Create unique test user for login tests
-#include /api/common/create-test-user.hurl
-#options variable: login_test_email=logintest-{{newUuid}}@test.com
-#options variable: login_test_password=correctpassword123
-#options variable: test_email={{login_test_email}}
-#options variable: test_password={{login_test_password}}
-#options variable: test_name=Login Test User
-#include-begin
-# Creates a new test user
-# Requires: test_email, test_password, test_name
-# Sets: user_id
+# Login Flow Tests - User authentication with validation and cookie security
 
+# Setup: Create test user
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
-variable: login_test_email=logintest-{{newUuid}}@test.com
-variable: login_test_password=correctpassword123
-variable: test_email={{login_test_email}}
-variable: test_password={{login_test_password}}
-variable: test_name=Login Test User
+variable: login_uuid={{newUuid}}
+variable: login_email=logintest-{{login_uuid}}@test.com
+variable: login_password=correctpassword123
 {
-    "user": "{{test_email}}",
-    "passwd": "{{test_password}}",
-    "name": "{{test_name}}"
+    "user": "{{login_email}}",
+    "passwd": "{{login_password}}",
+    "name": "Login Test User"
 }
 HTTP 201
-[Captures]
-user_id: jsonpath "$.user_id"
 [Asserts]
 jsonpath "$.success" == true
-jsonpath "$.user_id" exists
-jsonpath "$.message" == "User created successfully"
-#include-end
+[Captures]
+user_id: jsonpath "$.user_id"
 
-# Test 1: Successful login with valid credentials
+# Successful login
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{login_test_email}}
-passwd: {{login_test_password}}
+user: {{login_email}}
+passwd: {{login_password}}
 HTTP 200
 [Asserts]
 cookie "JWT" exists
+cookie "JWT[HttpOnly]" exists
+cookie "JWT[Path]" == "/"
 
-# Test 2: Failed login with incorrect password
+# JWT cookie persists across requests
+GET http://localhost:8080/v1/user
+HTTP 200
+[Asserts]
+jsonpath "$.id" == "{{user_id}}"
+jsonpath "$.email" == "{{login_email}}"
+
+# Cookie works for multiple requests
+GET http://localhost:8080/v1/activities
+HTTP 200
+
+GET http://localhost:8080/v1/user
+HTTP 200
+[Asserts]
+jsonpath "$.id" == "{{user_id}}"
+
+# Failed login with incorrect password
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{login_test_email}}
+user: {{login_email}}
 passwd: wrongpassword
 HTTP 401
 
-# Test 3: Failed login with non-existent user
+# Failed login with non-existent user
 POST http://localhost:8080/auth/local/login
 [Form]
 user: nonexistent-{{newUuid}}@test.com
 passwd: anypassword
 HTTP 401
 
-# Test 4: Failed login with empty username
+# Empty username
 POST http://localhost:8080/auth/local/login
 [Form]
 user: 
 passwd: somepassword
 HTTP 400
 
-# Test 5: Failed login with empty password
+# Empty password
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{login_test_email}}
+user: {{login_email}}
 passwd: 
 HTTP 400
 
-# Test 6: Failed login with missing credentials
+# Missing credentials
 POST http://localhost:8080/auth/local/login
 [Form]
 
 HTTP 400
 
-# Test 7: Login is case-insensitive for email - create with uppercase
-#include /api/common/create-test-user.hurl
-#options variable: case_uuid={{newUuid}}
-#options variable: test_email=CaseLogin-{{case_uuid}}@TEST.COM
-#options variable: test_password=password123
-#options variable: test_name=Case Login Test
-#include-begin
-# Creates a new test user
-# Requires: test_email, test_password, test_name
-# Sets: user_id
+# Password with spaces
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: space_uuid={{newUuid}}
+variable: space_email=spacepass-{{space_uuid}}@test.com
+variable: space_password=my password has spaces
+{
+    "user": "{{space_email}}",
+    "passwd": "{{space_password}}",
+    "name": "Space Password User"
+}
+HTTP 201
 
+POST http://localhost:8080/auth/local/login
+[Form]
+user: {{space_email}}
+passwd: {{space_password}}
+HTTP 200
+[Asserts]
+cookie "JWT" exists
+
+# Email case insensitivity - create user
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
 variable: case_uuid={{newUuid}}
-variable: test_email=CaseLogin-{{case_uuid}}@TEST.COM
-variable: test_password=password123
-variable: test_name=Case Login Test
+variable: case_email_upper=CaseLogin-{{case_uuid}}@TEST.COM
 {
-    "user": "{{test_email}}",
-    "passwd": "{{test_password}}",
-    "name": "{{test_name}}"
+    "user": "{{case_email_upper}}",
+    "passwd": "password123",
+    "name": "Case Login Test"
 }
 HTTP 201
-[Captures]
-user_id: jsonpath "$.user_id"
-[Asserts]
-jsonpath "$.success" == true
-jsonpath "$.user_id" exists
-jsonpath "$.message" == "User created successfully"
-#include-end
 
-# Try logging in with lowercase
+# Login with lowercase email
 POST http://localhost:8080/auth/local/login
 [Form]
 user: caselogin-{{case_uuid}}@test.com
@@ -116,44 +123,33 @@ HTTP 200
 [Asserts]
 cookie "JWT" exists
 
-# Test 8: Login with special characters in password
-#include /api/common/create-test-user.hurl
-#options variable: special_email=specialpass-{{newUuid}}@test.com
-#options variable: special_password=p@ssw0rd!#$%
-#options variable: test_email={{special_email}}
-#options variable: test_password={{special_password}}
-#options variable: test_name=Special Char User
-#include-begin
-# Creates a new test user
-# Requires: test_email, test_password, test_name
-# Sets: user_id
+# Login with uppercase email
+POST http://localhost:8080/auth/local/login
+[Form]
+user: CASELOGIN-{{case_uuid}}@TEST.COM
+passwd: password123
+HTTP 200
+[Asserts]
+cookie "JWT" exists
 
+# Email trimming - create user
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
-variable: special_email=specialpass-{{newUuid}}@test.com
-variable: special_password=p@ssw0rd!#$%
-variable: test_email={{special_email}}
-variable: test_password={{special_password}}
-variable: test_name=Special Char User
+variable: trim_uuid={{newUuid}}
+variable: trim_email=  trimlogin-{{trim_uuid}}@test.com  
 {
-    "user": "{{test_email}}",
-    "passwd": "{{test_password}}",
-    "name": "{{test_name}}"
+    "user": "{{trim_email}}",
+    "passwd": "password123",
+    "name": "Trim Login Test"
 }
 HTTP 201
-[Captures]
-user_id: jsonpath "$.user_id"
-[Asserts]
-jsonpath "$.success" == true
-jsonpath "$.user_id" exists
-jsonpath "$.message" == "User created successfully"
-#include-end
 
+# Login without spaces
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{special_email}}
-passwd: {{special_password}}
+user: trimlogin-{{trim_uuid}}@test.com
+passwd: password123
 HTTP 200
 [Asserts]
 cookie "JWT" exists

@@ -1,55 +1,61 @@
-#include /api/common/authenticated-user.hurl
-#options variable: test_email=usermgmt-{{newUuid}}@test.com
-#options variable: test_password=userpass123
-#options variable: test_name=User Management Test
-#include-begin
-# Creates and authenticates a test user
-# Requires: test_email, test_password, test_name
-# Sets: user_id, JWT cookie
+# User Management Tests - Profile CRUD operations and validation
 
-# Create user
+# Setup: Create and authenticate test user
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
-variable: test_email=usermgmt-{{newUuid}}@test.com
-variable: test_password=userpass123
-variable: test_name=User Management Test
+variable: mgmt_uuid={{newUuid}}
+variable: mgmt_email=usermgmt-{{mgmt_uuid}}@test.com
+variable: mgmt_password=userpass123
 {
-    "user": "{{test_email}}",
-    "passwd": "{{test_password}}",
-    "name": "{{test_name}}"
+    "user": "{{mgmt_email}}",
+    "passwd": "{{mgmt_password}}",
+    "name": "User Management Test"
 }
 HTTP 201
 [Captures]
 user_id: jsonpath "$.user_id"
 [Asserts]
 jsonpath "$.success" == true
-jsonpath "$.user_id" exists
-jsonpath "$.message" == "User created successfully"
 
-# Login with the created user
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{test_email}}
-passwd: {{test_password}}
+user: {{mgmt_email}}
+passwd: {{mgmt_password}}
 HTTP 200
 [Asserts]
 cookie "JWT" exists
 cookie "JWT[HttpOnly]" exists
 cookie "JWT[Path]" == "/"
-#include-end
 
-# Test 1: Get user information
+# Get user information
 GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user_id}}"
-jsonpath "$.email" == "{{test_email}}"
-jsonpath "$.name" == "{{test_name}}"
+jsonpath "$.email" == "{{mgmt_email}}"
+jsonpath "$.name" == "User Management Test"
 jsonpath "$.id" matches /^[0-9a-f-]+$/
 header "Content-Type" contains "application/json"
 
-# Test 2: Update user name
+# Unauthenticated access fails
+POST http://localhost:8080/auth/local/login
+[Form]
+user: invalid@test.com
+passwd: wrong
+HTTP 401
+
+GET http://localhost:8080/v1/user
+HTTP 401
+
+# Re-authenticate for remaining tests
+POST http://localhost:8080/auth/local/login
+[Form]
+user: {{mgmt_email}}
+passwd: {{mgmt_password}}
+HTTP 200
+
+# Update user name
 PATCH http://localhost:8080/v1/user
 Content-Type: application/json
 {
@@ -60,14 +66,34 @@ HTTP 200
 jsonpath "$.name" == "Updated User Name"
 jsonpath "$.id" == "{{user_id}}"
 
-# Verify the update persisted
+# Verify update persisted
 GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.name" == "Updated User Name"
 jsonpath "$.id" == "{{user_id}}"
 
-# Test 3: Update with empty name - should be rejected
+# Update with Unicode characters
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+{
+    "name": "José María 日本語"
+}
+HTTP 200
+[Asserts]
+jsonpath "$.name" == "José María 日本語"
+
+# Update with emoji
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+{
+    "name": "User 🚀 🏃‍♂️"
+}
+HTTP 200
+[Asserts]
+jsonpath "$.name" == "User 🚀 🏃‍♂️"
+
+# Update with empty name (rejected)
 PATCH http://localhost:8080/v1/user
 Content-Type: application/json
 {
@@ -75,13 +101,27 @@ Content-Type: application/json
 }
 HTTP 400
 
-# Verify name wasn't changed
+# Verify name unchanged
 GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
-jsonpath "$.name" == "Updated User Name"
+jsonpath "$.name" == "User 🚀 🏃‍♂️"
 
-# Test 4: Invalid JSON in PATCH request
+# Update with whitespace (rejected)
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+{
+    "name": "     "
+}
+HTTP 400
+
+# Verify name still unchanged
+GET http://localhost:8080/v1/user
+HTTP 200
+[Asserts]
+jsonpath "$.name" == "User 🚀 🏃‍♂️"
+
+# Invalid JSON request
 PATCH http://localhost:8080/v1/user
 Content-Type: application/json
 ```
@@ -89,10 +129,64 @@ Content-Type: application/json
 ```
 HTTP 400
 
-# Verify user data wasn't changed
+# Verify no data corruption
 GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user_id}}"
-jsonpath "$.name" == "Updated User Name"
-jsonpath "$.email" == "{{test_email}}"
+jsonpath "$.name" == "User 🚀 🏃‍♂️"
+jsonpath "$.email" == "{{mgmt_email}}"
+
+# Update with empty object (rejected)
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+{}
+HTTP 400
+
+# Update with very long name (rejected)
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+[Options]
+variable: very_long_name=ThisIsAVeryLongNameThatTestsTheMaximumLengthAllowedForUserNamesInTheSystemAbcdefghijklmnopqrstuvwxyzAbcdefghijklmnopqrstuvwxyz
+{
+    "name": "{{very_long_name}}"
+}
+HTTP 400
+
+# Name still unchanged after rejection
+GET http://localhost:8080/v1/user
+HTTP 200
+[Asserts]
+jsonpath "$.name" == "User 🚀 🏃‍♂️"
+
+# HTML-like characters in name
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+{
+    "name": "<script>alert('xss')</script>"
+}
+HTTP 200
+[Asserts]
+jsonpath "$.name" == "<script>alert('xss')</script>"
+
+# SQL-like characters in name
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+{
+    "name": "'; DROP TABLE users; --"
+}
+HTTP 200
+[Asserts]
+jsonpath "$.name" == "'; DROP TABLE users; --"
+
+# Final successful update
+PATCH http://localhost:8080/v1/user
+Content-Type: application/json
+{
+    "name": "Final Updated Name"
+}
+HTTP 200
+[Asserts]
+jsonpath "$.name" == "Final Updated Name"
+jsonpath "$.id" == "{{user_id}}"
+jsonpath "$.email" == "{{mgmt_email}}"

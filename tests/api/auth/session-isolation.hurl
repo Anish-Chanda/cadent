@@ -1,120 +1,87 @@
-# Setup: Create and authenticate first user
-#include /api/common/authenticated-user.hurl
-#options variable: test_email=user1-{{newUuid}}@test.com
-#options variable: test_password=password123
-#options variable: test_name=User One
-#include-begin
-# Creates and authenticates a test user
-# Requires: test_email, test_password, test_name
-# Sets: user_id, JWT cookie
+# Session Isolation Tests - Users can only access their own data
 
-# Create user
+# Setup: Create first user
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
-variable: test_email=user1-{{newUuid}}@test.com
-variable: test_password=password123
-variable: test_name=User One
+variable: user1_uuid={{newUuid}}
+variable: user1_email=user1-{{user1_uuid}}@test.com
+variable: user1_password=password123
 {
-    "user": "{{test_email}}",
-    "passwd": "{{test_password}}",
-    "name": "{{test_name}}"
+    "user": "{{user1_email}}",
+    "passwd": "{{user1_password}}",
+    "name": "User One"
 }
 HTTP 201
 [Captures]
-user_id: jsonpath "$.user_id"
-[Asserts]
-jsonpath "$.success" == true
-jsonpath "$.user_id" exists
-jsonpath "$.message" == "User created successfully"
+user1_id: jsonpath "$.user_id"
 
-# Login with the created user
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{test_email}}
-passwd: {{test_password}}
+user: {{user1_email}}
+passwd: {{user1_password}}
 HTTP 200
 [Asserts]
 cookie "JWT" exists
 cookie "JWT[HttpOnly]" exists
 cookie "JWT[Path]" == "/"
-#include-end
 
-[Captures]
-user1_id: variable "user_id"
-user1_email: variable "test_email"
-
-# Test 1: Verify User 1 can access their own data
+# User 1 accesses their own data
 GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user1_id}}"
 jsonpath "$.email" == "{{user1_email}}"
+jsonpath "$.name" == "User One"
 
-# Test 2: Create and authenticate second user
-#include /api/common/authenticated-user.hurl
-#options variable: test_email=user2-{{newUuid}}@test.com
-#options variable: test_password=password456
-#options variable: test_name=User Two
-#include-begin
-# Creates and authenticates a test user
-# Requires: test_email, test_password, test_name
-# Sets: user_id, JWT cookie
+# User 1 accesses their activities
+GET http://localhost:8080/v1/activities
+HTTP 200
+[Asserts]
+jsonpath "$.activities" count == 0
 
-# Create user
+# Setup: Create second user
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
-variable: test_email=user2-{{newUuid}}@test.com
-variable: test_password=password456
-variable: test_name=User Two
+variable: user2_uuid={{newUuid}}
+variable: user2_email=user2-{{user2_uuid}}@test.com
+variable: user2_password=password456
 {
-    "user": "{{test_email}}",
-    "passwd": "{{test_password}}",
-    "name": "{{test_name}}"
+    "user": "{{user2_email}}",
+    "passwd": "{{user2_password}}",
+    "name": "User Two"
 }
 HTTP 201
 [Captures]
-user_id: jsonpath "$.user_id"
-[Asserts]
-jsonpath "$.success" == true
-jsonpath "$.user_id" exists
-jsonpath "$.message" == "User created successfully"
+user2_id: jsonpath "$.user_id"
 
-# Login with the created user
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{test_email}}
-passwd: {{test_password}}
+user: {{user2_email}}
+passwd: {{user2_password}}
 HTTP 200
 [Asserts]
 cookie "JWT" exists
-cookie "JWT[HttpOnly]" exists
-cookie "JWT[Path]" == "/"
-#include-end
 
-[Captures]
-user2_id: variable "user_id"
-user2_email: variable "test_email"
-
-# Test 3: Verify User 2 sees their own data, not User 1's
+# User 2 sees only their own data
 GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user2_id}}"
 jsonpath "$.email" == "{{user2_email}}"
+jsonpath "$.name" == "User Two"
 # Ensure we're NOT seeing user1's data
 jsonpath "$.id" != "{{user1_id}}"
 jsonpath "$.email" != "{{user1_email}}"
 
-# Test 4: Verify User 2 only sees their own activities
+# User 2 sees only their own activities
 GET http://localhost:8080/v1/activities
 HTTP 200
 [Asserts]
-# Should be empty for new user
 jsonpath "$.activities" count == 0
 
-# Test 5: Update User 2's profile - should not affect User 1
+# Update User 2's profile
 PATCH http://localhost:8080/v1/user
 Content-Type: application/json
 {
@@ -123,12 +90,46 @@ Content-Type: application/json
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user2_id}}"
+jsonpath "$.name" == "Updated User Two"
 
-# Test 6: Re-authenticate as User 1 and verify their data is unchanged
+# Re-authenticate as User 1
 POST http://localhost:8080/auth/local/login
 [Form]
 user: {{user1_email}}
-passwd: password123
+passwd: {{user1_password}}
+HTTP 200
+[Asserts]
+cookie "JWT" exists
+
+# Verify User 1's data unchanged
+GET http://localhost:8080/v1/user
+HTTP 200
+[Asserts]
+jsonpath "$.id" == "{{user1_id}}"
+jsonpath "$.email" == "{{user1_email}}"
+jsonpath "$.name" == "User One"
+jsonpath "$.name" != "Updated User Two"
+
+# Switch to User 2 session
+POST http://localhost:8080/auth/local/login
+[Form]
+user: {{user2_email}}
+passwd: {{user2_password}}
+HTTP 200
+[Asserts]
+cookie "JWT" exists
+
+GET http://localhost:8080/v1/user
+HTTP 200
+[Asserts]
+jsonpath "$.id" == "{{user2_id}}"
+jsonpath "$.name" == "Updated User Two"
+
+# Switch back to User 1 session
+POST http://localhost:8080/auth/local/login
+[Form]
+user: {{user1_email}}
+passwd: {{user1_password}}
 HTTP 200
 [Asserts]
 cookie "JWT" exists
@@ -137,31 +138,44 @@ GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user1_id}}"
-jsonpath "$.email" == "{{user1_email}}"
 jsonpath "$.name" == "User One"
-# Ensure User 1's data was NOT affected by User 2's update
-jsonpath "$.name" != "Updated User Two"
 
-# Test 7: Session cookie properly isolates users
-# Verify that switching sessions changes the user context
+# Unauthenticated access should fail
 POST http://localhost:8080/auth/local/login
 [Form]
-user: {{user2_email}}
-passwd: password456
+user: invalid@test.com
+passwd: wrongpassword
+HTTP 401
+
+# After failed login, protected endpoint should not be accessible
+GET http://localhost:8080/v1/user
+HTTP 401
+
+# Create third user to verify no data leakage
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: user3_uuid={{newUuid}}
+variable: user3_email=user3-{{user3_uuid}}@test.com
+{
+    "user": "{{user3_email}}",
+    "passwd": "password789",
+    "name": "User Three"
+}
+HTTP 201
+[Captures]
+user3_id: jsonpath "$.user_id"
+
+POST http://localhost:8080/auth/local/login
+[Form]
+user: {{user3_email}}
+passwd: password789
 HTTP 200
 
 GET http://localhost:8080/v1/user
 HTTP 200
 [Asserts]
-jsonpath "$.id" == "{{user2_id}}"
-
-POST http://localhost:8080/auth/local/login
-[Form]
-user: {{user1_email}}
-passwd: password123
-HTTP 200
-
-GET http://localhost:8080/v1/user
-HTTP 200
-[Asserts]
-jsonpath "$.id" == "{{user1_id}}"
+jsonpath "$.id" == "{{user3_id}}"
+jsonpath "$.id" != "{{user1_id}}"
+jsonpath "$.id" != "{{user2_id}}"
+jsonpath "$.name" == "User Three"

@@ -1,4 +1,7 @@
-# Test 1: Successful user registration
+# Signup Flow Tests
+# Tests user registration with comprehensive input validation
+
+# Successful user registration
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
@@ -11,46 +14,10 @@ HTTP 201
 jsonpath "$.success" == true
 jsonpath "$.user_id" exists
 jsonpath "$.user_id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-header "Content-Type" contains "application/json"
 jsonpath "$.message" == "User created successfully"
+header "Content-Type" contains "application/json"
 
-# Test 2: Duplicate email rejection
-# Create initial user
-POST http://localhost:8080/signup
-Content-Type: application/json
-[Options]
-variable: known_dup_uuid={{newUuid}}
-{
-    "user": "known-duplicate-{{known_dup_uuid}}@test.com",
-    "passwd": "password123",
-    "name": "First User"
-}
-HTTP 201
-[Captures]
-duplicate_email: jsonpath "$.user_id"
-[Asserts]
-jsonpath "$.success" == true
-
-# Try duplicate
-POST http://localhost:8080/signup
-Content-Type: application/json
-{
-    "user": "known-duplicate-{{known_dup_uuid}}@test.com",
-    "passwd": "password123",
-    "name": "Second User"
-}
-HTTP 409
- 
-# Test 3: Invalid email format
-POST http://localhost:8080/signup
-Content-Type: application/json
-{
-    "user": "notanemail",
-    "passwd": "password123",
-    "name": "Invalid Email User"
-}
-HTTP 400
-# Test 4: Missing email field
+# Missing email field
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
@@ -63,7 +30,7 @@ HTTP 400
 jsonpath "$.success" == false
 jsonpath "$.message" == "Email, password, and name are required"
 
-# Test 5: Missing password field
+# Missing password field
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
@@ -76,7 +43,7 @@ HTTP 400
 jsonpath "$.success" == false
 jsonpath "$.message" == "Email, password, and name are required"
 
-# Test 6: Missing name field
+# Missing name field
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
@@ -89,7 +56,41 @@ HTTP 400
 jsonpath "$.success" == false
 jsonpath "$.message" == "Email, password, and name are required"
 
-# Test 7: Password too short (< 6 characters)
+# Name with only whitespace
+POST http://localhost:8080/signup
+Content-Type: application/json
+{
+    "user": "whitespace-{{newUuid}}@test.com",
+    "passwd": "password123",
+    "name": "     "
+}
+HTTP 400
+
+# Invalid email format
+POST http://localhost:8080/signup
+Content-Type: application/json
+{
+    "user": "notanemail",
+    "passwd": "password123",
+    "name": "Invalid Email User"
+}
+HTTP 400
+
+# Email with special characters
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: special_email=special.email+tag-{{newUuid}}@test.com
+{
+    "user": "{{special_email}}",
+    "passwd": "password123",
+    "name": "Special Email User"
+}
+HTTP 201
+[Asserts]
+jsonpath "$.success" == true
+
+# Password too short
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
@@ -102,7 +103,7 @@ HTTP 400
 jsonpath "$.success" == false
 jsonpath "$.message" == "Password must be at least 6 characters long"
 
-# Test 8: Minimum valid password (6 characters)
+# Minimum valid password
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
@@ -113,15 +114,127 @@ Content-Type: application/json
 HTTP 201
 [Asserts]
 jsonpath "$.success" == true
-jsonpath "$.user_id" exists
 
-# Test 9: Email case insensitivity - signup with mixed case
+# Password with spaces
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
-variable: case_test_uuid={{newUuid}}
+variable: space_pass_email=spacepass-{{newUuid}}@test.com
+variable: space_password=my password has spaces
 {
-    "user": "CaseTestUser-{{case_test_uuid}}@TEST.COM",
+    "user": "{{space_pass_email}}",
+    "passwd": "{{space_password}}",
+    "name": "Space Password User"
+}
+HTTP 201
+[Asserts]
+jsonpath "$.success" == true
+
+# Unicode characters in name
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: unicode_email=unicode-{{newUuid}}@test.com
+{
+    "user": "{{unicode_email}}",
+    "passwd": "password123",
+    "name": "José María Müller 日本語"
+}
+HTTP 201
+[Asserts]
+jsonpath "$.success" == true
+
+# Emoji in name
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: emoji_email=emoji-{{newUuid}}@test.com
+{
+    "user": "{{emoji_email}}",
+    "passwd": "password123",
+    "name": "Test User 🚀 🏃‍♂️"
+}
+HTTP 201
+[Asserts]
+jsonpath "$.success" == true
+
+# HTML-like characters in name
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: html_email=html-{{newUuid}}@test.com
+{
+    "user": "{{html_email}}",
+    "passwd": "password123",
+    "name": "<script>alert('xss')</script>"
+}
+HTTP 201
+[Asserts]
+jsonpath "$.success" == true
+
+# SQL-like characters in name
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: sql_email=sql-{{newUuid}}@test.com
+{
+    "user": "{{sql_email}}",
+    "passwd": "password123",
+    "name": "'; DROP TABLE users; --"
+}
+HTTP 201
+[Asserts]
+jsonpath "$.success" == true
+
+# Very long name
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: longname_email=longname-{{newUuid}}@test.com
+variable: very_long_name=ThisIsAVeryLongNameThatTestsTheMaximumLengthAllowedForUserNamesInTheSystemAbcdefghijklmnopqrstuvwxyzAbcdefghijklmnopqrstuvwxyz
+{
+    "user": "{{longname_email}}",
+    "passwd": "password123",
+    "name": "{{very_long_name}}"
+}
+HTTP 400
+
+# Duplicate email rejection - create initial user
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: dup_uuid={{newUuid}}
+variable: dup_email=duplicate-{{dup_uuid}}@test.com
+{
+    "user": "{{dup_email}}",
+    "passwd": "password123",
+    "name": "First User"
+}
+HTTP 201
+[Asserts]
+jsonpath "$.success" == true
+
+# Duplicate email rejection - attempt duplicate
+POST http://localhost:8080/signup
+Content-Type: application/json
+{
+    "user": "{{dup_email}}",
+    "passwd": "different_password",
+    "name": "Second User"
+}
+HTTP 409
+[Asserts]
+jsonpath "$.success" == false
+jsonpath "$.message" == "User with this email already exists"
+
+# Email case insensitivity
+POST http://localhost:8080/signup
+Content-Type: application/json
+[Options]
+variable: case_uuid={{newUuid}}
+variable: case_email=CaseTest-{{case_uuid}}@TEST.COM
+{
+    "user": "{{case_email}}",
     "passwd": "password123",
     "name": "Case Test User"
 }
@@ -129,20 +242,11 @@ HTTP 201
 [Asserts]
 jsonpath "$.success" == true
 
-# Test 9b: Verify can login with different case (lowercase)
-POST http://localhost:8080/auth/local/login
-[Form]
-user: casetestuser-{{case_test_uuid}}@test.com
-passwd: password123
-HTTP 200
-[Asserts]
-cookie "JWT" exists
-
-# Test 9c: Verify cannot create duplicate with different case
+# Cannot create duplicate with different case
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
-    "user": "casetestuser-{{case_test_uuid}}@TEST.com",
+    "user": "casetest-{{case_uuid}}@test.com",
     "passwd": "password123",
     "name": "Duplicate Case User"
 }
@@ -151,34 +255,26 @@ HTTP 409
 jsonpath "$.success" == false
 jsonpath "$.message" == "User with this email already exists"
 
-# Test 10: Email with spaces - signup with leading/trailing spaces
+# Email trimming
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
-variable: spaces_test_uuid={{newUuid}}
+variable: trim_uuid={{newUuid}}
+variable: trim_email=  trimtest-{{trim_uuid}}@test.com  
 {
-    "user": "  spacestestuser-{{spaces_test_uuid}}@test.com  ",
+    "user": "{{trim_email}}",
     "passwd": "password123",
-    "name": "  Spaces User  "
+    "name": "  Trim Test User  "
 }
 HTTP 201
 [Asserts]
 jsonpath "$.success" == true
 
-# Test 10b: Verify can login without spaces
-POST http://localhost:8080/auth/local/login
-[Form]
-user: spacestestuser-{{spaces_test_uuid}}@test.com
-passwd: password123
-HTTP 200
-[Asserts]
-cookie "JWT" exists
-
-# Test 10c: Verify cannot create duplicate with different spacing
+# Cannot create duplicate without spaces
 POST http://localhost:8080/signup
 Content-Type: application/json
 {
-    "user": "spacestestuser-{{spaces_test_uuid}}@test.com",
+    "user": "trimtest-{{trim_uuid}}@test.com",
     "passwd": "password123",
     "name": "Duplicate Attempt"
 }
