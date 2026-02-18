@@ -16,20 +16,22 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 )
 
-// pgxConnIface is a package-private interface for pgx connection methods
+// pgxPoolIface is a package-private interface for pgxpool methods
 // This allows for easy mocking in tests
-type pgxConnIface interface {
+type pgxPoolIface interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
-	Close(ctx context.Context) error
+	Close()
+	Ping(ctx context.Context) error
 }
 
 type PostgresDB struct {
-	db    pgxConnIface
+	pool  pgxPoolIface
 	sqlDB *sql.DB
 	log   logger.ServiceLogger
 }
@@ -55,7 +57,7 @@ func (s *PostgresDB) GetUserByEmail(ctx context.Context, email string) (*models.
 	var user models.UserRecord
 	var passwordHash sql.NullString
 
-	err := s.db.QueryRow(ctx, query, email).Scan(
+	err := s.pool.QueryRow(ctx, query, email).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Name,
@@ -92,7 +94,7 @@ func (s *PostgresDB) CreateUser(ctx context.Context, user *models.UserRecord) er
 		VALUES ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7))
 	`
 
-	_, err := s.db.Exec(ctx, query,
+	_, err := s.pool.Exec(ctx, query,
 		user.ID,
 		user.Email,
 		user.Name,
@@ -131,7 +133,7 @@ func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activi
 		)
 	`
 
-	_, err := s.db.Exec(ctx, query,
+	_, err := s.pool.Exec(ctx, query,
 		activity.ID,
 		activity.UserID,
 		activity.ClientActivityID,
@@ -191,7 +193,7 @@ func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) (
 		ORDER BY start_time DESC
 	`
 
-	rows, err := s.db.Query(ctx, query, userID)
+	rows, err := s.pool.Query(ctx, query, userID)
 	if err != nil {
 		s.log.Error(fmt.Sprintf("Database error while fetching activities for user: %s", userID), err)
 		return nil, fmt.Errorf("failed to get activities: %w", err)
@@ -257,7 +259,7 @@ func (s *PostgresDB) CheckIdempotency(ctx context.Context, clientActivityID stri
 	query := `SELECT EXISTS(SELECT 1 FROM activities WHERE client_activity_id = $1)`
 
 	var exists bool
-	err := s.db.QueryRow(ctx, query, clientActivityID).Scan(&exists)
+	err := s.pool.QueryRow(ctx, query, clientActivityID).Scan(&exists)
 	if err != nil {
 		s.log.Error(fmt.Sprintf("Database error while checking idempotency for: %s", clientActivityID), err)
 		return false, fmt.Errorf("failed to check idempotency: %w", err)
@@ -280,7 +282,7 @@ func (s *PostgresDB) GetUserByID(ctx context.Context, userID string) (*models.Us
 	var user models.UserRecord
 	var passwordHash sql.NullString
 
-	err := s.db.QueryRow(ctx, query, userID).Scan(
+	err := s.pool.QueryRow(ctx, query, userID).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Name,
@@ -325,7 +327,7 @@ func (s *PostgresDB) GetActivityByID(ctx context.Context, activityID string) (*m
 	`
 
 	var activity models.Activity
-	err := s.db.QueryRow(ctx, query, activityID).Scan(
+	err := s.pool.QueryRow(ctx, query, activityID).Scan(
 		&activity.ID,
 		&activity.UserID,
 		&activity.ClientActivityID,
@@ -409,7 +411,7 @@ func (s *PostgresDB) UpdateUser(ctx context.Context, userID string, updates map[
 		WHERE id = $%d
 	`, strings.Join(setClauses, ", "), argIndex)
 
-	cmdTag, err := s.db.Exec(ctx, query, args...)
+	cmdTag, err := s.pool.Exec(ctx, query, args...)
 	if err != nil {
 		s.log.Error(fmt.Sprintf("Database error while updating user ID: %s", userID), err)
 		return fmt.Errorf("failed to update user: %w", err)
@@ -438,7 +440,7 @@ func (s *PostgresDB) GetActivityStreams(ctx context.Context, activityID string, 
 		ORDER BY index_by
 	`
 
-	rows, err := s.db.Query(ctx, query, activityID, lod)
+	rows, err := s.pool.Query(ctx, query, activityID, lod)
 	if err != nil {
 		s.log.Error(fmt.Sprintf("Database error while fetching streams for activity: %s", activityID), err)
 		return nil, fmt.Errorf("failed to get activity streams: %w", err)
@@ -517,7 +519,7 @@ func (s *PostgresDB) CreateActivityStreams(ctx context.Context, streams []models
 			return fmt.Errorf("failed to marshal codec JSON: %w", err)
 		}
 
-		_, err = s.db.Exec(ctx, query,
+		_, err = s.pool.Exec(ctx, query,
 			stream.ActivityID,
 			stream.LOD,
 			stream.IndexBy,
@@ -545,22 +547,43 @@ func (s *PostgresDB) CreateActivityStreams(ctx context.Context, streams []models
 // --- Other stuff ---
 
 func (s *PostgresDB) Connect(dsn string) error {
-	parsedDSN, err := pgx.ParseConfig(dsn)
-	if err != nil {
-		return fmt.Errorf("failed to parse DSN: %w", err)
-	}
-	s.log.Debug(fmt.Sprintf("Connecting to Postgres at: %s:%d", parsedDSN.Host, parsedDSN.Port))
+	return s.ConnectWithPoolConfig(dsn, nil)
+}
 
-	conn, err := pgx.Connect(context.TODO(), dsn)
-	if err != nil {
-		s.log.Error("Failed to connect to PostgreSQL", err)
-		return fmt.Errorf("failed to connect to database: %w", err)
+func (s *PostgresDB) ConnectWithPoolConfig(dsn string, poolConfig *pgxpool.Config) error {
+	var config *pgxpool.Config
+	var err error
+
+	if poolConfig != nil {
+		config = poolConfig
+	} else {
+		config, err = pgxpool.ParseConfig(dsn)
+		if err != nil {
+			return fmt.Errorf("failed to parse DSN: %w", err)
+		}
 	}
-	s.db = conn
-	s.log.Info("Successfully connected to PostgreSQL")
+
+	s.log.Debug(fmt.Sprintf("Connecting to Postgres at: %s:%d", config.ConnConfig.Host, config.ConnConfig.Port))
+	s.log.Debug(fmt.Sprintf("Pool config - MaxConns: %d, MinConns: %d", config.MaxConns, config.MinConns))
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		s.log.Error("Failed to create connection pool", err)
+		return fmt.Errorf("failed to create connection pool: %w", err)
+	}
+
+	// Test the connection
+	if err := pool.Ping(context.Background()); err != nil {
+		s.log.Error("Failed to ping database", err)
+		pool.Close()
+		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	s.pool = pool
+	s.log.Info("Successfully connected to PostgreSQL with connection pool")
 
 	// Create sql.DB for migrations
-	s.sqlDB = stdlib.OpenDB(*parsedDSN)
+	s.sqlDB = stdlib.OpenDB(*config.ConnConfig)
 	return nil
 }
 
@@ -609,11 +632,14 @@ func (s *PostgresDB) Migrate() error {
 
 // Close function
 func (s *PostgresDB) Close() error {
-	if s.db != nil {
-		if err := s.db.Close(context.TODO()); err != nil {
-			return fmt.Errorf("failed to close database connection: %w", err)
+	if s.pool != nil {
+		s.pool.Close()
+		s.log.Info("Database connection pool closed")
+	}
+	if s.sqlDB != nil {
+		if err := s.sqlDB.Close(); err != nil {
+			return fmt.Errorf("failed to close sql.DB: %w", err)
 		}
-		return nil
 	}
 	return nil
 }
