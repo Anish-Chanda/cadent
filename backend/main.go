@@ -18,6 +18,7 @@ import (
 	"github.com/go-pkgz/auth/v2/avatar"
 	"github.com/go-pkgz/auth/v2/provider"
 	"github.com/go-pkgz/auth/v2/token"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -69,8 +70,16 @@ func main() {
 	valhallaClient := valhalla.NewClient(cfg.ValhallaURL)
 
 	log.Info("Initializing database")
-	var database db.Database = postgres.NewPostgresDB(*log)
-	if err := database.Connect(cfg.Dsn); err != nil {
+	database := postgres.NewPostgresDB(*log)
+
+	// Create pool configuration
+	poolConfig, err := createPoolConfig(cfg)
+	if err != nil {
+		log.Error("Failed to create pool configuration", err)
+		return
+	}
+
+	if err := database.ConnectWithPoolConfig(cfg.Dsn, poolConfig); err != nil {
 		log.Error("Failed to connect to database", err)
 		return
 	}
@@ -168,4 +177,19 @@ func gracefulShutdown(database db.Database, objectStore store.ObjectStore, log l
 	} else {
 		log.Info("Database connection closed successfully")
 	}
+}
+
+func createPoolConfig(cfg Config) (*pgxpool.Config, error) {
+	poolConfig, err := pgxpool.ParseConfig(cfg.Dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse DSN: %w", err)
+	}
+
+	// Set pool configuration from config
+	poolConfig.MaxConns = cfg.DBMaxConns
+	poolConfig.MinConns = cfg.DBMinConns
+	poolConfig.MaxConnLifetime = time.Duration(cfg.DBMaxConnLifetime) * time.Minute
+	poolConfig.MaxConnIdleTime = time.Duration(cfg.DBMaxConnIdleTime) * time.Minute
+
+	return poolConfig, nil
 }

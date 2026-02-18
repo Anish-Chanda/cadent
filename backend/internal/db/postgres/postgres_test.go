@@ -15,24 +15,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// mockPoolAdapter adapts pgxmock.PgxConnIface to pgxPoolIface
+type mockPoolAdapter struct {
+	pgxmock.PgxConnIface
+}
+
+func (m *mockPoolAdapter) Close() {
+	// Mock Close doesn't need to do anything for tests
+}
+
+func (m *mockPoolAdapter) Ping(ctx context.Context) error {
+	// For tests, we can implement a simple ping by executing a trivial query
+	// or just return nil for successful ping
+	return nil
+}
+
 // setupMockDB creates a PostgresDB with a mock connection
 func setupMockDB(t *testing.T) (*PostgresDB, pgxmock.PgxConnIface) {
 	t.Helper()
-	
+
 	mock, err := pgxmock.NewConn()
 	require.NoError(t, err)
-	
+
 	logConfig := logger.Config{
 		Level:       "error", // Suppress logs in tests
 		Environment: "test",
 		ServiceName: "postgres-test",
 	}
-	
+
 	db := &PostgresDB{
-		db:  mock,
-		log: *logger.New(logConfig),
+		pool: &mockPoolAdapter{PgxConnIface: mock},
+		log:  *logger.New(logConfig),
 	}
-	
+
 	return db, mock
 }
 
@@ -61,7 +76,7 @@ func TestGetUserByEmail_Unit(t *testing.T) {
 					int64(1609459200),
 					int64(1609459200),
 				)
-				
+
 				mock.ExpectQuery(`SELECT id, email, name, password_hash, auth_provider`).
 					WithArgs("test@example.com").
 					WithArgs(pgxmock.AnyArg()).WillReturnRows(rows)
@@ -92,7 +107,7 @@ func TestGetUserByEmail_Unit(t *testing.T) {
 					int64(1609459200),
 					int64(1609459200),
 				)
-				
+
 				mock.ExpectQuery(`SELECT id, email, name, password_hash, auth_provider`).
 					WithArgs("oauth@example.com").
 					WithArgs(pgxmock.AnyArg()).WillReturnRows(rows)
@@ -131,16 +146,16 @@ func TestGetUserByEmail_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			user, err := db.GetUserByEmail(context.Background(), tt.email)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 				assert.Nil(t, user)
@@ -153,7 +168,7 @@ func TestGetUserByEmail_Unit(t *testing.T) {
 					assert.Equal(t, tt.expectedUser.ID, user.ID)
 					assert.Equal(t, tt.expectedUser.Email, user.Email)
 					assert.Equal(t, tt.expectedUser.Name, user.Name)
-					
+
 					if tt.expectedUser.PasswordHash == nil {
 						assert.Nil(t, user.PasswordHash)
 					} else {
@@ -162,7 +177,7 @@ func TestGetUserByEmail_Unit(t *testing.T) {
 					}
 				}
 			}
-			
+
 			// Verify all expectations were met
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
@@ -194,7 +209,7 @@ func TestGetUserByID_Unit(t *testing.T) {
 					int64(1609459200),
 					int64(1609459200),
 				)
-				
+
 				mock.ExpectQuery(`SELECT id, email, name, password_hash, auth_provider`).
 					WithArgs("user-123").
 					WithArgs(pgxmock.AnyArg()).WillReturnRows(rows)
@@ -233,29 +248,29 @@ func TestGetUserByID_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			user, err := db.GetUserByID(context.Background(), tt.userID)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			
+
 			if tt.expectedUser == nil {
 				assert.Nil(t, user)
 			} else {
 				require.NotNil(t, user)
 				assert.Equal(t, tt.expectedUser.ID, user.ID)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -322,22 +337,22 @@ func TestCreateUser_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock, tt.user)
-			
+
 			err := db.CreateUser(context.Background(), tt.user)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -393,8 +408,8 @@ func TestUpdateUser_Unit(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name:   "empty updates",
-			userID: "user-123",
+			name:    "empty updates",
+			userID:  "user-123",
 			updates: map[string]interface{}{},
 			setupMock: func(mock pgxmock.PgxConnIface) {
 				// No mock needed, should fail before query
@@ -439,22 +454,22 @@ func TestUpdateUser_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			err := db.UpdateUser(context.Background(), tt.userID, tt.updates)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -470,7 +485,7 @@ func TestCreateActivity_Unit(t *testing.T) {
 	polyline := "encoded_polyline"
 	description := "Morning run"
 	endTime := time.Now()
-	
+
 	tests := []struct {
 		name          string
 		activity      *models.Activity
@@ -542,22 +557,22 @@ func TestCreateActivity_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			err := db.CreateActivity(context.Background(), tt.activity)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -570,7 +585,7 @@ func TestGetActivityByID_Unit(t *testing.T) {
 	distance := 1000.0
 	endTimeVal := time.Now()
 	endTime := &endTimeVal
-	
+
 	tests := []struct {
 		name          string
 		activityID    string
@@ -597,7 +612,7 @@ func TestGetActivityByID_Unit(t *testing.T) {
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil, time.Now(), time.Now(),
 				)
-				
+
 				mock.ExpectQuery(`SELECT`).
 					WithArgs(pgxmock.AnyArg()).
 					WillReturnRows(rows)
@@ -628,28 +643,28 @@ func TestGetActivityByID_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			activity, err := db.GetActivityByID(context.Background(), tt.activityID)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			
+
 			if tt.expectNil {
 				assert.Nil(t, activity)
 			} else {
 				assert.NotNil(t, activity)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -665,7 +680,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 	distance := 1000.0
 	endTimeVal := time.Now()
 	endTime := &endTimeVal
-	
+
 	tests := []struct {
 		name          string
 		userID        string
@@ -701,7 +716,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 						nil, nil, nil, nil, nil,
 						nil, nil, nil, nil, nil, time.Now(), time.Now(),
 					)
-				
+
 				mock.ExpectQuery(`SELECT`).
 					WithArgs(userID).
 					WithArgs(pgxmock.AnyArg()).WillReturnRows(rows)
@@ -721,7 +736,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 					"polyline", "bbox_min_lat", "bbox_min_lon", "bbox_max_lat", "bbox_max_lon",
 					"start_lat", "start_lon", "end_lat", "end_lon", "file_url", "created_at", "updated_at",
 				})
-				
+
 				mock.ExpectQuery(`SELECT`).
 					WithArgs("user-no-activities").
 					WithArgs(pgxmock.AnyArg()).WillReturnRows(rows)
@@ -741,23 +756,23 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			activities, err := db.GetActivitiesByUserID(context.Background(), tt.userID)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 				assert.Len(t, activities, tt.expectedCount)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -766,11 +781,11 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 // TestCheckIdempotency_Unit tests CheckIdempotency with mocked database
 func TestCheckIdempotency_Unit(t *testing.T) {
 	tests := []struct {
-		name              string
-		clientActivityID  string
-		setupMock         func(mock pgxmock.PgxConnIface)
-		expectedExists    bool
-		expectedError     bool
+		name             string
+		clientActivityID string
+		setupMock        func(mock pgxmock.PgxConnIface)
+		expectedExists   bool
+		expectedError    bool
 	}{
 		{
 			name:             "activity exists",
@@ -806,23 +821,23 @@ func TestCheckIdempotency_Unit(t *testing.T) {
 			expectedError:  true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			exists, err := db.CheckIdempotency(context.Background(), tt.clientActivityID)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedExists, exists)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -831,7 +846,7 @@ func TestCheckIdempotency_Unit(t *testing.T) {
 // TestGetActivityStreams_Unit tests GetActivityStreams with mocked database
 func TestGetActivityStreams_Unit(t *testing.T) {
 	activityID := uuid.New()
-	
+
 	tests := []struct {
 		name          string
 		activityID    string
@@ -855,7 +870,7 @@ func TestGetActivityStreams_Unit(t *testing.T) {
 					[]byte{1, 2, 3}, []byte{10, 20, 30}, []byte{5, 6, 7}, []byte{100, 101, 102},
 					codecJSON, time.Now(), time.Now(),
 				)
-				
+
 				mock.ExpectQuery(`SELECT`).
 					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
 					WillReturnRows(rows)
@@ -873,7 +888,7 @@ func TestGetActivityStreams_Unit(t *testing.T) {
 					"time_s_bytes", "distance_m_bytes", "speed_mps_bytes", "elevation_m_bytes",
 					"codec", "created_at", "updated_at",
 				})
-				
+
 				mock.ExpectQuery(`SELECT`).
 					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
 					WillReturnRows(rows)
@@ -908,7 +923,7 @@ func TestGetActivityStreams_Unit(t *testing.T) {
 					[]byte{1, 2, 3}, []byte{10, 20, 30}, []byte{5, 6, 7}, []byte{100, 101, 102},
 					invalidJSON, time.Now(), time.Now(),
 				)
-				
+
 				mock.ExpectQuery(`SELECT`).
 					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
 					WillReturnRows(rows)
@@ -917,27 +932,27 @@ func TestGetActivityStreams_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock)
-			
+
 			streams, err := db.GetActivityStreams(context.Background(), tt.activityID, tt.lod)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 				assert.Len(t, streams, tt.expectedCount)
-				
+
 				if tt.expectedCount > 0 {
 					assert.NotNil(t, streams[0].Codec)
 				}
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -946,7 +961,7 @@ func TestGetActivityStreams_Unit(t *testing.T) {
 // TestCreateActivityStreams_Unit tests CreateActivityStreams with mocked database
 func TestCreateActivityStreams_Unit(t *testing.T) {
 	activityID := uuid.New()
-	
+
 	tests := []struct {
 		name          string
 		streams       []models.ActivityStream
@@ -1021,22 +1036,22 @@ func TestCreateActivityStreams_Unit(t *testing.T) {
 			expectedError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock := setupMockDB(t)
 			defer mock.Close(context.Background())
-			
+
 			tt.setupMock(mock, tt.streams)
-			
+
 			err := db.CreateActivityStreams(context.Background(), tt.streams)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			
+
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -1045,12 +1060,12 @@ func TestCreateActivityStreams_Unit(t *testing.T) {
 // TestCreateActivityStreams_MarshalError tests codec marshaling errors
 func TestCreateActivityStreams_MarshalError_Unit(t *testing.T) {
 	activityID := uuid.New()
-	
+
 	// Create a codec with an un-marshalable value (channels can't be JSON marshaled)
 	unmarshalableCodec := map[string]interface{}{
 		"channel": make(chan int),
 	}
-	
+
 	streams := []models.ActivityStream{
 		{
 			ActivityID:        activityID,
@@ -1067,17 +1082,17 @@ func TestCreateActivityStreams_MarshalError_Unit(t *testing.T) {
 			UpdatedAt:         time.Now(),
 		},
 	}
-	
+
 	db, mock := setupMockDB(t)
 	defer mock.Close(context.Background())
-	
+
 	// No mock expectation needed since it should fail before hitting the database
-	
+
 	err := db.CreateActivityStreams(context.Background(), streams)
-	
+
 	// Should fail with JSON marshaling error
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to marshal codec JSON")
-	
+
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
