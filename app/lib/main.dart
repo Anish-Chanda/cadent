@@ -15,10 +15,7 @@ void main() async {
   // initialize auth provider
   final authProvider = await AuthProvider.initialize();
 
-  //initialize background service
-  WidgetsFlutterBinding.ensureInitialized();
   await initializeService();
-
 
   runApp(
     MultiProvider(

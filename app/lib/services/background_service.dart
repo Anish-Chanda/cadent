@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import '../services/storage_service.dart';
 
 void startBackgroundService() {
   final service = FlutterBackgroundService();
@@ -26,7 +27,7 @@ Future<void> initializeService() async {
     androidConfiguration: AndroidConfiguration(
       autoStart: true,
       onStart: onStart,
-      isForegroundMode: false,
+      isForegroundMode: true,
       autoStartOnBoot: true,
     ),
   );
@@ -42,7 +43,10 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  final socket = io.io("your-server-url", {
+
+  final serverUrl = await StorageService.getServerUrl() ?? "http://cadence.local";
+
+  final socket = io.io(serverUrl, {
     'transports': ['websocket'],
     'autoConnect': true,
   });
