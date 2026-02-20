@@ -15,7 +15,6 @@ import '../widgets/recorder/recording_stats_compact.dart';
 import '../widgets/recorder/recording_stats_full.dart';
 import '../widgets/recorder/activity_type_selector.dart';
 import 'finish_activity_screen.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 
 class RecorderScreen extends StatefulWidget {
   const RecorderScreen({super.key});
@@ -204,16 +203,6 @@ class _RecorderScreenState extends State<RecorderScreen> {
       }
     }
   }
-
-  void _sendToBackground(Position pos) {
-    FlutterBackgroundService().invoke('location_update', {
-      'lat': pos.latitude,
-      'lng': pos.longitude,
-      'time': DateTime.now().toIso8601String(),
-    });
-  }
-
-
 
   Future<void> _cleanupRouteLine() async {
     if (_routeLine != null && _mapController != null) {
