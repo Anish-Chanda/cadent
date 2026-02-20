@@ -8,6 +8,8 @@ import 'package:geolocator/geolocator.dart';
 import '../models/recording_session_model.dart';
 import '../services/permissions_handler.dart';
 
+import 'package:flutter_background_service/flutter_background_service.dart';
+
 /// Controller class that handles all GPS recording logic
 class RecordingController extends ChangeNotifier {
   RecordingSessionModel _model = RecordingSessionModel.createIdle();
@@ -249,6 +251,14 @@ class RecordingController extends ChangeNotifier {
         );
         totalDistance += distance;
       }
+
+      FlutterBackgroundService().invoke('location_update', {
+        'lat': position.latitude,
+        'lng': position.longitude,
+        'alt': position.altitude,
+        'speed': position.speed,
+        'time': DateTime.now().toIso8601String(),
+      });
 
       // Update model using copyWith for consistency
       _model = _model.copyWith(

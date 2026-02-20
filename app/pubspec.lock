@@ -262,6 +262,38 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_background_service:
+    dependency: "direct main"
+    description:
+      name: flutter_background_service
+      sha256: "70a1c185b1fa1a44f8f14ecd6c86f6e50366e3562f00b2fa5a54df39b3324d3d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.1.0"
+  flutter_background_service_android:
+    dependency: "direct main"
+    description:
+      name: flutter_background_service_android
+      sha256: ca0793d4cd19f1e194a130918401a3d0b1076c81236f7273458ae96987944a87
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.3.1"
+  flutter_background_service_ios:
+    dependency: "direct main"
+    description:
+      name: flutter_background_service_ios
+      sha256: "6037ffd45c4d019dab0975c7feb1d31012dd697e25edc05505a4a9b0c7dc9fba"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.3"
+  flutter_background_service_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_background_service_platform_interface
+      sha256: ca74aa95789a8304f4d3f57f07ba404faa86bed6e415f83e8edea6ad8b904a41
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.1.2"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -837,6 +869,22 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  socket_io_client:
+    dependency: "direct main"
+    description:
+      name: socket_io_client
+      sha256: ef6c989e5eee8d04baf18482ec3d7699b91bc41e279794a99d8e3bef897b074a
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.4"
+  socket_io_common:
+    dependency: transitive
+    description:
+      name: socket_io_common
+      sha256: "162fbaecbf4bf9a9372a62a341b3550b51dcef2f02f3e5830a297fd48203d45b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.1"
   source_gen:
     dependency: transitive
     description:

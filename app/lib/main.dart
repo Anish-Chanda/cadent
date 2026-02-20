@@ -7,12 +7,18 @@ import './providers/app_settings_provider.dart';
 import './providers/theme_provider.dart';
 import './router.dart';
 import './utils/app_theme.dart';
+import './services/background_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // initialize auth provider
   final authProvider = await AuthProvider.initialize();
+
+  //initialize background service
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeService();
+
 
   runApp(
     MultiProvider(

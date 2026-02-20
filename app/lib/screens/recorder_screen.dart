@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cadence/services/background_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -14,6 +15,7 @@ import '../widgets/recorder/recording_stats_compact.dart';
 import '../widgets/recorder/recording_stats_full.dart';
 import '../widgets/recorder/activity_type_selector.dart';
 import 'finish_activity_screen.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
 class RecorderScreen extends StatefulWidget {
   const RecorderScreen({super.key});
@@ -125,6 +127,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
 
   Future<void> _startRecording() async {
+    startBackgroundService();
     // Clear any existing route line
     if (_routeLine != null && _mapController != null) {
       try {
@@ -154,6 +157,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   Future<void> _finishRecording() async {
+    stopBackgroundService();
     if (!_controller.hasMinimumData()) {
       // Show message if not enough data
       _showInsufficientDataDialog();
@@ -199,6 +203,14 @@ class _RecorderScreenState extends State<RecorderScreen> {
         }
       }
     }
+  }
+
+  void _sendToBackground(Position pos) {
+    FlutterBackgroundService().invoke('location_update', {
+      'lat': pos.latitude,
+      'lng': pos.longitude,
+      'time': DateTime.now().toIso8601String(),
+    });
   }
 
 
@@ -257,6 +269,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   Future<void> _discardRecording() async {
+    stopBackgroundService();
     final shouldDiscard = await _showDiscardDialog();
     if (shouldDiscard == true) {
       _controller.discardRecording();
