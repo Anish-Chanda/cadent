@@ -1,6 +1,6 @@
 # Variables
 API_VERSION = v0.9.0
-MOBILE_VERSION = v0.9.0
+MOBILE_VERSION = v0.9.1
 
 # ==== Config ====
 FRONTEND_DIR = app

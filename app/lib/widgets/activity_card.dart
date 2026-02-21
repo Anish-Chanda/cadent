@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/activity.dart';
 import '../utils/polyline_decoder.dart';
+import '../utils/app_spacing.dart';
+import '../utils/app_text_size.dart';
 import '../screens/activity_detail_screen.dart';
 
 class ActivityCard extends StatelessWidget {
@@ -21,41 +23,44 @@ class ActivityCard extends StatelessWidget {
         );
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: AppSpacing.paddingHorizontalMD.add(AppSpacing.paddingVerticalXS),
+        elevation: AppSpacing.elevationXS,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppSpacing.borderRadiusMD,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Map section
             ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppSpacing.radiusMD),
+                topRight: Radius.circular(AppSpacing.radiusMD),
               ),
               child: SizedBox(
                 height: 200,
-                child: _buildMap(),
+                child: _buildMap(context),
               ),
             ),
             // Content section
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: AppSpacing.paddingMD,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     activity.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    style: AppTextStyles.titleLarge(
+                      context,
+                      fontWeight: AppTextSize.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMD,
                   Row(
                     children: [
                       // Distance - left aligned with title
                       _buildStat(
+                        context: context,
                         icon: Icons.straighten,
                         label: 'Distance',
                         value: activity.formattedDistance,
@@ -64,6 +69,7 @@ class ActivityCard extends StatelessWidget {
                       Expanded(
                         child: Center(
                           child: _buildStat(
+                            context: context,
                             icon: Icons.terrain,
                             label: 'Elevation',
                             value: activity.formattedElevation,
@@ -72,6 +78,7 @@ class ActivityCard extends StatelessWidget {
                       ),
                       // Time - right aligned with padding
                       _buildStat(
+                        context: context,
                         icon: Icons.access_time,
                         label: 'Time',
                         value: activity.formattedDuration,
@@ -87,7 +94,7 @@ class ActivityCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMap() {
+  Widget _buildMap(BuildContext context) {
     // Default center if no coordinates available
     LatLng center = const LatLng(43.65107, 7.22560); // Nice, France default
     List<LatLng> polylinePoints = [];
@@ -133,8 +140,8 @@ class ActivityCard extends StatelessWidget {
             polylines: [
               Polyline(
                 points: polylinePoints,
-                color: const Color(0xFF3B82F6), // Blue color
-                strokeWidth: 4.0,
+                color: Theme.of(context).colorScheme.primary,
+                strokeWidth: AppSpacing.xxs,
               ),
             ],
           ),
@@ -143,19 +150,19 @@ class ActivityCard extends StatelessWidget {
             markers: [
               Marker(
                 point: LatLng(activity.start!.lat, activity.start!.lon),
-                child: const Icon(
+                child: Icon(
                   Icons.play_circle_filled,
-                  color: Colors.green,
-                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: AppSpacing.iconSM,
                 ),
               ),
               if (activity.end != null)
                 Marker(
                   point: LatLng(activity.end!.lat, activity.end!.lon),
-                  child: const Icon(
+                  child: Icon(
                     Icons.stop_circle,
-                    color: Colors.red,
-                    size: 20,
+                    color: Theme.of(context).colorScheme.error,
+                    size: AppSpacing.iconSM,
                   ),
                 ),
             ],
@@ -164,31 +171,30 @@ class ActivityCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStat({required IconData icon, required String label, required String value}) {
+  Widget _buildStat({required BuildContext context, required IconData icon, required String label, required String value}) {
     return Column(
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: Colors.grey[600]),
-            const SizedBox(width: 4),
+            Icon(icon, size: AppSpacing.iconXS, color: Theme.of(context).colorScheme.outline),
+            AppSpacing.gapHorizontalXXS,
             Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+              style: AppTextStyles.labelSmall(
+                context,
+                fontWeight: AppTextSize.medium,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXXS,
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+          style: AppTextStyles.titleMedium(
+            context,
+            fontWeight: AppTextSize.bold,
           ),
           textAlign: TextAlign.center,
         ),

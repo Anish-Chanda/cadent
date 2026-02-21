@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../widgets/global/app_text_form_field.dart';
 import '../widgets/global/summary_stat_card.dart';
 import '../widgets/global/primary_button.dart';
+import '../utils/app_spacing.dart';
 
 class FinishActivityScreen extends StatefulWidget {
   final String formattedTime;
@@ -75,7 +76,7 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
                 'action': 'discard'
               }); // Go back with discard result
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Discard'),
           ),
         ],
@@ -95,20 +96,20 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context, {
             'action': 'resume'
           }),
         ),
-        title: const Text(
+        title: Text(
           'Save Activity',
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -124,22 +125,22 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[200]!),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: Column(
                 children: [
                   // Activity Type
                   Text(
                     widget.activityName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  AppSpacing.gapLG,
                   
                   // Stats Row
                   Row(
@@ -150,7 +151,7 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
                           value: widget.formattedTime,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      AppSpacing.gapHorizontalMD,
                       Expanded(
                         child: SummaryStatCard(
                           label: 'Distance',
@@ -163,18 +164,18 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
               ),
             ),
             
-            const SizedBox(height: 32),
+            AppSpacing.gapXXL,
             
             // Title Input
-            const Text(
+            Text(
               'Title',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSM,
             AppTextFormField(
               controller: _titleController,
               focusNode: _titleFocus,
@@ -184,18 +185,18 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
               onChanged: (_) {},
             ),
             
-            const SizedBox(height: 24),
+            AppSpacing.gapXL,
             
             // Description Input
-            const Text(
+            Text(
               'Description',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSM,
             AppTextFormField(
               controller: _descriptionController,
               focusNode: _descriptionFocus,
@@ -205,7 +206,7 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
               onChanged: (_) {},
             ),
             
-            const SizedBox(height: 40),
+            AppSpacing.gapXXXL,
             
             // Action Buttons
             Row(
@@ -214,18 +215,16 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
                   child: PrimaryButton(
                     text: 'Discard',
                     onPressed: _discardActivity,
-                    backgroundColor: Colors.white,
-                    textColor: Colors.red,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    textColor: Theme.of(context).colorScheme.error,
                   ),
                 ),
-                const SizedBox(width: 16),
+                AppSpacing.gapHorizontalMD,
                 Expanded(
                   flex: 2,
                   child: PrimaryButton(
                     text: 'Save Activity',
                     onPressed: _saveActivity,
-                    backgroundColor: Colors.blue,
-                    textColor: Colors.white,
                   ),
                 ),
               ],
