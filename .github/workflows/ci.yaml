@@ -113,7 +113,7 @@ jobs:
       JWT_SECRET: "test-jwt-secret-key-for-ci-only"
       VALHALLA_URL: ""
       ENVIRONMENT: "test"
-      LOG_LEVEL: "info"
+      LOG_LEVEL: "debug"
       AVATAR_PATH: "/app/avatars"
       BASE_URL: "http://localhost:8080"
       STORAGE_DSN: "local://./data"
