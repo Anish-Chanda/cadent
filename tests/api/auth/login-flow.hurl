@@ -153,3 +153,12 @@ passwd: password123
 HTTP 200
 [Asserts]
 cookie "JWT" exists
+# Logout clears session - verify requests are rejected after logout
+GET http://localhost:8080/v1/user
+HTTP 200
+
+GET http://localhost:8080/auth/logout
+HTTP 200
+
+GET http://localhost:8080/v1/user
+HTTP 401

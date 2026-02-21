@@ -103,5 +103,9 @@ run-app: set-version ## Run mobile app on connected device
 HURL_FLAGS ?=
 
 test-e2e-api: ## Run hurl e2e tests
+	@echo "Preparing test data with fresh UUIDs..."
+	@NEW_UUID=$$(uuidgen | tr '[:upper:]' '[:lower:]'); \
+	sed "s/\"client_activity_id\":\"[^\"]*\"/\"client_activity_id\":\"$$NEW_UUID\"/" tests/campus_loop_220pts.json > tests/campus_loop_220pts.test.json
 	@echo "Running hurl e2e tests..."
-	@hurl --test $(HURL_FLAGS) --glob "tests/api/**/*.hurl"
+	@TEST_RUN=$$(date +%s%N); \
+	hurl --test --file-root . --variable now=$$TEST_RUN $(HURL_FLAGS) --glob "tests/api/**/*.hurl"
