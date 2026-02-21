@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cadence/services/background_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -128,6 +129,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
 
   Future<void> _startRecording() async {
+    startBackgroundService();
     // Clear any existing route line
     if (_routeLine != null && _mapController != null) {
       try {
@@ -157,6 +159,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   Future<void> _finishRecording() async {
+    stopBackgroundService();
     if (!_controller.hasMinimumData()) {
       // Show message if not enough data
       _showInsufficientDataDialog();
@@ -203,8 +206,6 @@ class _RecorderScreenState extends State<RecorderScreen> {
       }
     }
   }
-
-
 
   Future<void> _cleanupRouteLine() async {
     if (_routeLine != null && _mapController != null) {
@@ -262,6 +263,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   Future<void> _discardRecording() async {
+    stopBackgroundService();
     final shouldDiscard = await _showDiscardDialog();
     if (shouldDiscard == true) {
       _controller.discardRecording();

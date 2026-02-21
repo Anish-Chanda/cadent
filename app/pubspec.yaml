@@ -47,6 +47,10 @@ dependencies:
   maplibre_gl: ^0.24.1
   uuid: ^4.5.1
   mocktail: ^1.0.4
+  socket_io_client: 3.1.4
+  flutter_background_service: ^5.0.3
+  flutter_background_service_android: ^6.3.1
+  flutter_background_service_ios: ^5.0.3
 
 dev_dependencies:
   flutter_test:
