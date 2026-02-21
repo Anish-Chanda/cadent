@@ -140,16 +140,19 @@ HTTP 200
 jsonpath "$.id" == "{{user1_id}}"
 jsonpath "$.name" == "User One"
 
-# Unauthenticated access should fail
+# Failed login attempt
 POST http://localhost:8080/auth/local/login
 [Form]
 user: invalid@test.com
 passwd: wrongpassword
 HTTP 401
 
-# After failed login, protected endpoint should not be accessible
+# Session still valid - failed login doesn't clear existing valid JWT cookie
 GET http://localhost:8080/v1/user
-HTTP 401
+HTTP 200
+[Asserts]
+jsonpath "$.id" == "{{user1_id}}"
+jsonpath "$.name" == "User One"
 
 # Create third user to verify no data leakage
 POST http://localhost:8080/signup

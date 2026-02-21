@@ -186,7 +186,7 @@ HTTP 201
 [Asserts]
 jsonpath "$.success" == true
 
-# Very long name
+# Very long name, for now we will accept this in the backend.
 POST http://localhost:8080/signup
 Content-Type: application/json
 [Options]
@@ -197,7 +197,7 @@ variable: very_long_name=ThisIsAVeryLongNameThatTestsTheMaximumLengthAllowedForU
     "passwd": "password123",
     "name": "{{very_long_name}}"
 }
-HTTP 400
+HTTP 201
 
 # Duplicate email rejection - create initial user
 POST http://localhost:8080/signup

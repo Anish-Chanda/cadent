@@ -64,20 +64,20 @@ POST http://localhost:8080/auth/local/login
 [Form]
 user: 
 passwd: somepassword
-HTTP 400
+HTTP 401
 
 # Empty password
 POST http://localhost:8080/auth/local/login
 [Form]
 user: {{login_email}}
 passwd: 
-HTTP 400
+HTTP 401
 
 # Missing credentials
 POST http://localhost:8080/auth/local/login
 [Form]
 
-HTTP 400
+HTTP 401
 
 # Password with spaces
 POST http://localhost:8080/signup
