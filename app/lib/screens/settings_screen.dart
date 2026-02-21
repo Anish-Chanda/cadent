@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/app_settings_provider.dart';
 import '../models/app_settings.dart';
 import '../utils/app_spacing.dart';
+import '../utils/app_version.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -192,6 +193,21 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Version information
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    AppVersion.fullVersion,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
               ),
             ],
           );
