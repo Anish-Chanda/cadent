@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/anish-chanda/cadence/backend/internal/db"
@@ -108,6 +109,7 @@ func main() {
 
 	// Create auth service with providers
 	authService := authpkg.NewService(authOptions)
+
 	authService.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
 		return handlers.HandleLogin(database, user, password)
 	}))
@@ -127,7 +129,18 @@ func main() {
 
 	// Mount auth routes
 	authHandler, avatarHandler := authService.Handlers()
-	router.Mount("/auth", authHandler)
+	// Wrap auth handler to fix HTTP status codes - return 401 for authentication failures instead of 403
+	wrappedAuthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Intercept status codes to convert 403 to 401 for login failures
+		// Per HTTP spec: 401 = authentication failed, 403 = authorization/permission denied
+		isLoginPath := strings.Contains(r.URL.Path, "/login")
+		rw := &statusCodeInterceptor{
+			ResponseWriter: w,
+			isLoginPath:    isLoginPath,
+		}
+		authHandler.ServeHTTP(rw, r)
+	})
+	router.Mount("/auth", wrappedAuthHandler)
 	router.Mount("/avatar", avatarHandler)
 
 	// Add custom auth endpoints
@@ -192,4 +205,16 @@ func createPoolConfig(cfg Config) (*pgxpool.Config, error) {
 	poolConfig.MaxConnIdleTime = time.Duration(cfg.DBMaxConnIdleTime) * time.Minute
 
 	return poolConfig, nil
+}
+
+type statusCodeInterceptor struct {
+	http.ResponseWriter
+	isLoginPath bool
+}
+
+func (w *statusCodeInterceptor) WriteHeader(code int) {
+	if w.isLoginPath && code == http.StatusForbidden {
+		code = http.StatusUnauthorized
+	}
+	w.ResponseWriter.WriteHeader(code)
 }
