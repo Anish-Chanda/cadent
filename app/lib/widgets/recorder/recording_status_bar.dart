@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 
 /// Top status bar for the recorder screen.
 /// Shows back button, center location button, and discard button.
@@ -20,19 +21,19 @@ class RecordingStatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.paddingMD,
       child: Row(
         children: [
           // Back Button
           Container(
-            width: 40,
-            height: 40,
+            width: AppSpacing.xxxl,
+            height: AppSpacing.xxxl,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXL),
             ),
             child: IconButton(
-              icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color, size: 20),
+              icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color, size: AppSpacing.iconSM),
               onPressed: onBack,
               padding: EdgeInsets.zero,
             ),
@@ -44,18 +45,18 @@ class RecordingStatusBar extends StatelessWidget {
 
           // Center Map Button
           Container(
-            width: 40,
-            height: 40,
+            width: AppSpacing.xxxl,
+            height: AppSpacing.xxxl,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXL),
             ),
             child: IconButton(
               onPressed: onCenterLocation,
               icon: Icon(
                 Icons.my_location,
                 color: Theme.of(context).colorScheme.primary,
-                size: 20,
+                size: AppSpacing.iconSM,
               ),
               padding: EdgeInsets.zero,
             ),
@@ -64,15 +65,15 @@ class RecordingStatusBar extends StatelessWidget {
           // Discard Button
           if (model.isActive || model.isCompleted)
             Container(
-              margin: const EdgeInsets.only(left: 8),
-              width: 40,
-              height: 40,
+              margin: EdgeInsets.only(left: AppSpacing.xs),
+              width: AppSpacing.xxxl,
+              height: AppSpacing.xxxl,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXL),
               ),
               child: IconButton(
-                icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error, size: 20),
+                icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error, size: AppSpacing.iconSM),
                 onPressed: onDiscard,
                 padding: EdgeInsets.zero,
               ),

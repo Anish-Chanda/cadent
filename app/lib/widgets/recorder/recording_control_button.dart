@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 
 /// Control button widget for recorder screen (pause/resume).
 class RecordingControlButton extends StatelessWidget {
@@ -31,16 +32,16 @@ class RecordingControlButton extends StatelessWidget {
         }
       },
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSpacing.xxxl,
+        height: AppSpacing.xxxl,
         decoration: BoxDecoration(
           color: model.isRecording ? theme.colorScheme.error : theme.colorScheme.primary,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXL),
         ),
         child: Icon(
           model.isRecording ? Icons.pause : Icons.play_arrow,
           color: model.isRecording ? theme.colorScheme.onError : theme.colorScheme.onPrimary,
-          size: 20,
+          size: AppSpacing.iconSM,
         ),
       ),
     );

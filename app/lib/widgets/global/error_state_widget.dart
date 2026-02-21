@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
 
 /// An error state widget displaying an error icon, message, and retry button.
 class ErrorStateWidget extends StatelessWidget {
@@ -26,7 +27,7 @@ class ErrorStateWidget extends StatelessWidget {
             size: iconSize,
             color: Theme.of(context).colorScheme.error.withOpacity(0.6),
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMD,
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
@@ -41,7 +42,7 @@ class ErrorStateWidget extends StatelessWidget {
             ),
           ),
           if (onRetry != null) ...[
-            const SizedBox(height: 16),
+            AppSpacing.gapMD,
             ElevatedButton(
               onPressed: onRetry,
               child: const Text('Retry'),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 import '../global/compact_stat.dart';
 
 /// Compact recording stats view shown in the bottom floating card.
@@ -55,7 +56,7 @@ class RecordingStatsCompact extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSM,
           ],
 
           // Top row: Time (left) and Control buttons (right)
@@ -109,7 +110,7 @@ class RecordingStatsCompact extends StatelessWidget {
 
                   // Finish Button - show when recording or paused
                   if (model.isRecording || model.isPaused) ...[
-                    const SizedBox(width: 8),
+                    AppSpacing.gapHorizontalXS,
                     GestureDetector(
                       onTap: onFinish,
                       child: Container(
@@ -153,7 +154,7 @@ class RecordingStatsCompact extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 16),
+          AppSpacing.gapMD,
 
           // Bottom row: Stats (Distance and Speed)
           if (model.isActive || model.isCompleted)
@@ -165,7 +166,7 @@ class RecordingStatsCompact extends StatelessWidget {
                     label: 'Distance',
                   ),
                 ),
-                const SizedBox(width: 20),
+                AppSpacing.gapHorizontalLG,
                 Expanded(
                   child: CompactStat(
                     value: model.isRecording ? model.formattedSpeed : '--',

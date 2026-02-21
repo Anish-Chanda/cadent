@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
+import '../../utils/app_text_size.dart';
+import '../../utils/app_colors.dart';
 
 /// A customizable primary button widget with consistent styling across the app.
 /// Use this for main action buttons.
@@ -21,12 +24,12 @@ class PrimaryButton extends StatelessWidget {
     required this.text,
     this.onPressed,
     this.isLoading = false,
-    this.height = 48,
+    this.height = AppSpacing.huge,
     this.width,
     this.backgroundColor,
     this.textColor,
-    this.fontSize = 16,
-    this.fontWeight = FontWeight.w600,
+    this.fontSize = AppTextSize.lg,
+    this.fontWeight = AppTextSize.semiBold,
     this.padding,
     this.hasGradient = false,
     this.gradientColors,
@@ -47,14 +50,14 @@ class PrimaryButton extends StatelessWidget {
           backgroundColor: hasGradient ? Colors.transparent : effectiveBackgroundColor,
           shadowColor: hasGradient ? Colors.transparent : null,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: AppSpacing.borderRadiusFull,
           ),
           padding: padding,
         ),
         child: isLoading
             ? SizedBox(
-                height: 20,
-                width: 20,
+                height: AppSpacing.iconSM,
+                width: AppSpacing.iconSM,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(effectiveTextColor),
@@ -77,9 +80,9 @@ class PrimaryButton extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: gradientColors ?? [const Color(0xFF4CAF50), const Color(0xFF45a049)],
+            colors: gradientColors ?? [AppColors.gradientGreenStart, AppColors.gradientGreenEnd],
           ),
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: AppSpacing.borderRadiusFull,
         ),
         child: button,
       );

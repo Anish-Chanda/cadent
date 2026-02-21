@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 
 /// Bottom sheet selector for choosing activity type.
 /// Displays a list of workout types to select from.
@@ -50,7 +51,7 @@ class ActivityTypeSelector extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 20),
+          AppSpacing.gapLG,
           ...WorkoutType.values.map(
             (type) => ListTile(
               title: Text(
@@ -68,7 +69,7 @@ class ActivityTypeSelector extends StatelessWidget {
               onTap: () => onTypeSelected(type),
             ),
           ),
-          const SizedBox(height: 20),
+          AppSpacing.gapLG,
         ],
       ),
     );

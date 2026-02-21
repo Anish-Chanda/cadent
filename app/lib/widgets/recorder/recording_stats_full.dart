@@ -1,6 +1,7 @@
 import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 import 'recording_control_panel.dart';
 
 /// Full-screen stats view shown when the card is expanded.
@@ -41,7 +42,7 @@ class RecordingStatsFull extends StatelessWidget {
                   color: Theme.of(context).colorScheme.onError,
                   size: 16,
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.gapHorizontalXS,
                 Text(
                   model.isRecording ? 'RECORDING' : 'PAUSED',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onError),
@@ -49,7 +50,7 @@ class RecordingStatsFull extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          AppSpacing.gapXXL,
         ],
 
         // Time Display
@@ -61,7 +62,7 @@ class RecordingStatsFull extends StatelessWidget {
           'Running Time',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
         ),
-        const SizedBox(height: 32),
+        AppSpacing.gapXXL,
 
         // Distance Display
         Text(
@@ -72,7 +73,7 @@ class RecordingStatsFull extends StatelessWidget {
           'Distance',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
         ),
-        const SizedBox(height: 24),
+        AppSpacing.gapXL,
 
         // Speed Display (only show when recording)
         if (model.isRecording) ...[
@@ -84,7 +85,7 @@ class RecordingStatsFull extends StatelessWidget {
             'Current Speed',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 24),
+          AppSpacing.gapXL,
         ],
 
         const Spacer(),

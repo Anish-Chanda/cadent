@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/activity.dart';
 import '../utils/polyline_decoder.dart';
+import '../utils/app_spacing.dart';
+import '../utils/app_text_size.dart';
 import '../screens/activity_detail_screen.dart';
 
 class ActivityCard extends StatelessWidget {
@@ -21,19 +23,19 @@ class ActivityCard extends StatelessWidget {
         );
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        elevation: 1,
+        margin: AppSpacing.paddingHorizontalMD.add(AppSpacing.paddingVerticalXS),
+        elevation: AppSpacing.elevationXS,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppSpacing.borderRadiusMD,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Map section
             ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppSpacing.radiusMD),
+                topRight: Radius.circular(AppSpacing.radiusMD),
               ),
               child: SizedBox(
                 height: 200,
@@ -42,20 +44,18 @@ class ActivityCard extends StatelessWidget {
             ),
             // Content section
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: AppSpacing.paddingMD,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     activity.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ) ?? const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    style: AppTextStyles.titleLarge(
+                      context,
+                      fontWeight: AppTextSize.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMD,
                   Row(
                     children: [
                       // Distance - left aligned with title
@@ -141,7 +141,7 @@ class ActivityCard extends StatelessWidget {
               Polyline(
                 points: polylinePoints,
                 color: Theme.of(context).colorScheme.primary,
-                strokeWidth: 4.0,
+                strokeWidth: AppSpacing.xxs,
               ),
             ],
           ),
@@ -153,7 +153,7 @@ class ActivityCard extends StatelessWidget {
                 child: Icon(
                   Icons.play_circle_filled,
                   color: Theme.of(context).colorScheme.primary,
-                  size: 20,
+                  size: AppSpacing.iconSM,
                 ),
               ),
               if (activity.end != null)
@@ -162,7 +162,7 @@ class ActivityCard extends StatelessWidget {
                   child: Icon(
                     Icons.stop_circle,
                     color: Theme.of(context).colorScheme.error,
-                    size: 20,
+                    size: AppSpacing.iconSM,
                   ),
                 ),
             ],
@@ -178,28 +178,23 @@ class ActivityCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(width: 4),
+            Icon(icon, size: AppSpacing.iconXS, color: Theme.of(context).colorScheme.outline),
+            AppSpacing.gapHorizontalXXS,
             Text(
               label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w500,
-              ) ?? TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.outline,
-                fontWeight: FontWeight.w500,
+              style: AppTextStyles.labelSmall(
+                context,
+                fontWeight: AppTextSize.medium,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXXS,
         Text(
           value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ) ?? const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+          style: AppTextStyles.titleMedium(
+            context,
+            fontWeight: AppTextSize.bold,
           ),
           textAlign: TextAlign.center,
         ),

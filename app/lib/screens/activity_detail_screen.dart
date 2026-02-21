@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '../models/activity.dart';
 import '../utils/polyline_decoder.dart';
+import '../utils/app_spacing.dart';
+import '../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../widgets/activity_charts.dart';
 import '../services/streams_service.dart';
@@ -80,14 +82,14 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
               return Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(AppSpacing.radiusXL),
+                    topRight: Radius.circular(AppSpacing.radiusXL),
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Theme.of(context).shadowColor.withOpacity(0.2),
-                      blurRadius: 10,
+                      blurRadius: AppSpacing.xs,
                       offset: const Offset(0, -5),
                     ),
                   ],
@@ -145,7 +147,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     const zoom = 14.0;
 
     return MapLibreMap(
-      styleString: 'https://tiles.openfreemap.org/styles/liberty',
+      styleString: AppTheme.getMapStyle(context),
       initialCameraPosition: CameraPosition(
         target: center,
         zoom: zoom,

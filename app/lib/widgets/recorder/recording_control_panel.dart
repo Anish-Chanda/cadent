@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 
 /// Control panel for recording actions (start, pause, resume, finish).
 /// Shows different buttons based on the recording state.
@@ -80,7 +81,7 @@ class RecordingControlPanel extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          AppSpacing.gapHorizontalSM,
           Expanded(
             child: Container(
               height: 60,
@@ -136,7 +137,7 @@ class RecordingControlPanel extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          AppSpacing.gapHorizontalSM,
           Expanded(
             child: Container(
               height: 60,

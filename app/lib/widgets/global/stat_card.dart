@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
+import '../../utils/app_text_size.dart';
 
 /// A stat card widget displaying a label and value.
 /// Used in activity cards and summary screens.
@@ -22,10 +24,10 @@ class StatCard extends StatelessWidget {
     this.iconColor,
     this.valueColor,
     this.labelColor,
-    this.iconSize = 24,
-    this.valueFontSize = 18,
-    this.labelFontSize = 14,
-    this.valueFontWeight = FontWeight.bold,
+    this.iconSize = AppSpacing.iconMD,
+    this.valueFontSize = AppTextSize.xl,
+    this.labelFontSize = AppTextSize.md,
+    this.valueFontWeight = AppTextSize.bold,
   });
 
   @override
@@ -39,7 +41,7 @@ class StatCard extends StatelessWidget {
             size: iconSize,
             color: iconColor ?? Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(height: 4),
+          AppSpacing.gapXXS,
         ],
         Text(
           value,
@@ -49,7 +51,7 @@ class StatCard extends StatelessWidget {
             color: valueColor ?? Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXXS,
         Text(
           label,
           style: TextStyle(

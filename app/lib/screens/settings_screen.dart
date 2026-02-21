@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_settings_provider.dart';
 import '../models/app_settings.dart';
+import '../utils/app_spacing.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -19,7 +20,7 @@ class SettingsScreen extends StatelessWidget {
       body: Consumer<AuthProvider>(
         builder: (context, auth, child) {
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: AppSpacing.paddingMD,
             children: [
               Card(
                 child: ListTile(
@@ -30,6 +31,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              AppSpacing.gapMD,
 
               // Display Name Setting
               Consumer<AuthProvider>(
@@ -81,7 +83,9 @@ class SettingsScreen extends StatelessWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(success ? 'Name updated successfully' : 'Failed to update name'),
-                                backgroundColor: success ? Colors.green : Colors.red,
+                                backgroundColor: success 
+                                    ? Theme.of(context).colorScheme.primary 
+                                    : Theme.of(context).colorScheme.error,
                               ),
                             );
                           }
@@ -91,8 +95,7 @@ class SettingsScreen extends StatelessWidget {
                   );
                 },
               ),
-
-          const SizedBox(height: 16),
+              AppSpacing.gapMD,
 
               Card(
                 child: ListTile(
@@ -101,6 +104,7 @@ class SettingsScreen extends StatelessWidget {
                   subtitle: Text(auth.serverUrl),
                 ),
               ),
+              AppSpacing.gapMD,
 
               // Theme Mode Setting
               Consumer<AppSettingsProvider>(
@@ -122,8 +126,7 @@ class SettingsScreen extends StatelessWidget {
                   );
                 },
               ),
-
-              const SizedBox(height: 16),
+              AppSpacing.gapMD,
 
               // Distance Unit Setting
               Consumer<AppSettingsProvider>(
@@ -163,16 +166,16 @@ class SettingsScreen extends StatelessWidget {
                   );
                 },
               ),
+             AppSpacing.gapMD,
 
-              const SizedBox(height: 32),
               Consumer<AppSettingsProvider>(
                 builder: (context, settingsController, child) {
                   return Card(
                     child: ListTile(
-                      leading: const Icon(Icons.logout, color: Colors.red),
-                      title: const Text(
+                      leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
+                      title: Text(
                         'Sign Out',
-                        style: TextStyle(color: Colors.red),
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
                       ),
                       onTap: () async {
                         try {

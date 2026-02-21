@@ -2,6 +2,8 @@ import 'package:cadence/screens/recorder_screen.dart';
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
 import '../screens/settings_screen.dart';
+import '../utils/app_spacing.dart';
+import '../utils/app_text_size.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -37,21 +39,22 @@ class _MainLayoutState extends State<MainLayout> {
     return Scaffold(
       body: _pages[_selectedIndex],
       floatingActionButton: SizedBox(
-          width: 60,
-          height: 60,
-      child: FloatingActionButton(
-        onPressed: _onRecordTapped,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.fiber_manual_record, size: 28),
-      )),
+        width: AppSpacing.massive,
+        height: AppSpacing.massive,
+        child: FloatingActionButton(
+          onPressed: _onRecordTapped,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          shape: const CircleBorder(),
+          child: Icon(Icons.fiber_manual_record, size: AppSpacing.iconLG),
+        ),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
-        notchMargin: 4,
+        notchMargin: AppSpacing.xxs,
         child: SizedBox(
-          height: 60,
+          height: AppSpacing.massive,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -63,7 +66,7 @@ class _MainLayoutState extends State<MainLayout> {
                   isSelected: _selectedIndex == 0,
                 ),
               ),
-              const SizedBox(width: 60), // Space for FAB
+              const SizedBox(width: AppSpacing.massive), // Space for FAB
               Expanded(
                 child: _buildNavItem(
                   icon: Icons.settings,
@@ -88,7 +91,7 @@ class _MainLayoutState extends State<MainLayout> {
     return GestureDetector(
       onTap: () => _onItemTapped(index),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: AppSpacing.paddingVerticalXS,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -96,15 +99,15 @@ class _MainLayoutState extends State<MainLayout> {
             Icon(
               icon,
               color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
-              size: 22,
+              size: AppSpacing.iconSM,
             ),
-            const SizedBox(height: 2),
+            AppSpacing.gapXXS,
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSize.xs,
                 color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: isSelected ? AppTextSize.semiBold : AppTextSize.regular,
               ),
               textAlign: TextAlign.center,
             ),

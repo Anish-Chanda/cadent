@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
 
 /// Floating card wrapper with drag handle.
 /// Used to contain recording stats in a draggable bottom card.
@@ -15,20 +16,20 @@ class RecordingFloatingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: 30,
-      left: 16,
-      right: 16,
+      bottom: AppSpacing.xxxl,
+      left: AppSpacing.md,
+      right: AppSpacing.md,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXL),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+                color: Theme.of(context).shadowColor.withOpacity(0.2),
+                blurRadius: AppSpacing.xl,
+                offset: const Offset(0, AppSpacing.xs),
               ),
             ],
           ),
@@ -37,14 +38,14 @@ class RecordingFloatingCard extends StatelessWidget {
             children: [
               // Drag Handle
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: AppSpacing.paddingSM,
                 child: Center(
                   child: Container(
-                    width: 40,
-                    height: 4,
+                    width: AppSpacing.xxxl,
+                    height: AppSpacing.xxs,
                     decoration: BoxDecoration(
                       color: Theme.of(context).dividerColor,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusXS),
                     ),
                   ),
                 ),
@@ -52,7 +53,7 @@ class RecordingFloatingCard extends StatelessWidget {
 
               // Content
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                padding: EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
                 child: child,
               ),
             ],

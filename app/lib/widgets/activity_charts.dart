@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/app_spacing.dart';
  
 
 import '../models/streams.dart';
@@ -109,7 +110,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Performance', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-      const SizedBox(height: 12),
+      AppSpacing.gapSM,
       if (!hasElevation && !hasSpeed) _buildPlaceholder(context, 'No streams available')
       else ...[
         if (distances.isNotEmpty || s.timeOffsetsSeconds().isNotEmpty)
@@ -171,7 +172,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
 
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Performance', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
+        AppSpacing.gapSM,
         if (!hasElevation && !hasSpeed) _buildPlaceholder(context, 'No streams available')
         else ...[
           // show the toggle when we have either distance or time offsets
@@ -199,7 +200,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
     // fallback: no distance samples available, use legacy drawing by index/time
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Performance', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-      const SizedBox(height: 12),
+      AppSpacing.gapSM,
       if (!hasElevation && !hasSpeed) _buildPlaceholder(context, 'No streams available')
       else ...[
         if (hasElevation) _buildLineChartLegacy(context, widget.elevationSamples!, timestamps, Theme.of(context).colorScheme.secondary, 'Elevation (m)'),
@@ -216,7 +217,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
-        const SizedBox(height: 8),
+        AppSpacing.gapXS,
         SizedBox(
           height: 120,
           child: LayoutBuilder(builder: (ctx, constraints) {
@@ -246,7 +247,21 @@ class _ActivityChartsState extends State<ActivityCharts> {
                 _updateHoverForLine(local, box.size, xValues, yValues, xIsTime, xLabel, yLabel, title);
               },
               child: Stack(children: [
-                CustomPaint(painter: _SingleLinePainterDistance(xValues: xValues, yValues: yValues, color: color, textDirection: Directionality.of(context), xLabel: xLabel, yLabel: yLabel, yMin: yMin, labelYAxis: true, xIsTime: xIsTime), size: Size(constraints.maxWidth, 120)),
+                CustomPaint(
+                  painter: _SingleLinePainterDistance(
+                    xValues: xValues,
+                    yValues: yValues,
+                    color: color,
+                    textColor: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black,
+                    textDirection: Directionality.of(context),
+                    xLabel: xLabel,
+                    yLabel: yLabel,
+                    yMin: yMin,
+                    labelYAxis: true,
+                    xIsTime: xIsTime,
+                  ),
+                  size: Size(constraints.maxWidth, 120),
+                ),
                 if (_draggingLine && _hoverChartId == title && _dragLocal != null)
                   Positioned(left: _dragLocal!.dx - 1, top: 0, bottom: 0, child: Container(width: 2, color: Colors.black26)),
                 if (_draggingLine && _hoverChartId == title && _dragLocal != null && _hoverIndex != null)
@@ -267,7 +282,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Splits (km)', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.tertiary)),
-        const SizedBox(height: 8),
+        AppSpacing.gapXS,
         SizedBox(
           height: 80,
           child: LayoutBuilder(builder: (ctx, constraints) {
@@ -297,7 +312,18 @@ class _ActivityChartsState extends State<ActivityCharts> {
                 _updateHoverForSplits(local, box.size, splits, isTime, xLabel, yLabel, xLabel);
               },
               child: Stack(children: [
-                CustomPaint(painter: _SplitsBarPainter(splits: splits, textDirection: Directionality.of(context), xLabel: xLabel, yLabel: yLabel, labelYAxis: false, isTime: isTime), size: Size(constraints.maxWidth, 80)),
+                CustomPaint(
+                  painter: _SplitsBarPainter(
+                    splits: splits,
+                    textColor: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black,
+                    textDirection: Directionality.of(context),
+                    xLabel: xLabel,
+                    yLabel: yLabel,
+                    labelYAxis: false,
+                    isTime: isTime,
+                  ),
+                  size: Size(constraints.maxWidth, 80),
+                ),
                 if (_draggingSplits && _hoverChartId == xLabel && _dragLocal != null && _hoverIndex != null)
                   Positioned(left: _dragLocal!.dx - 1, top: 0, bottom: 0, child: Container(width: 2, color: Colors.black26)),
                 if (_draggingSplits && _hoverChartId == xLabel && _dragLocal != null && _hoverIndex != null)
@@ -317,8 +343,20 @@ class _ActivityChartsState extends State<ActivityCharts> {
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
-        const SizedBox(height: 8),
-        SizedBox(height: 120, child: CustomPaint(painter: _SingleLinePainterLegacy(samples: samples, timestamps: timestamps, color: color, textDirection: Directionality.of(context)), size: const Size(double.infinity, 120))),
+        AppSpacing.gapXS,
+        SizedBox(
+          height: 120,
+          child: CustomPaint(
+            painter: _SingleLinePainterLegacy(
+              samples: samples,
+              timestamps: timestamps,
+              color: color,
+              textColor: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black,
+              textDirection: Directionality.of(context),
+            ),
+            size: const Size(double.infinity, 120),
+          ),
+        ),
       ]),
     );
   }
@@ -340,11 +378,27 @@ class _ActivityChartsState extends State<ActivityCharts> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Splits (km)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green)),
-        const SizedBox(height: 8),
-        SizedBox(height: 80, child: CustomPaint(painter: _SplitsBarPainter(splits: splits, textDirection: Directionality.of(context), xLabel: 'Km', yLabel: 'Avg Speed (km/h)', labelYAxis: false), size: const Size(double.infinity, 80))),
+        Text('Splits (km)', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
+        AppSpacing.gapXS,
+        SizedBox(
+          height: 80,
+          child: CustomPaint(
+            painter: _SplitsBarPainter(
+              splits: splits,
+              textColor: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black,
+              textDirection: Directionality.of(context),
+              xLabel: 'Km',
+              yLabel: 'Avg Speed (km/h)',
+              labelYAxis: false,
+            ),
+            size: const Size(double.infinity, 80),
+          ),
+        ),
       ]),
     );
   }
@@ -352,11 +406,35 @@ class _ActivityChartsState extends State<ActivityCharts> {
   Widget _buildPlaceholder(BuildContext context, String title) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(children: [
-        Icon(Icons.show_chart, size: 28, color: Colors.grey[400]),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[800])), const SizedBox(height: 6), Text('No time-series samples available for $title.', style: TextStyle(color: Colors.grey[500], fontSize: 13))])),
+        Icon(Icons.show_chart, size: 28, color: Theme.of(context).iconTheme.color?.withOpacity(0.5)),
+        AppSpacing.gapHorizontalSM,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'No time-series samples available for $title.',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
       ]),
     );
   }
@@ -552,7 +630,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
 
       // Build lines: Label - value (unit)
       lines.add(Text('$xName - $xText${xUnit.isNotEmpty ? ' ($xUnit)' : ''}', style: TextStyle(fontSize: 12)));
-      lines.add(const SizedBox(height: 4));
+      lines.add(AppSpacing.gapXXS);
       lines.add(Text('$yName - $yText${yUnit.isNotEmpty ? ' ($yUnit)' : ''}', style: TextStyle(fontSize: 12)));
     }
 
@@ -578,6 +656,7 @@ class _SingleLinePainterDistance extends CustomPainter {
   final List<double> xValues;
   final List<double> yValues;
   final Color color;
+  final Color textColor;
   final TextDirection textDirection;
   final String xLabel;
   final String yLabel;
@@ -585,7 +664,7 @@ class _SingleLinePainterDistance extends CustomPainter {
   final bool labelYAxis;
   final bool xIsTime;
 
-  _SingleLinePainterDistance({required this.xValues, required this.yValues, required this.color, required this.textDirection, required this.xLabel, required this.yLabel, this.yMin, this.labelYAxis = false, this.xIsTime = false});
+  _SingleLinePainterDistance({required this.xValues, required this.yValues, required this.color, required this.textColor, required this.textDirection, required this.xLabel, required this.yLabel, this.yMin, this.labelYAxis = false, this.xIsTime = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -597,7 +676,7 @@ class _SingleLinePainterDistance extends CustomPainter {
         double unitReserve = 0.0;
         if (labelYAxis) {
           final tpUnit = TextPainter(textDirection: textDirection);
-          tpUnit.text = TextSpan(text: yLabel, style: TextStyle(fontSize: 12, color: Colors.black));
+          tpUnit.text = TextSpan(text: yLabel, style: TextStyle(fontSize: 12, color: textColor));
           tpUnit.layout();
           // cap reserve so charts don't get pushed excessively to the right
           unitReserve = tpUnit.width + 8.0;
@@ -617,7 +696,7 @@ class _SingleLinePainterDistance extends CustomPainter {
     final maxYP = maxY + pad;
     final rangeY = (maxYP - minYP) == 0 ? 1 : (maxYP - minYP);
 
-    final axisPaint = Paint()..color = Colors.grey.shade400..strokeWidth = 1.0;
+    final axisPaint = Paint()..color = textColor.withOpacity(0.3)..strokeWidth = 1.0;
     canvas.drawLine(Offset(leftPad, topPad), Offset(leftPad, topPad + chartH), axisPaint);
     canvas.drawLine(Offset(leftPad, topPad + chartH), Offset(leftPad + chartW, topPad + chartH), axisPaint);
 
@@ -656,13 +735,13 @@ class _SingleLinePainterDistance extends CustomPainter {
 
     if (labelYAxis) {
       final tp = TextPainter(textDirection: textDirection);
-      tp.text = TextSpan(text: maxYP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: Colors.black));
+      tp.text = TextSpan(text: maxYP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: textColor));
       tp.layout();
       tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad - tp.height / 2));
-      tp.text = TextSpan(text: minYP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: Colors.black));
+      tp.text = TextSpan(text: minYP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: textColor));
       tp.layout();
       tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad + chartH - tp.height / 2));
-      tp.text = TextSpan(text: xLabel, style: TextStyle(fontSize: 12, color: Colors.black));
+      tp.text = TextSpan(text: xLabel, style: TextStyle(fontSize: 12, color: textColor));
       tp.layout();
       // push x-axis label further down so it doesn't overlap x-axis tick labels
       tp.paint(canvas, Offset(leftPad + chartW / 2 - tp.width / 2, topPad + chartH + 18));
@@ -684,27 +763,27 @@ class _SingleLinePainterDistance extends CustomPainter {
       }
 
       if (xIsTime) {
-        tpX.text = TextSpan(text: _formatDurationFromDouble(startVal), style: TextStyle(color: Colors.grey[600], fontSize: 11));
+        tpX.text = TextSpan(text: _formatDurationFromDouble(startVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad, baseY));
 
-        tpX.text = TextSpan(text: _formatDurationFromDouble(midVal), style: TextStyle(color: Colors.grey[600], fontSize: 11));
+        tpX.text = TextSpan(text: _formatDurationFromDouble(midVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW / 2 - tpX.width / 2, baseY));
 
-        tpX.text = TextSpan(text: _formatDurationFromDouble(endVal), style: TextStyle(color: Colors.grey[600], fontSize: 11));
+        tpX.text = TextSpan(text: _formatDurationFromDouble(endVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW - tpX.width, baseY));
       } else {
-        tpX.text = TextSpan(text: startVal.toStringAsFixed(1), style: TextStyle(color: Colors.grey[600], fontSize: 11));
+        tpX.text = TextSpan(text: startVal.toStringAsFixed(1), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad, baseY));
 
-        tpX.text = TextSpan(text: midVal.toStringAsFixed(1), style: TextStyle(color: Colors.grey[600], fontSize: 11));
+        tpX.text = TextSpan(text: midVal.toStringAsFixed(1), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW / 2 - tpX.width / 2, baseY));
 
-        tpX.text = TextSpan(text: endVal.toStringAsFixed(1), style: TextStyle(color: Colors.grey[600], fontSize: 11));
+        tpX.text = TextSpan(text: endVal.toStringAsFixed(1), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW - tpX.width, baseY));
       }
@@ -719,9 +798,10 @@ class _SingleLinePainterLegacy extends CustomPainter {
   final List<double> samples;
   final List<DateTime>? timestamps;
   final Color color;
+  final Color textColor;
   final TextDirection textDirection;
 
-  _SingleLinePainterLegacy({required this.samples, this.timestamps, required this.color, required this.textDirection});
+  _SingleLinePainterLegacy({required this.samples, this.timestamps, required this.color, required this.textColor, required this.textDirection});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -732,7 +812,7 @@ class _SingleLinePainterLegacy extends CustomPainter {
     double unitReserve = 0.0;
     // legacy painter always shows y labels; reserve space so labels fit inside
     final tpUnit = TextPainter(textDirection: textDirection);
-    tpUnit.text = TextSpan(text: '0', style: TextStyle(fontSize: 12, color: Colors.black));
+    tpUnit.text = TextSpan(text: '0', style: TextStyle(fontSize: 12, color: textColor));
     tpUnit.layout();
     unitReserve = tpUnit.width + 8.0;
     final leftPad = leftPadBase + unitReserve;
@@ -761,10 +841,10 @@ class _SingleLinePainterLegacy extends CustomPainter {
     canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2.0..isAntiAlias = true);
 
     final tp = TextPainter(textDirection: textDirection);
-    tp.text = TextSpan(text: maxVP.toStringAsFixed(1), style: TextStyle(color: Colors.grey[700], fontSize: 11));
+    tp.text = TextSpan(text: maxVP.toStringAsFixed(1), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
     tp.layout();
     tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad - tp.height / 2));
-    tp.text = TextSpan(text: minVP.toStringAsFixed(1), style: TextStyle(color: Colors.grey[700], fontSize: 11));
+    tp.text = TextSpan(text: minVP.toStringAsFixed(1), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
     tp.layout();
     tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad + chartH - tp.height / 2));
 
@@ -788,13 +868,13 @@ class _SingleLinePainterLegacy extends CustomPainter {
       final midIdx = (timestamps!.length - 1) ~/ 2;
       final mid = fmtDur(timestamps![midIdx].difference(timestamps!.first).inSeconds);
       final end = fmtDur(timestamps!.last.difference(timestamps!.first).inSeconds);
-      _drawXAxisLabel(canvas, Offset(leftPad, baseY), start, chartW, TextStyle(color: Colors.grey[600], fontSize: 11), textDirection);
-      _drawXAxisLabel(canvas, Offset(leftPad + chartW / 2, baseY), mid, chartW, TextStyle(color: Colors.grey[600], fontSize: 11), textDirection, center: true);
-      _drawXAxisLabel(canvas, Offset(leftPad + chartW, baseY), end, chartW, TextStyle(color: Colors.grey[600], fontSize: 11), textDirection, alignRight: true);
+      _drawXAxisLabel(canvas, Offset(leftPad, baseY), start, chartW, TextStyle(color: textColor.withOpacity(0.7), fontSize: 11), textDirection);
+      _drawXAxisLabel(canvas, Offset(leftPad + chartW / 2, baseY), mid, chartW, TextStyle(color: textColor.withOpacity(0.7), fontSize: 11), textDirection, center: true);
+      _drawXAxisLabel(canvas, Offset(leftPad + chartW, baseY), end, chartW, TextStyle(color: textColor.withOpacity(0.7), fontSize: 11), textDirection, alignRight: true);
     } else {
-      _drawXAxisLabel(canvas, Offset(leftPad, baseY), '0', chartW, TextStyle(color: Colors.grey[600], fontSize: 11), textDirection);
-      _drawXAxisLabel(canvas, Offset(leftPad + chartW / 2, baseY), '${(samples.length / 2).round()}', chartW, TextStyle(color: Colors.grey[600], fontSize: 11), textDirection, center: true);
-      _drawXAxisLabel(canvas, Offset(leftPad + chartW, baseY), '${samples.length - 1}', chartW, TextStyle(color: Colors.grey[600], fontSize: 11), textDirection, alignRight: true);
+      _drawXAxisLabel(canvas, Offset(leftPad, baseY), '0', chartW, TextStyle(color: textColor.withOpacity(0.7), fontSize: 11), textDirection);
+      _drawXAxisLabel(canvas, Offset(leftPad + chartW / 2, baseY), '${(samples.length / 2).round()}', chartW, TextStyle(color: textColor.withOpacity(0.7), fontSize: 11), textDirection, center: true);
+      _drawXAxisLabel(canvas, Offset(leftPad + chartW, baseY), '${samples.length - 1}', chartW, TextStyle(color: textColor.withOpacity(0.7), fontSize: 11), textDirection, alignRight: true);
     }
   }
 
@@ -811,13 +891,14 @@ class _SingleLinePainterLegacy extends CustomPainter {
 
 class _SplitsBarPainter extends CustomPainter {
   final List<double> splits;
+  final Color textColor;
   final TextDirection textDirection;
   final String xLabel;
   final String yLabel;
   final bool labelYAxis;
   final bool isTime;
 
-  _SplitsBarPainter({required this.splits, required this.textDirection, required this.xLabel, required this.yLabel, this.labelYAxis = false, this.isTime = false});
+  _SplitsBarPainter({required this.splits, required this.textColor, required this.textDirection, required this.xLabel, required this.yLabel, this.labelYAxis = false, this.isTime = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -829,7 +910,7 @@ class _SplitsBarPainter extends CustomPainter {
     double unitReserve = 0.0;
     if (labelYAxis) {
       final tpUnit = TextPainter(textDirection: textDirection);
-      tpUnit.text = TextSpan(text: yLabel, style: TextStyle(fontSize: 12, color: Colors.black));
+      tpUnit.text = TextSpan(text: yLabel, style: TextStyle(fontSize: 12, color: textColor));
       tpUnit.layout();
       unitReserve = tpUnit.width + 8.0;
     }
@@ -855,7 +936,7 @@ class _SplitsBarPainter extends CustomPainter {
       final rect = Rect.fromLTWH(dx, dy, barW * 0.8, chartH - (dy - topPad));
       canvas.drawRect(rect, Paint()..color = Colors.green.shade400);
       // small index under the bar (no top label)
-      final idxTp = TextPainter(text: TextSpan(text: '${i + 1}', style: TextStyle(fontSize: 10, color: Colors.black)), textDirection: textDirection);
+      final idxTp = TextPainter(text: TextSpan(text: '${i + 1}', style: TextStyle(fontSize: 10, color: textColor)), textDirection: textDirection);
       idxTp.layout();
       idxTp.paint(canvas, Offset(dx + barW * 0.4 - idxTp.width / 2, size.height - bottomPad + 2));
     }
@@ -869,22 +950,22 @@ class _SplitsBarPainter extends CustomPainter {
             final maxRem = (maxLabelSecs % 60).round().toString().padLeft(2, '0');
             final minMins = minLabelSecs ~/ 60;
             final minRem = (minLabelSecs % 60).round().toString().padLeft(2, '0');
-            tp.text = TextSpan(text: '$maxMins:$maxRem', style: TextStyle(fontSize: 11, color: Colors.black));
+            tp.text = TextSpan(text: '$maxMins:$maxRem', style: TextStyle(fontSize: 11, color: textColor));
             tp.layout();
             tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad - tp.height / 2));
-            tp.text = TextSpan(text: '$minMins:$minRem', style: TextStyle(fontSize: 11, color: Colors.black));
+            tp.text = TextSpan(text: '$minMins:$minRem', style: TextStyle(fontSize: 11, color: textColor));
             tp.layout();
             tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad + chartH - tp.height / 2));
           } else {
-            tp.text = TextSpan(text: maxVP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: Colors.black));
+            tp.text = TextSpan(text: maxVP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: textColor));
             tp.layout();
             tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad - tp.height / 2));
-            tp.text = TextSpan(text: minVP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: Colors.black));
+            tp.text = TextSpan(text: minVP.toStringAsFixed(1), style: TextStyle(fontSize: 11, color: textColor));
             tp.layout();
             tp.paint(canvas, Offset(leftPad - tp.width - 6, topPad + chartH - tp.height / 2));
           }
 
-          tp.text = TextSpan(text: xLabel, style: TextStyle(fontSize: 12, color: Colors.black));
+          tp.text = TextSpan(text: xLabel, style: TextStyle(fontSize: 12, color: textColor));
           tp.layout();
           tp.paint(canvas, Offset(size.width / 2 - tp.width / 2, size.height - bottomPad + 18));
         }

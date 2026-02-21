@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
+import '../../utils/app_text_size.dart';
 
 /// A compact stat display widget showing label and value.
 /// Used for displaying stats in a more condensed format.
@@ -17,9 +19,9 @@ class CompactStat extends StatelessWidget {
     required this.label,
     this.valueColor,
     this.labelColor,
-    this.valueFontSize = 16,
-    this.labelFontSize = 12,
-    this.valueFontWeight = FontWeight.bold,
+    this.valueFontSize = AppTextSize.lg,
+    this.labelFontSize = AppTextSize.sm,
+    this.valueFontWeight = AppTextSize.bold,
   });
 
   @override
@@ -34,7 +36,7 @@ class CompactStat extends StatelessWidget {
             fontSize: labelFontSize,
           ),
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXXS,
         Text(
           value,
           style: TextStyle(

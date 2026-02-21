@@ -7,6 +7,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import '../controllers/recording_controller.dart';
 import '../models/recording_session_model.dart';
 import '../services/activities_service.dart';
+import '../utils/app_spacing.dart';
 import '../widgets/recorder/recording_map_view.dart';
 import '../widgets/recorder/recording_status_bar.dart';
 import '../widgets/recorder/recording_floating_card.dart';
@@ -368,7 +369,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      AppSpacing.gapLG,
                       // Full Data View
                       Expanded(
                         child: RecordingStatsFull(
