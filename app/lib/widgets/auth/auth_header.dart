@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
+import '../../utils/app_text_size.dart';
 
 /// A welcome header widget used in auth screens (login, signup, and forgot password in the future).
 class AuthHeader extends StatelessWidget {
@@ -17,19 +19,20 @@ class AuthHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
+          style: AppTextStyles.headlineMedium(
+            context,
+            fontWeight: AppTextSize.bold,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           textAlign: TextAlign.center,
         ),
         if (subtitle != null) ...[
-          const SizedBox(height: 8),
+          AppSpacing.gapXS,
           Text(
             subtitle!,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
+            style: AppTextStyles.titleMedium(
+              context,
+              color: Theme.of(context).colorScheme.outline,
             ),
             textAlign: TextAlign.center,
           ),

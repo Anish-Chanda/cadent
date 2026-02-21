@@ -73,7 +73,6 @@ class AppSettingsProvider extends ChangeNotifier {
     final newMode = _settings.themeMode == AppSettingsModel.lightTheme
         ? AppSettingsModel.darkTheme
         : AppSettingsModel.lightTheme;
-        // TODO: we need to update the apps theme too
     await setThemeMode(newMode);
   }
 

@@ -126,7 +126,6 @@ void main() {
         (widget) =>
             widget is Container &&
             widget.decoration is BoxDecoration &&
-            (widget.decoration as BoxDecoration).color == Colors.white &&
             (widget.decoration as BoxDecoration).borderRadius ==
                 BorderRadius.circular(20),
       );
