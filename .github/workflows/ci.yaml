@@ -100,7 +100,7 @@ jobs:
           POSTGRES_PASSWORD: cadence_password
           POSTGRES_DB: cadence_db
         options: >-
-          --health-cmd "pg_isready -U cadence_user"
+          --health-cmd "pg_isready -U cadence_user -d cadence_db"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -114,6 +114,9 @@ jobs:
       VALHALLA_URL: ""
       ENVIRONMENT: "test"
       LOG_LEVEL: "info"
+      AVATAR_PATH: "/app/avatars"
+      BASE_URL: "http://localhost:8080"
+      STORAGE_DSN: "local://./data"
     
     steps:
       - name: Checkout repository
@@ -143,6 +146,9 @@ jobs:
             -e VALHALLA_URL="$VALHALLA_URL" \
             -e ENVIRONMENT="$ENVIRONMENT" \
             -e LOG_LEVEL="$LOG_LEVEL" \
+            -e AVATAR_PATH="$AVATAR_PATH" \
+            -e BASE_URL="$BASE_URL" \
+            -e STORAGE_DSN="$STORAGE_DSN" \
             cadent-api:test
           # Wait for API to be ready
           timeout 30 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done' || exit 1
