@@ -87,7 +87,74 @@ jsonpath "$.updated_at" exists
 jsonpath "$.processing_ver" exists
 
 
-### Test 2: Idempotency - duplicate client_activity_id
+### Test 2: Create running activity with real GPS data
+# Validates running activity with 2042 GPS points from actual Strava export by @Truman-Patterson
+# Tests realistic data processing and metric calculations
+# Expected: ~8.16km distance, ~2129s duration (35.5 min), running activity
+POST http://localhost:8080/v1/activities
+Content-Type: application/json
+file,tests/afternoon_run.test.json;
+
+HTTP 201
+[Captures]
+afternoon_run_id: jsonpath "$.id"
+[Asserts]
+# Basic fields
+jsonpath "$.id" exists
+jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+jsonpath "$.type" == "run"
+jsonpath "$.title" == "Afternoon Run"
+jsonpath "$.description" contains "Test running activity"
+
+# Distance validation (~8158m ≈ 8.16km)
+jsonpath "$.stats.distance_m" exists
+jsonpath "$.stats.distance_m" > 8100
+jsonpath "$.stats.distance_m" < 8200
+
+# Duration validation (should be 2129s)
+jsonpath "$.stats.elapsed_seconds" exists
+jsonpath "$.stats.elapsed_seconds" == 2129
+
+# Speed validation (~3.83 m/s typical running pace)
+jsonpath "$.stats.avg_speed_ms" exists
+jsonpath "$.stats.avg_speed_ms" > 3.7
+jsonpath "$.stats.avg_speed_ms" < 4.0
+
+# Elevation metrics
+jsonpath "$.stats.elevation_gain_m" exists
+jsonpath "$.stats.elevation_gain_m" > 38
+jsonpath "$.stats.elevation_gain_m" < 45
+
+jsonpath "$.stats.elevation_loss_m" exists
+jsonpath "$.stats.elevation_loss_m" > 44
+jsonpath "$.stats.elevation_loss_m" < 50
+
+# Coordinates and bounding box
+jsonpath "$.start.lat" exists
+jsonpath "$.start.lat" == 42.019797
+
+jsonpath "$.start.lon" exists
+jsonpath "$.start.lon" == -93.644527
+
+jsonpath "$.bbox.min_lat" exists
+jsonpath "$.bbox.max_lat" exists
+jsonpath "$.bbox.min_lon" exists
+jsonpath "$.bbox.max_lon" exists
+
+# Polyline encoding
+jsonpath "$.polyline" exists
+
+# Timestamps
+jsonpath "$.start_time" exists
+jsonpath "$.end_time" exists
+jsonpath "$.created_at" exists
+jsonpath "$.updated_at" exists
+
+# Processing metadata
+jsonpath "$.processing_ver" exists
+
+
+### Test 3: Idempotency - duplicate client_activity_id
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 file,tests/campus_loop_220pts.test.json;
@@ -95,7 +162,7 @@ file,tests/campus_loop_220pts.test.json;
 HTTP 409
 
 
-### Test 3: Authentication required
+### Test 4: Authentication required
 # Logout first to test unauthorized access
 GET http://localhost:8080/auth/logout
 
@@ -116,7 +183,7 @@ Content-Type: application/json
 HTTP 401
 
 
-### Test 4: Insufficient samples (< 2 points)
+### Test 5: Insufficient samples (< 2 points)
 POST http://localhost:8080/auth/local/login
 [Form]
 user: activity_creator_{{now}}@test.com
@@ -138,7 +205,7 @@ Content-Type: application/json
 HTTP 400
 
 
-### Test 5: Invalid activity type
+### Test 6: Invalid activity type
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -154,7 +221,7 @@ Content-Type: application/json
 HTTP 400
 
 
-### Test 6: Minimal valid activity (2 samples) - also validates optional description field
+### Test 7: Minimal valid activity (2 samples) - also validates optional description field
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -179,7 +246,7 @@ jsonpath "$.stats.elapsed_seconds" == 10
 
 
 
-### Test 7: Missing required field (client_activity_id)
+### Test 8: Missing required field (client_activity_id)
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -194,7 +261,7 @@ Content-Type: application/json
 HTTP 400
 
 
-### Test 8: Missing required field (activity_type)
+### Test 9: Missing required field (activity_type)
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -209,7 +276,7 @@ Content-Type: application/json
 HTTP 400
 
 
-### Test 9: Missing required field (samples)
+### Test 10: Missing required field (samples)
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -221,7 +288,7 @@ Content-Type: application/json
 HTTP 400
 
 
-### Test 10: Invalid sample (missing timestamp)
+### Test 11: Invalid sample (missing timestamp)
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -237,7 +304,7 @@ Content-Type: application/json
 HTTP 400
 
 
-### Test 11: Invalid sample (missing coordinates)
+### Test 12: Invalid sample (missing coordinates)
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -253,7 +320,7 @@ Content-Type: application/json
 HTTP 400
 
 
-### Test 12: Empty title (should be allowed)
+### Test 13: Empty title (should be allowed)
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
@@ -271,7 +338,7 @@ HTTP 201
 jsonpath "$.title" == ""
 
 
-### Test 13: Malformed JSON (unparseable body)
+### Test 14: Malformed JSON (unparseable body)
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 `{invalid json}`
