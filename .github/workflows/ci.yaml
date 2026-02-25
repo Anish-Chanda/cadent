@@ -96,11 +96,11 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_USER: cadence_user
-          POSTGRES_PASSWORD: cadence_password
-          POSTGRES_DB: cadence_db
+          POSTGRES_USER: cadent_user
+          POSTGRES_PASSWORD: cadent_password
+          POSTGRES_DB: cadent_db
         options: >-
-          --health-cmd "pg_isready -U cadence_user -d cadence_db"
+          --health-cmd "pg_isready -U cadent_user -d cadent_db"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -108,7 +108,7 @@ jobs:
           - 5432:5432
     
     env:
-      POSTGRES_DSN: "postgresql://cadence_user:cadence_password@localhost:5432/cadence_db?sslmode=disable"
+      POSTGRES_DSN: "postgresql://cadent_user:cadent_password@localhost:5432/cadent_db?sslmode=disable"
       PORT: "8080"
       JWT_SECRET: "test-jwt-secret-key-for-ci-only"
       VALHALLA_URL: ""

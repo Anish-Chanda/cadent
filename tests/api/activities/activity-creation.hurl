@@ -20,7 +20,7 @@ passwd: CreateTest123!
 HTTP 200
 
 
-### Test 1: Create activity with campus loop data (COMPREHENSIVE METRIC VALIDATION)
+### Test 1: Create activity with campus loop data
 # This is the primary test - validates all calculated metrics with real 220-point GPS data
 # Expected: ~2.28km distance, ~414s duration, road_bike type, complete metrics
 POST http://localhost:8080/v1/activities
