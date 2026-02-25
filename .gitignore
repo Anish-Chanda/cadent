@@ -45,3 +45,6 @@ Thumbs.db
 data/
 
 .github/*.md
+
+# Test files with generated UUIDs
+*.test.json
