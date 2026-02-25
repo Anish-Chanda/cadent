@@ -104,7 +104,7 @@ HURL_FLAGS ?=
 
 test-e2e-api: ## Run hurl e2e tests
 	@echo "Preparing test data with fresh UUIDs..."
-	@NEW_UUID=$$(uuidgen | tr '[:upper:]' '[:lower:]'); \
+	@NEW_UUID=$$(command -v uuidgen >/dev/null 2>&1 && uuidgen | tr '[:upper:]' '[:lower:]' || python3 -c "import uuid; print(str(uuid.uuid4()).lower())"); \
 	sed "s/\"client_activity_id\":\"[^\"]*\"/\"client_activity_id\":\"$$NEW_UUID\"/" tests/campus_loop_220pts.json > tests/campus_loop_220pts.test.json
 	@echo "Running hurl e2e tests..."
 	@TEST_RUN=$$(date +%s%N); \
