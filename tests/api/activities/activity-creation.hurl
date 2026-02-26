@@ -2,7 +2,7 @@
 # Comprehensive validation of POST /v1/activities endpoint
 
 ### Setup: Create test user for activity testing
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "activity_creator_{{now}}@test.com",
@@ -12,7 +12,7 @@ Content-Type: application/json
 
 HTTP 201
 
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: activity_creator_{{now}}@test.com
 passwd: CreateTest123!
@@ -23,7 +23,7 @@ HTTP 200
 ### Test 1: Create activity with campus loop data
 # This is the primary test - validates all calculated metrics with real 220-point GPS data
 # Expected: ~2.28km distance, ~414s duration, road_bike type, complete metrics
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 file,tests/campus_loop_220pts.test.json;
 
@@ -91,7 +91,7 @@ jsonpath "$.processing_ver" exists
 # Validates running activity with 2042 GPS points from actual Strava export by @Truman-Patterson
 # Tests realistic data processing and metric calculations
 # Expected: ~8.16km distance, ~2129s duration (35.5 min), running activity
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 file,tests/afternoon_run.test.json;
 
@@ -155,7 +155,7 @@ jsonpath "$.processing_ver" exists
 
 
 ### Test 3: Idempotency - duplicate client_activity_id
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 file,tests/campus_loop_220pts.test.json;
 
@@ -164,11 +164,11 @@ HTTP 409
 
 ### Test 4: Authentication required
 # Logout first to test unauthorized access
-GET http://localhost:8080/auth/logout
+GET http://localhost:8080/api/auth/logout
 
 HTTP 200
 
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
@@ -184,14 +184,14 @@ HTTP 401
 
 
 ### Test 5: Insufficient samples (< 2 points)
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: activity_creator_{{now}}@test.com
 passwd: CreateTest123!
 
 HTTP 200
 
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a",
@@ -206,7 +206,7 @@ HTTP 400
 
 
 ### Test 6: Invalid activity type
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "e3f4a5b6-c7d8-4e9f-a0b1-c2d3e4f5a6b7",
@@ -222,7 +222,7 @@ HTTP 400
 
 
 ### Test 7: Minimal valid activity (2 samples) - also validates optional description field
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
@@ -247,7 +247,7 @@ jsonpath "$.stats.elapsed_seconds" == 10
 
 
 ### Test 8: Missing required field (client_activity_id)
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "activity_type": "run",
@@ -262,7 +262,7 @@ HTTP 400
 
 
 ### Test 9: Missing required field (activity_type)
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "b6c7d8e9-f0a1-4b2c-d3e4-f5a6b7c8d9e0",
@@ -277,7 +277,7 @@ HTTP 400
 
 
 ### Test 10: Missing required field (samples)
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "c7d8e9f0-a1b2-4c3d-e4f5-a6b7c8d9e0f1",
@@ -289,7 +289,7 @@ HTTP 400
 
 
 ### Test 11: Invalid sample (missing timestamp)
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "d8e9f0a1-b2c3-4d4e-f5a6-b7c8d9e0f1a2",
@@ -305,7 +305,7 @@ HTTP 400
 
 
 ### Test 12: Invalid sample (missing coordinates)
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "e9f0a1b2-c3d4-4e5f-a6b7-c8d9e0f1a2b3",
@@ -321,7 +321,7 @@ HTTP 400
 
 
 ### Test 13: Empty title (should be allowed)
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
@@ -339,7 +339,7 @@ jsonpath "$.title" == ""
 
 
 ### Test 14: Malformed JSON (unparseable body)
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 `{invalid json}`
 

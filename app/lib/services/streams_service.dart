@@ -26,7 +26,7 @@ class StreamsService {
 
     final dio = HttpClient.instance.dio;
     try {
-      final path = '/v1/activities/$activityId/streams';
+      final path = '/api/v1/activities/$activityId/streams';
       final typesList = types ?? ['time', 'distance', 'elevation', 'speed'];
       final resp = await dio.get(path, queryParameters: {
         'lod': lod,
@@ -38,7 +38,7 @@ class StreamsService {
       }
 
       // fallback: query streams endpoint
-      final fallback = await dio.get('/v1/streams', queryParameters: {
+      final fallback = await dio.get('/api/v1/streams', queryParameters: {
         'activityId': activityId,
         'lod': lod,
         'type': (types ?? ['time', 'distance', 'elevation', 'speed']).join(','),

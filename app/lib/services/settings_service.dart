@@ -11,7 +11,7 @@ class SettingsService {
   /// Fetch user profile from the backend
   Future<UserProfile?> getUserProfile() async {
     try {
-      final response = await HttpClient.instance.dio.get('/v1/user');
+      final response = await HttpClient.instance.dio.get('/api/v1/user');
 
       if (response.statusCode == 200) {
         final dynamic responseData = response.data;
@@ -44,7 +44,7 @@ class SettingsService {
   Future<bool> saveName(String newName) async {
     try {
       final response = await HttpClient.instance.dio.patch(
-        '/v1/user', 
+        '/api/v1/user', 
         data: {'name': newName}
       );
 
@@ -67,7 +67,7 @@ class SettingsService {
       }
 
       final response = await HttpClient.instance.dio.patch(
-        '/v1/user',
+        '/api/v1/user',
         data: updates,
       );
 

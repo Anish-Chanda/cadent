@@ -13,7 +13,7 @@ class ActivitiesService {
   /// Fetch user's activities from the backend
   Future<List<Activity>> getActivities() async {
     try {
-      final response = await HttpClient.instance.dio.get('/v1/activities');
+      final response = await HttpClient.instance.dio.get('/api/v1/activities');
       
       if (response.statusCode == 200) {
         final dynamic responseData = response.data;
@@ -52,7 +52,7 @@ class ActivitiesService {
         }).toList(),
       };
 
-      final response = await HttpClient.instance.dio.post('/v1/activities', data: activityData);
+      final response = await HttpClient.instance.dio.post('/api/v1/activities', data: activityData);
       
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {

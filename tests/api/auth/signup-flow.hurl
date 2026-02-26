@@ -2,7 +2,7 @@
 # Tests user registration with comprehensive input validation
 
 # Successful user registration
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "{{newUuid}}@test.com",
@@ -18,7 +18,7 @@ jsonpath "$.message" == "User created successfully"
 header "Content-Type" contains "application/json"
 
 # Missing email field
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "",
@@ -31,7 +31,7 @@ jsonpath "$.success" == false
 jsonpath "$.message" == "Email, password, and name are required"
 
 # Missing password field
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "{{newUuid}}@test.com",
@@ -44,7 +44,7 @@ jsonpath "$.success" == false
 jsonpath "$.message" == "Email, password, and name are required"
 
 # Missing name field
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "{{newUuid}}@test.com",
@@ -57,7 +57,7 @@ jsonpath "$.success" == false
 jsonpath "$.message" == "Email, password, and name are required"
 
 # Name with only whitespace
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "whitespace-{{newUuid}}@test.com",
@@ -67,7 +67,7 @@ Content-Type: application/json
 HTTP 400
 
 # Invalid email format
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "notanemail",
@@ -77,7 +77,7 @@ Content-Type: application/json
 HTTP 400
 
 # Email with special characters
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: special_email=special.email+tag-{{newUuid}}@test.com
@@ -91,7 +91,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Password too short
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "{{newUuid}}@test.com",
@@ -104,7 +104,7 @@ jsonpath "$.success" == false
 jsonpath "$.message" == "Password must be at least 6 characters long"
 
 # Minimum valid password
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "{{newUuid}}@test.com",
@@ -116,7 +116,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Password with spaces
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: space_pass_email=spacepass-{{newUuid}}@test.com
@@ -131,7 +131,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Unicode characters in name
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: unicode_email=unicode-{{newUuid}}@test.com
@@ -145,7 +145,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Emoji in name
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: emoji_email=emoji-{{newUuid}}@test.com
@@ -159,7 +159,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # HTML-like characters in name
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: html_email=html-{{newUuid}}@test.com
@@ -173,7 +173,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # SQL-like characters in name
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: sql_email=sql-{{newUuid}}@test.com
@@ -187,7 +187,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Very long name, for now we will accept this in the backend.
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: longname_email=longname-{{newUuid}}@test.com
@@ -200,7 +200,7 @@ variable: very_long_name=ThisIsAVeryLongNameThatTestsTheMaximumLengthAllowedForU
 HTTP 201
 
 # Duplicate email rejection - create initial user
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: dup_uuid={{newUuid}}
@@ -215,7 +215,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Duplicate email rejection - attempt duplicate
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "{{dup_email}}",
@@ -228,7 +228,7 @@ jsonpath "$.success" == false
 jsonpath "$.message" == "User with this email already exists"
 
 # Email case insensitivity
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: case_uuid={{newUuid}}
@@ -243,7 +243,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Cannot create duplicate with different case
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "casetest-{{case_uuid}}@test.com",
@@ -256,7 +256,7 @@ jsonpath "$.success" == false
 jsonpath "$.message" == "User with this email already exists"
 
 # Email trimming
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: trim_uuid={{newUuid}}
@@ -271,7 +271,7 @@ HTTP 201
 jsonpath "$.success" == true
 
 # Cannot create duplicate without spaces
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 {
     "user": "trimtest-{{trim_uuid}}@test.com",

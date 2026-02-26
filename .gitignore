@@ -46,5 +46,8 @@ data/
 
 .github/*.md
 
+# Go embedded web build artifacts (populated by `make build-web`)
+backend/web/dist/*
+!backend/web/dist/.gitkeep
 # Test files with generated UUIDs
 *.test.json

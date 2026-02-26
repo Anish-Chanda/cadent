@@ -120,36 +120,36 @@ func main() {
 	// Add middlewares
 	router.Use(middleware.Logger)
 
-	// Health check endpoint
-	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status":"ok"}`)
-	})
+  // Health check endpoint
+  router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	  w.Header().Set("Content-Type", "application/json")
+	  w.WriteHeader(http.StatusOK)
+	  fmt.Fprint(w, `{"status":"ok"}`)
+  })
 
-	// Mount auth routes
-	authHandler, avatarHandler := authService.Handlers()
-	// Wrap auth handler to fix HTTP status codes - return 401 for authentication failures instead of 403
-	wrappedAuthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Intercept status codes to convert 403 to 401 for login failures
-		// Per HTTP spec: 401 = authentication failed, 403 = authorization/permission denied
-		isLoginPath := strings.Contains(r.URL.Path, "/login")
-		rw := &statusCodeInterceptor{
-			ResponseWriter: w,
-			isLoginPath:    isLoginPath,
-		}
-		authHandler.ServeHTTP(rw, r)
-	})
-	router.Mount("/auth", wrappedAuthHandler)
-	router.Mount("/avatar", avatarHandler)
+  // Mount auth routes under /api
+  authHandler, avatarHandler := authService.Handlers()
 
-	// Add custom auth endpoints
-	router.Route("/", func(r chi.Router) {
-		r.Post("/signup", handlers.SignupHandler(database, *log))
-	})
+  // Wrap auth handler to fix HTTP status codes - return 401 for authentication failures instead of 403
+  wrappedAuthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	  // Intercept status codes to convert 403 to 401 for login failures
+	  // Per HTTP spec: 401 = authentication failed, 403 = authorization/permission denied
+	  isLoginPath := strings.Contains(r.URL.Path, "/login")
+	  rw := &statusCodeInterceptor{
+		  ResponseWriter: w,
+		  isLoginPath:    isLoginPath,
+	  }
+	  authHandler.ServeHTTP(rw, r)
+  })
+
+  router.Mount("/api/auth", wrappedAuthHandler)
+  router.Mount("/api/avatar", avatarHandler)
+
+	// Custom auth endpoints
+	router.Post("/api/signup", handlers.SignupHandler(database, *log))
 
 	// Mount V1 API routes
-	router.Route("/v1", func(r chi.Router) {
+	router.Route("/api/v1", func(r chi.Router) {
 		// Protected routes that require authentication
 		r.Group(func(r chi.Router) {
 			// Use auth middleware for protected routes
@@ -166,6 +166,9 @@ func main() {
 			r.Patch("/user", handlers.HandleUpdateUser(database, *log))
 		})
 	})
+
+	// Catch-all: serve embedded React SPA for all non-API paths
+	router.Handle("/*", spaHandler())
 
 	// Start listening
 	log.Info(fmt.Sprintf("Starting server on port %d", cfg.Port))
