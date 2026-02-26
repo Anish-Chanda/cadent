@@ -1,3 +1,4 @@
+import 'package:cadence/providers/app_settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -7,22 +8,29 @@ import 'package:cadence/providers/activities_provider.dart';
 import 'package:cadence/widgets/activity_card.dart';
 import 'package:cadence/models/activity.dart';
 
+import 'Mocks/mock_app_settings_provider.dart';
+
 // Create the mock class
 class MockActivitiesProvider extends Mock implements ActivitiesProvider {}
 
 void main() {
   group('HomeScreen', () {
     late MockActivitiesProvider mockActivitiesProvider;
+    late MockAppSettingsProvider mockAppSettingsProvider;
 
     setUp(() {
       mockActivitiesProvider = MockActivitiesProvider();
-
+      mockAppSettingsProvider = MockAppSettingsProvider();
+       
       // Set up default stub behaviors
       when(() => mockActivitiesProvider.isLoading).thenReturn(false);
       when(() => mockActivitiesProvider.hasError).thenReturn(false);
       when(() => mockActivitiesProvider.isEmpty).thenReturn(false);
       when(() => mockActivitiesProvider.errorMessage).thenReturn(null);
       when(() => mockActivitiesProvider.activities).thenReturn([]);
+      when(() => mockAppSettingsProvider.metricUnitDisplayName)
+      .thenReturn('Meters');
+
       when(
         () => mockActivitiesProvider.loadingState,
       ).thenReturn(ActivitiesLoadingState.idle);
@@ -182,7 +190,7 @@ void main() {
           id: '1',
           title: 'Morning Run',
           description: 'A nice morning run',
-          activityType: 'run',
+          activityType: 'running',
           startTime: DateTime.now(),
           endTime: DateTime.now().add(const Duration(seconds: 1800)),
           processingVer: 1,
@@ -193,7 +201,7 @@ void main() {
           id: '2',
           title: 'Evening Ride',
           description: 'Evening cycling session',
-          activityType: 'ride',
+          activityType: 'road_biking',
           startTime: DateTime.now(),
           endTime: DateTime.now().add(const Duration(seconds: 3600)),
           processingVer: 1,
@@ -206,13 +214,16 @@ void main() {
       when(() => mockActivitiesProvider.activities).thenReturn(mockActivities);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: ChangeNotifierProvider<ActivitiesProvider>.value(
-            value: mockActivitiesProvider,
-            child: const HomeScreen(),
-          ),
+      MaterialApp(
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ActivitiesProvider>.value(value: mockActivitiesProvider),
+            ChangeNotifierProvider<AppSettingsProvider>.value(value: mockAppSettingsProvider),
+          ],
+          child: const HomeScreen(),
         ),
-      );
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -247,7 +258,7 @@ void main() {
           id: '1',
           title: 'Morning Run',
           description: 'A nice morning run',
-          activityType: 'run',
+          activityType: 'running',
           startTime: DateTime.now(),
           endTime: DateTime.now().add(const Duration(seconds: 1800)),
           processingVer: 1,
@@ -257,13 +268,16 @@ void main() {
       ]);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: ChangeNotifierProvider<ActivitiesProvider>.value(
-            value: mockActivitiesProvider,
-            child: const HomeScreen(),
-          ),
+      MaterialApp(
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ActivitiesProvider>.value(value: mockActivitiesProvider),
+            ChangeNotifierProvider<AppSettingsProvider>.value(value: mockAppSettingsProvider),
+          ],
+          child: const HomeScreen(),
         ),
-      );
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -281,7 +295,7 @@ void main() {
           id: '1',
           title: 'Morning Run',
           description: 'A nice morning run',
-          activityType: 'run',
+          activityType: 'running',
           startTime: DateTime.now(),
           endTime: DateTime.now().add(const Duration(seconds: 1800)),
           processingVer: 1,
@@ -291,13 +305,16 @@ void main() {
       ]);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: ChangeNotifierProvider<ActivitiesProvider>.value(
-            value: mockActivitiesProvider,
-            child: const HomeScreen(),
-          ),
+      MaterialApp(
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ActivitiesProvider>.value(value: mockActivitiesProvider),
+            ChangeNotifierProvider<AppSettingsProvider>.value(value: mockAppSettingsProvider),
+          ],
+          child: const HomeScreen(),
         ),
-      );
+      ),
+    );
 
       await tester.pumpAndSettle();
 
