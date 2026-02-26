@@ -22,7 +22,7 @@ HTTP 200
 
 ### Test 1: Create activity with campus loop data
 # This is the primary test - validates all calculated metrics with real 220-point GPS data
-# Expected: ~2.28km distance, ~414s duration, road_bike type, complete metrics
+# Expected: ~2.28km distance, ~414s duration, road_biking type, complete metrics
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 file,tests/campus_loop_220pts.test.json;
@@ -34,7 +34,7 @@ campus_loop_id: jsonpath "$.id"
 # Basic fields
 jsonpath "$.id" exists
 jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-jsonpath "$.type" == "road_bike"
+jsonpath "$.type" == "road_biking"
 jsonpath "$.title" == "Campus Loop"
 jsonpath "$.description" contains "Test activity"
 jsonpath "$.description" contains "220 GPS points"
@@ -102,7 +102,7 @@ afternoon_run_id: jsonpath "$.id"
 # Basic fields
 jsonpath "$.id" exists
 jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-jsonpath "$.type" == "run"
+jsonpath "$.type" == "running"
 jsonpath "$.title" == "Afternoon Run"
 jsonpath "$.description" contains "Test running activity"
 
@@ -172,7 +172,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "Unauth Test",
     "samples": [
         { "t": 1771092000000, "lat": 42.02888, "lon": -93.64974 },
@@ -195,7 +195,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "Single Sample",
     "samples": [
         { "t": 1771092000000, "lat": 42.02888, "lon": -93.64974 }
@@ -226,7 +226,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "Minimal Run",
     "description": "A minimal two-sample activity",
     "samples": [
@@ -238,7 +238,7 @@ Content-Type: application/json
 HTTP 201
 [Asserts]
 jsonpath "$.id" exists
-jsonpath "$.type" == "run"
+jsonpath "$.type" == "running"
 jsonpath "$.title" == "Minimal Run"
 jsonpath "$.description" == "A minimal two-sample activity"
 jsonpath "$.stats.distance_m" > 0
@@ -250,7 +250,7 @@ jsonpath "$.stats.elapsed_seconds" == 10
 POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "No Client ID",
     "samples": [
         { "t": 1771092000000, "lat": 42.02888, "lon": -93.64974 },
@@ -281,7 +281,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "c7d8e9f0-a1b2-4c3d-e4f5-a6b7c8d9e0f1",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "No Samples"
 }
 
@@ -293,7 +293,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "d8e9f0a1-b2c3-4d4e-f5a6-b7c8d9e0f1a2",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "Invalid Sample",
     "samples": [
         { "lat": 42.02888, "lon": -93.64974 },
@@ -309,7 +309,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "e9f0a1b2-c3d4-4e5f-a6b7-c8d9e0f1a2b3",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "Missing Coords",
     "samples": [
         { "t": 1771092000000, "lat": 42.02888 },
@@ -325,7 +325,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "",
     "samples": [
         { "t": 1771092000000, "lat": 42.02888, "lon": -93.64974 },
