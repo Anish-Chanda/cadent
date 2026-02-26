@@ -109,18 +109,16 @@ func main() {
 	// Add middlewares
 	router.Use(middleware.Logger)
 
-	// Mount auth routes
+	// Mount auth routes under /api
 	authHandler, avatarHandler := authService.Handlers()
-	router.Mount("/auth", authHandler)
-	router.Mount("/avatar", avatarHandler)
+	router.Mount("/api/auth", authHandler)
+	router.Mount("/api/avatar", avatarHandler)
 
-	// Add custom auth endpoints
-	router.Route("/", func(r chi.Router) {
-		r.Post("/signup", handlers.SignupHandler(database, *log))
-	})
+	// Custom auth endpoints
+	router.Post("/api/signup", handlers.SignupHandler(database, *log))
 
 	// Mount V1 API routes
-	router.Route("/v1", func(r chi.Router) {
+	router.Route("/api/v1", func(r chi.Router) {
 		// Protected routes that require authentication
 		r.Group(func(r chi.Router) {
 			// Use auth middleware for protected routes
@@ -137,6 +135,9 @@ func main() {
 			r.Patch("/user", handlers.HandleUpdateUser(database, *log))
 		})
 	})
+
+	// Catch-all: serve embedded React SPA for all non-API paths
+	router.Handle("/*", spaHandler())
 
 	// Start listening
 	log.Info(fmt.Sprintf("Starting server on port %d", cfg.Port))

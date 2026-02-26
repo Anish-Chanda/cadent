@@ -15,12 +15,17 @@ const config = defineConfig({
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     viteReact(),
   ],
+  build: {
+    // Output directly into the Go backend so it can be embedded in the binary
+    outDir: '../backend/web/dist',
+    emptyOutDir: true,
+  },
   server: {
     proxy: {
+      // Forward /api/* to Go as-is, no rewrite
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
