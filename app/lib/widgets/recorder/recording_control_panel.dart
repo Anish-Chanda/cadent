@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 
 /// Control panel for recording actions (start, pause, resume, finish).
 /// Shows different buttons based on the recording state.
@@ -21,13 +22,15 @@ class RecordingControlPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (model.isIdle) {
       return Container(
         width: double.infinity,
         height: 60,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4CAF50), Color(0xFF45a049)],
+          gradient: LinearGradient(
+            colors: [theme.colorScheme.primary, theme.colorScheme.primaryContainer],
           ),
           borderRadius: BorderRadius.circular(30),
         ),
@@ -40,12 +43,12 @@ class RecordingControlPanel extends StatelessWidget {
               borderRadius: BorderRadius.circular(30),
             ),
           ),
-          child: const Text(
+          child: Text(
             'Start Recording',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: theme.colorScheme.onPrimary,
             ),
           ),
         ),
@@ -59,7 +62,7 @@ class RecordingControlPanel extends StatelessWidget {
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.orange,
+                color: theme.colorScheme.secondary,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: ElevatedButton(
@@ -71,19 +74,19 @@ class RecordingControlPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Pause',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onSecondary),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          AppSpacing.gapHorizontalSM,
           Expanded(
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.blue,
+                color: theme.colorScheme.error,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: ElevatedButton(
@@ -95,9 +98,9 @@ class RecordingControlPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Finish',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onError),
                 ),
               ),
             ),
@@ -113,8 +116,8 @@ class RecordingControlPanel extends StatelessWidget {
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4CAF50), Color(0xFF45a049)],
+                gradient: LinearGradient(
+                  colors: [theme.colorScheme.primary, theme.colorScheme.primaryContainer],
                 ),
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -127,19 +130,19 @@ class RecordingControlPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Resume',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onPrimary),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          AppSpacing.gapHorizontalSM,
           Expanded(
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.blue,
+                color: theme.colorScheme.error,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: ElevatedButton(
@@ -151,9 +154,9 @@ class RecordingControlPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Finish',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onError),
                 ),
               ),
             ),
@@ -168,17 +171,13 @@ class RecordingControlPanel extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: theme.colorScheme.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: theme.dividerColor),
         ),
-        child: const Text(
+        child: Text(
           'Activity completed. Use the finish screen to save or continue recording.',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black87,
-            fontStyle: FontStyle.italic,
-          ),
+          style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
           textAlign: TextAlign.center,
         ),
       );

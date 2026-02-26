@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/app_spacing.dart';
 import '../../utils/validators.dart';
 
 /// A widget displaying the server URL with a tap action to change it.
@@ -20,7 +21,7 @@ class ServerUrlWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Enter the server URL for your Cadence instance:'),
-            const SizedBox(height: 16),
+            AppSpacing.gapMD,
             TextFormField(
               controller: controller,
               decoration: const InputDecoration(

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/anish-chanda/cadence/backend/internal/db"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-pkgz/auth/v2/avatar"
 	"github.com/go-pkgz/auth/v2/provider"
 	"github.com/go-pkgz/auth/v2/token"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -31,6 +33,13 @@ func main() {
 	}
 
 	log := logger.New(logConfig)
+
+	// Log version information
+	if Version == "" || BuildHash == "" {
+		log.Warn("Running development build - version info not injected")
+	} else {
+		log.Info(fmt.Sprintf("Starting Cadent API - Version: %s, Build: %s", Version, BuildHash))
+	}
 
 	// Initialize storage
 	log.Info("Initializing storage")
@@ -62,8 +71,16 @@ func main() {
 	valhallaClient := valhalla.NewClient(cfg.ValhallaURL)
 
 	log.Info("Initializing database")
-	var database db.Database = postgres.NewPostgresDB(*log)
-	if err := database.Connect(cfg.Dsn); err != nil {
+	database := postgres.NewPostgresDB(*log)
+
+	// Create pool configuration
+	poolConfig, err := createPoolConfig(cfg)
+	if err != nil {
+		log.Error("Failed to create pool configuration", err)
+		return
+	}
+
+	if err := database.ConnectWithPoolConfig(cfg.Dsn, poolConfig); err != nil {
 		log.Error("Failed to connect to database", err)
 		return
 	}
@@ -92,6 +109,7 @@ func main() {
 
 	// Create auth service with providers
 	authService := authpkg.NewService(authOptions)
+
 	authService.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
 		return handlers.HandleLogin(database, user, password)
 	}))
@@ -102,9 +120,27 @@ func main() {
 	// Add middlewares
 	router.Use(middleware.Logger)
 
+	// Health check endpoint
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"status":"ok"}`)
+	})
+
 	// Mount auth routes
 	authHandler, avatarHandler := authService.Handlers()
-	router.Mount("/auth", authHandler)
+	// Wrap auth handler to fix HTTP status codes - return 401 for authentication failures instead of 403
+	wrappedAuthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Intercept status codes to convert 403 to 401 for login failures
+		// Per HTTP spec: 401 = authentication failed, 403 = authorization/permission denied
+		isLoginPath := strings.Contains(r.URL.Path, "/login")
+		rw := &statusCodeInterceptor{
+			ResponseWriter: w,
+			isLoginPath:    isLoginPath,
+		}
+		authHandler.ServeHTTP(rw, r)
+	})
+	router.Mount("/auth", wrappedAuthHandler)
 	router.Mount("/avatar", avatarHandler)
 
 	// Add custom auth endpoints
@@ -154,4 +190,31 @@ func gracefulShutdown(database db.Database, objectStore store.ObjectStore, log l
 	} else {
 		log.Info("Database connection closed successfully")
 	}
+}
+
+func createPoolConfig(cfg Config) (*pgxpool.Config, error) {
+	poolConfig, err := pgxpool.ParseConfig(cfg.Dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse DSN: %w", err)
+	}
+
+	// Set pool configuration from config
+	poolConfig.MaxConns = cfg.DBMaxConns
+	poolConfig.MinConns = cfg.DBMinConns
+	poolConfig.MaxConnLifetime = time.Duration(cfg.DBMaxConnLifetime) * time.Minute
+	poolConfig.MaxConnIdleTime = time.Duration(cfg.DBMaxConnIdleTime) * time.Minute
+
+	return poolConfig, nil
+}
+
+type statusCodeInterceptor struct {
+	http.ResponseWriter
+	isLoginPath bool
+}
+
+func (w *statusCodeInterceptor) WriteHeader(code int) {
+	if w.isLoginPath && code == http.StatusForbidden {
+		code = http.StatusUnauthorized
+	}
+	w.ResponseWriter.WriteHeader(code)
 }

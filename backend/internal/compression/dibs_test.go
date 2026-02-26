@@ -304,6 +304,175 @@ func TestCRCValidation(t *testing.T) {
 	}
 }
 
+// Test validation of compression options
+func TestValidateOptions(t *testing.T) {
+	testCases := []struct {
+		name      string
+		opts      CompressOptions
+		expectErr bool
+	}{
+		{
+			name:      "valid defaults",
+			opts:      DefaultCompressOptions(),
+			expectErr: false,
+		},
+		{
+			name:      "valid max decimal places",
+			opts:      CompressOptions{DecimalPlaces: 6, BlockLog2: 8, EnableCRC: true},
+			expectErr: false,
+		},
+		{
+			name:      "valid max block size",
+			opts:      CompressOptions{DecimalPlaces: 2, BlockLog2: 16, EnableCRC: true},
+			expectErr: false,
+		},
+		{
+			name:      "valid min block size",
+			opts:      CompressOptions{DecimalPlaces: 2, BlockLog2: 2, EnableCRC: true},
+			expectErr: false,
+		},
+		{
+			name:      "valid zero decimal places",
+			opts:      CompressOptions{DecimalPlaces: 0, BlockLog2: 8, EnableCRC: true},
+			expectErr: false,
+		},
+		{
+			name:      "invalid negative decimal places",
+			opts:      CompressOptions{DecimalPlaces: -1, BlockLog2: 8, EnableCRC: true},
+			expectErr: true,
+		},
+		{
+			name:      "invalid too many decimal places",
+			opts:      CompressOptions{DecimalPlaces: 7, BlockLog2: 8, EnableCRC: true},
+			expectErr: true,
+		},
+		{
+			name:      "invalid too many decimal places (10)",
+			opts:      CompressOptions{DecimalPlaces: 10, BlockLog2: 8, EnableCRC: true},
+			expectErr: true,
+		},
+		{
+			name:      "invalid block size too small",
+			opts:      CompressOptions{DecimalPlaces: 2, BlockLog2: 1, EnableCRC: true},
+			expectErr: true,
+		},
+		{
+			name:      "invalid block size too large",
+			opts:      CompressOptions{DecimalPlaces: 2, BlockLog2: 17, EnableCRC: true},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := []float64{1.0, 2.0, 3.0}
+			_, err := Compress(data, tc.opts)
+
+			if tc.expectErr && err == nil {
+				t.Errorf("Expected error but got none")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
+}
+
+// Test GPS coordinate compression with poly6 precision
+func TestGPSCoordinateCompression(t *testing.T) {
+	testCases := []struct {
+		name string
+		data []float64
+		desc string
+	}{
+		{
+			name: "latitude values",
+			data: []float64{40.741895, 40.741910, 40.741925, 40.741940, 40.741955},
+			desc: "typical GPS latitude values",
+		},
+		{
+			name: "longitude values",
+			data: []float64{-73.989308, -73.989320, -73.989335, -73.989350, -73.989365},
+			desc: "typical GPS longitude values",
+		},
+		{
+			name: "extreme latitude",
+			data: []float64{89.999999, 89.999998, 89.999997, -89.999999, -89.999998},
+			desc: "extreme latitude values near poles",
+		},
+		{
+			name: "extreme longitude",
+			data: []float64{179.999999, 179.999998, -179.999999, -179.999998, 0.0},
+			desc: "extreme longitude values near date line",
+		},
+	}
+
+	opts := CompressOptions{
+		DecimalPlaces: 6, // poly6 precision
+		BlockLog2:     4,
+		EnableCRC:     true,
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			compressed, err := Compress(tc.data, opts)
+			if err != nil {
+				t.Fatalf("Failed to compress %s: %v", tc.desc, err)
+			}
+
+			decompressed, err := Decompress(compressed)
+			if err != nil {
+				t.Fatalf("Failed to decompress %s: %v", tc.desc, err)
+			}
+
+			if !floatsEqualWithPrecision(tc.data, decompressed, opts.DecimalPlaces) {
+				t.Errorf("Data mismatch for %s", tc.desc)
+				for i := 0; i < len(tc.data); i++ {
+					t.Logf("  [%d] %.6f -> %.6f (diff: %.9f)", i, tc.data[i], decompressed[i], tc.data[i]-decompressed[i])
+				}
+			}
+		})
+	}
+}
+
+// Test edge case with math.MinInt32 in compression
+// This verifies that maxAbsValue correctly handles the two's complement edge case
+// where -math.MinInt32 wraps to itself, but uint32 cast produces correct absolute value
+func TestMinInt32EdgeCase(t *testing.T) {
+	// Create data that will produce math.MinInt32 after quantization
+	// With DecimalPlaces=0, scale=1, so direct int32 conversion
+	data := []float64{
+		float64(math.MinInt32),
+		0,
+		float64(math.MaxInt32),
+	}
+
+	opts := CompressOptions{
+		DecimalPlaces: 0, // No scaling, direct int32
+		BlockLog2:     4,
+		EnableCRC:     true,
+	}
+
+	compressed, err := Compress(data, opts)
+	if err != nil {
+		t.Fatalf("Compression failed with MinInt32: %v", err)
+	}
+
+	decompressed, err := Decompress(compressed)
+	if err != nil {
+		t.Fatalf("Decompression failed with MinInt32: %v", err)
+	}
+
+	if !floatsEqualWithPrecision(data, decompressed, opts.DecimalPlaces) {
+		t.Errorf("Data mismatch with MinInt32")
+		for i := 0; i < len(data); i++ {
+			t.Logf("  [%d] %.0f -> %.0f", i, data[i], decompressed[i])
+		}
+	}
+
+	t.Logf("MinInt32 edge case handled correctly")
+}
+
 // Benchmark basic compression
 func BenchmarkCompression(b *testing.B) {
 	data := generateSineWave(100, 5, 1000)

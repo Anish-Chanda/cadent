@@ -115,9 +115,32 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		if len(req.Samples) < 2 {
-			http.Error(w, "Not Enough Samples", http.StatusBadRequest)
+
+		// TODO: Add proper request validation for required fields
+		if req.ClientActivityID == uuid.Nil {
+			http.Error(w, "client_activity_id is required", http.StatusBadRequest)
 			return
+		}
+		if req.ActivityType == "" {
+			http.Error(w, "activity_type is required", http.StatusBadRequest)
+			return
+		}
+		if len(req.Samples) < 2 {
+			http.Error(w, "At least 2 samples are required", http.StatusBadRequest)
+			return
+		}
+
+		// Validate sample data completeness
+		for i, sample := range req.Samples {
+			if sample.T <= 0 {
+				http.Error(w, fmt.Sprintf("Sample %d: timestamp (t) is required and must be positive", i+1), http.StatusBadRequest)
+				return
+			}
+			// Check that coordinates are not at null island (0,0) which is invalid for real GPS data
+			if sample.Lat == 0 || sample.Lon == 0 {
+				http.Error(w, fmt.Sprintf("Sample %d: valid coordinates (lat, lon) are required and cannot be zero", i+1), http.StatusBadRequest)
+				return
+			}
 		}
 
 		// Check idempotency
@@ -140,7 +163,12 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		log.Debug(fmt.Sprintf("Processing activity for user: %s", userID))
-
+		// Validate activity_type enum before database insertion to return 400
+		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
+			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
+			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType), http.StatusBadRequest)
+			return
+		}
 		// Process GPS data to create polyline and calculate metrics
 		polyline, totalDistance, bounds := processGPSData(req.Samples)
 
@@ -206,6 +234,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		// Build and return response
 		result := createActivityResult(activity)
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(result)
 	}
 }
@@ -513,9 +542,9 @@ func createCompressedStreams(activityID uuid.UUID, keepIndices []int, fullStream
 	// For now, we store all stream types in one record with their respective compressed bytes
 	// In a more advanced implementation, you might want separate records for each stream type
 	// with their own codec metadata
-	_ = distanceCodec  // suppress unused warning
+	_ = distanceCodec // suppress unused warning
 	_ = elevationCodec // suppress unused warning
-	_ = speedCodec     // suppress unused warning
+	_ = speedCodec // suppress unused warning
 
 	return []models.ActivityStream{stream}, nil
 }

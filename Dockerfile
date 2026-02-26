@@ -1,6 +1,10 @@
 # Build stage
 FROM golang:1.25.1-alpine AS builder
 
+# Version arguments
+ARG API_VERSION=dev
+ARG BUILD_HASH=unknown
+
 # Set working directory
 WORKDIR /app
 
@@ -13,15 +17,18 @@ RUN go mod download
 # Copy source code
 COPY backend/ ./backend/
 
-# Build the application
+# Build the application with version injection
 WORKDIR /app/backend
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ../bin/api .
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -a -installsuffix cgo \
+    -ldflags "-X main.Version=${API_VERSION} -X main.BuildHash=${BUILD_HASH}" \
+    -o ../bin/api .
 
 # Final stage
 FROM alpine:latest
 
-# TODO: Install ca-certificates for HTTPS requests, when we handle it, maybe
-# RUN apk --no-cache add ca-certificates
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
 
 # Create non-root user
 RUN addgroup -g 1001 appgroup && \
