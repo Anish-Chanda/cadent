@@ -116,7 +116,7 @@ void main() {
 
   group('ActivitiesService.getActivities', () {
     test('parses list on 200 with activities array', () async {
-      mocker.reply('GET', '/v1/activities', statusCode: 200, data: {
+      mocker.reply('GET', '/api/v1/activities', statusCode: 200, data: {
         'activities': [
           {
             'id': 'a1',
@@ -150,13 +150,13 @@ void main() {
     });
 
     test('returns [] on unexpected payload shape', () async {
-      mocker.reply('GET', '/v1/activities', statusCode: 200, data: {'foo': 'bar'});
+      mocker.reply('GET', '/api/v1/activities', statusCode: 200, data: {'foo': 'bar'});
       final list = await ActivitiesService.instance.getActivities();
       expect(list, isEmpty);
     });
 
     test('returns [] on non-200', () async {
-      mocker.reply('GET', '/v1/activities', statusCode: 500, statusMessage: 'err');
+      mocker.reply('GET', '/api/v1/activities', statusCode: 500, statusMessage: 'err');
       final list = await ActivitiesService.instance.getActivities();
       expect(list, isEmpty);
     });
@@ -164,9 +164,9 @@ void main() {
     test('returns [] on network error', () async {
       mocker.throwError(
         'GET',
-        '/v1/activities',
+        '/api/v1/activities',
         DioException(
-          requestOptions: RequestOptions(path: '/v1/activities'),
+          requestOptions: RequestOptions(path: '/api/v1/activities'),
           type: DioExceptionType.connectionError,
           error: 'offline',
         ),
@@ -178,7 +178,7 @@ void main() {
 
   group('ActivitiesService.saveActivity', () {
     test('returns true on 201 and maps explicit fields', () async {
-      mocker.reply('POST', '/v1/activities', statusCode: 201, data: {'ok': true});
+      mocker.reply('POST', '/api/v1/activities', statusCode: 201, data: {'ok': true});
 
       final ok = await ActivitiesService.instance.saveActivity(
         // Use an empty session to avoid geolocator Position construction
@@ -191,7 +191,7 @@ void main() {
       expect(ok, isTrue);
 
       // Assert request path and payload basics
-      expect(captor.lastRequest?.path, '/v1/activities');
+      expect(captor.lastRequest?.path, '/api/v1/activities');
       final body = (captor.lastData as Map<String, dynamic>);
       expect(body['title'], 'My Ride');
       expect(body['description'], 'Fun route');
@@ -201,7 +201,7 @@ void main() {
     });
 
     test('returns true on 200', () async {
-      mocker.reply('POST', '/v1/activities', statusCode: 200, data: {'ok': true});
+      mocker.reply('POST', '/api/v1/activities', statusCode: 200, data: {'ok': true});
       final ok = await ActivitiesService.instance.saveActivity(
         RecordingSessionModel(),
       );
@@ -209,7 +209,7 @@ void main() {
     });
 
     test('returns false on non-200', () async {
-      mocker.reply('POST', '/v1/activities', statusCode: 500);
+      mocker.reply('POST', '/api/v1/activities', statusCode: 500);
       final ok = await ActivitiesService.instance.saveActivity(
         RecordingSessionModel(),
       );
@@ -219,9 +219,9 @@ void main() {
     test('returns false on exception', () async {
       mocker.throwError(
         'POST',
-        '/v1/activities',
+        '/api/v1/activities',
         DioException(
-          requestOptions: RequestOptions(path: '/v1/activities'),
+          requestOptions: RequestOptions(path: '/api/v1/activities'),
           type: DioExceptionType.connectionError,
           error: 'fail',
         ),
