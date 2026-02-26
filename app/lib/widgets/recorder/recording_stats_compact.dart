@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 import '../global/compact_stat.dart';
 
 /// Compact recording stats view shown in the bottom floating card.
@@ -36,31 +37,26 @@ class RecordingStatsCompact extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Theme.of(context).colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: Row(
                   children: [
                     Text(
                       model.activityType.displayName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                     ),
                     const Spacer(),
                     const Icon(
                       Icons.keyboard_arrow_down,
-                      color: Colors.grey,
                       size: 20,
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSM,
           ],
 
           // Top row: Time (left) and Control buttons (right)
@@ -74,18 +70,13 @@ class RecordingStatsCompact extends StatelessWidget {
                     const Text(
                       'Time',
                       style: TextStyle(
-                        color: Colors.grey,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       model.formattedTime,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -98,16 +89,20 @@ class RecordingStatsCompact extends StatelessWidget {
                   if (model.isRecording || model.isPaused)
                     GestureDetector(
                       onTap: model.isRecording ? onPause : onResume,
-                      child: Container(
+                        child: Container(
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: model.isRecording ? Colors.orange : Colors.blue,
+                          color: model.isRecording
+                              ? Theme.of(context).colorScheme.secondary
+                              : Theme.of(context).colorScheme.primary,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Icon(
                           model.isRecording ? Icons.pause : Icons.play_arrow,
-                          color: Colors.white,
+                          color: model.isRecording
+                              ? Theme.of(context).colorScheme.onSecondary
+                              : Theme.of(context).colorScheme.onPrimary,
                           size: 20,
                         ),
                       ),
@@ -115,19 +110,19 @@ class RecordingStatsCompact extends StatelessWidget {
 
                   // Finish Button - show when recording or paused
                   if (model.isRecording || model.isPaused) ...[
-                    const SizedBox(width: 8),
+                    AppSpacing.gapHorizontalXS,
                     GestureDetector(
                       onTap: onFinish,
                       child: Container(
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.red,
+                          color: Theme.of(context).colorScheme.error,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.stop,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onError,
                           size: 20,
                         ),
                       ),
@@ -139,27 +134,27 @@ class RecordingStatsCompact extends StatelessWidget {
                     GestureDetector(
                       onTap: onStart,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: const Text(
-                          'Start',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: Text(
+                            'Start',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
                     ),
                 ],
               ),
             ],
           ),
 
-          const SizedBox(height: 16),
+          AppSpacing.gapMD,
 
           // Bottom row: Stats (Distance and Speed)
           if (model.isActive || model.isCompleted)
@@ -171,7 +166,7 @@ class RecordingStatsCompact extends StatelessWidget {
                     label: 'Distance',
                   ),
                 ),
-                const SizedBox(width: 20),
+                AppSpacing.gapHorizontalLG,
                 Expanded(
                   child: CompactStat(
                     value: model.isRecording ? model.formattedSpeed : '--',
