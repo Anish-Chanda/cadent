@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
+import '../../utils/app_text_size.dart';
 
 /// An empty state widget displaying an icon, title, and optional message.
 class EmptyStateWidget extends StatelessWidget {
@@ -12,7 +14,7 @@ class EmptyStateWidget extends StatelessWidget {
     required this.icon,
     required this.title,
     this.message,
-    this.iconSize = 64,
+    this.iconSize = AppSpacing.massive,
   });
 
   @override
@@ -24,27 +26,27 @@ class EmptyStateWidget extends StatelessWidget {
           Icon(
             icon,
             size: iconSize,
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMD,
           Text(
             title,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+            style: AppTextStyles.headlineSmall(
+              context,
+              fontWeight: AppTextSize.bold,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           if (message != null) ...[
-            const SizedBox(height: 8),
+            AppSpacing.gapXS,
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: AppSpacing.paddingHorizontalXXL,
               child: Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[500],
+                style: AppTextStyles.bodyMedium(
+                  context,
+                  color: Theme.of(context).colorScheme.outline,
                 ),
               ),
             ),
