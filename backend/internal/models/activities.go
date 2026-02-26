@@ -9,8 +9,8 @@ import (
 type ActivityType string
 
 const (
-	ActivityTypeRun      ActivityType = "run"
-	ActivityTypeRoadBike ActivityType = "road_bike"
+	ActivityTypeRun      ActivityType = "running"
+	ActivityTypeRoadBike ActivityType = "road_biking"
 )
 
 type Activity struct {

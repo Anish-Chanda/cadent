@@ -1,6 +1,6 @@
 CREATE TYPE activity_type AS ENUM (
-    'run',
-    'road_bike'
+    'running',
+    'road_biking'
 );
 
 CREATE TABLE activities (
