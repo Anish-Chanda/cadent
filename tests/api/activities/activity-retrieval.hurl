@@ -52,7 +52,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "Morning Run",
     "description": "Quick jog around campus",
     "samples": [
@@ -67,7 +67,7 @@ HTTP 201
 user1_small_activity_id: jsonpath "$.id"
 [Asserts]
 jsonpath "$.id" exists
-jsonpath "$.type" == "run"
+jsonpath "$.type" == "running"
 
 
 ### Test 5: List activities - should have 1 activity
@@ -179,7 +179,7 @@ POST http://localhost:8080/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "running",
     "title": "User 2 Activity",
     "description": "Belongs to User 2 only",
     "samples": [
