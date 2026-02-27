@@ -227,3 +227,39 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  build-and-publish-backend:
+    name: Build & Publish Production Image
+    runs-on: ubuntu-latest
+    needs: [unit-test-app, unit-test-backend]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: . 
+          file: ./Dockerfile 
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/anish-chanda/cadent-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
