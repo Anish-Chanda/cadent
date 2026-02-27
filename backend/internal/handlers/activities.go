@@ -38,9 +38,10 @@ type CreateActivityRequest struct {
 }
 
 type Sample struct {
-	T   int64   `json:"t"`   // timestamp in unix milliseconds
-	Lat float64 `json:"lat"` // latitude
-	Lon float64 `json:"lon"` // longitude
+	T   int64    `json:"t"`             // timestamp in unix milliseconds
+	Lat float64  `json:"lat"`           // latitude
+	Lon float64  `json:"lon"`           // longitude
+	Ele *float64 `json:"ele,omitempty"` // elevation in meters (optional)
 }
 
 // FullResolutionStream holds full-resolution stream data for all points
@@ -853,6 +854,7 @@ func calculateDerivedStats(activityType string, speedMs float64, distanceM float
 }
 
 // processFullResolutionStreams converts samples and elevation data into full-resolution stream arrays
+// Elevation priority: 1) sample.Ele if present, 2) elevationHeights from Valhalla, 3) default to 0
 func processFullResolutionStreams(samples []Sample, elevationData *valhalla.ElevationChange, elevationHeights []float64) *FullResolutionStream {
 	if len(samples) == 0 {
 		return &FullResolutionStream{}
@@ -885,8 +887,12 @@ func processFullResolutionStreams(samples []Sample, elevationData *valhalla.Elev
 			stream.DistanceM[i] = cumulativeDistance
 		}
 
-		// Elevation (use provided elevation heights if available)
-		if elevationHeights != nil && i < len(elevationHeights) {
+		// Elevation - prioritize sample elevation, then Valhalla data, then default to 0
+		if sample.Ele != nil {
+			// Use elevation from sample if provided
+			stream.ElevationM[i] = *sample.Ele
+		} else if elevationHeights != nil && i < len(elevationHeights) {
+			// Fall back to Valhalla elevation data
 			stream.ElevationM[i] = elevationHeights[i]
 		} else {
 			stream.ElevationM[i] = 0 // Default elevation if no data available
