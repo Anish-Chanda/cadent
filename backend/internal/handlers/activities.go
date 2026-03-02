@@ -340,7 +340,8 @@ func processGPSData(samples []Sample) (string, float64, Bounds) {
 	return polyline, totalDistance, bounds
 }
 
-// Helper function to get elevation data and heights from Valhalla
+// Helper function to get elevation data and heights from Valhalla, returns calculated
+// elevation change and array of elevation heights
 func getElevationDataAndHeights(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log logger.ServiceLogger) (*valhalla.ElevationChange, []float64) {
 	heightReq := valhalla.HeightRequest{
 		Range:           false, // range off
