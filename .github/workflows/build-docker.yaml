@@ -1,7 +1,9 @@
 name: Build & Publish Production Image
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
+jobs:
+  build:
     runs-on: ubuntu-latest
 
     permissions:
@@ -18,6 +20,7 @@ on:
           platforms: linux/amd64,linux/arm64
 
       - name: Log into GitHub Container Registry
+        if: ${{ !env.ACT }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -25,6 +28,7 @@ on:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        if: ${{ !env.ACT }}
         uses: docker/build-push-action@v5
         with:
           context: . 
