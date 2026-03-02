@@ -87,6 +87,7 @@ docker-build-api: ## Build backend API Docker image with version info
 build-api: set-version ## Build web app then Go binary with web embedded
 	@echo "Building web application..."
 	cd $(WEB_DIR) && npm run build
+	@touch $(BACKEND_DIR)/web/dist/.gitkeep
 	@echo "Building Go application..."
 	cd $(BACKEND_DIR) && go build -o ../$(GO_BUILD_DIR)/$(GO_APP_NAME) .
 	@$(MAKE) clean-version
@@ -112,6 +113,7 @@ run-app: set-version ## Run mobile app on connected device
 build-web: set-version ## Build web application for production
 	@echo "Building web application..."
 	cd $(WEB_DIR) && npm run build
+	@touch $(BACKEND_DIR)/web/dist/.gitkeep
 	@$(MAKE) clean-version
 
 run-web-dev: set-version ## Runs the web server, Note: normally the api serves static files, but this is useful for development
