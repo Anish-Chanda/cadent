@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_spacing.dart';
+import '../../utils/app_text_size.dart';
 
 /// A summary stat card with white background and border.
 /// Used in summary screens like finish activity.
@@ -22,10 +24,10 @@ class SummaryStatCard extends StatelessWidget {
     this.borderColor,
     this.valueColor,
     this.labelColor,
-    this.valueFontSize = 18,
-    this.labelFontSize = 14,
-    this.valueFontWeight = FontWeight.bold,
-    this.padding = const EdgeInsets.all(16),
+    this.valueFontSize = AppTextSize.xl,
+    this.labelFontSize = AppTextSize.md,
+    this.valueFontWeight = AppTextSize.bold,
+    this.padding = AppSpacing.paddingMD,
   });
 
   @override
@@ -33,9 +35,9 @@ class SummaryStatCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor ?? Colors.grey[200]!),
+        color: backgroundColor ?? Theme.of(context).colorScheme.surface,
+        borderRadius: AppSpacing.borderRadiusMD,
+        border: Border.all(color: borderColor ?? Theme.of(context).colorScheme.outline.withOpacity(0.2)),
       ),
       child: Column(
         children: [
@@ -44,15 +46,15 @@ class SummaryStatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: valueFontSize,
               fontWeight: valueFontWeight,
-              color: valueColor ?? Colors.black87,
+              color: valueColor ?? Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 4),
+          AppSpacing.gapXXS,
           Text(
             label,
             style: TextStyle(
               fontSize: labelFontSize,
-              color: labelColor ?? Colors.grey[600],
+              color: labelColor ?? Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
         ],

@@ -96,7 +96,7 @@ void main() {
 
   group('AuthService.signup', () {
     test('returns userId on 201 and success true', () async {
-      interceptor.reply('POST', '/signup', statusCode: 201, data: {
+      interceptor.reply('POST', '/api/signup', statusCode: 201, data: {
         'success': true,
         'user_id': 'u1',
       });
@@ -110,7 +110,7 @@ void main() {
     });
 
     test('throws when 201 but missing/invalid payload', () async {
-      interceptor.reply('POST', '/signup', statusCode: 201, data: {
+      interceptor.reply('POST', '/api/signup', statusCode: 201, data: {
         'success': false,
       });
 
@@ -125,7 +125,7 @@ void main() {
     });
 
     test('throws when non-201 status', () async {
-      interceptor.reply('POST', '/signup', statusCode: 400, statusMessage: 'Bad Request', data: {
+      interceptor.reply('POST', '/api/signup', statusCode: 400, statusMessage: 'Bad Request', data: {
         'error': 'invalid',
       });
 
@@ -142,13 +142,13 @@ void main() {
 
   group('AuthService.login', () {
     test('completes on 200', () async {
-      interceptor.reply('POST', '/auth/local/login?session=1', statusCode: 200);
+      interceptor.reply('POST', '/api/auth/local/login?session=1', statusCode: 200);
 
       await AuthService.instance.login(email: 'user@example.com', password: 'pw');
     });
 
     test('throws on non-200', () async {
-      interceptor.reply('POST', '/auth/local/login?session=1', statusCode: 401, statusMessage: 'Unauthorized');
+      interceptor.reply('POST', '/api/auth/local/login?session=1', statusCode: 401, statusMessage: 'Unauthorized');
 
       expect(
         () => AuthService.instance.login(email: 'user@example.com', password: 'pw'),
@@ -159,7 +159,7 @@ void main() {
 
   group('AuthService.getUserProfile', () {
     test('returns user data on 200', () async {
-      interceptor.reply('GET', '/v1/user', statusCode: 200, data: {
+      interceptor.reply('GET', '/api/v1/user', statusCode: 200, data: {
         'id': 'user123',
         'email': 'user@example.com',
         'name': 'Test User',
@@ -172,14 +172,14 @@ void main() {
     });
 
     test('returns null on 401 unauthorized', () async {
-      interceptor.reply('GET', '/v1/user', statusCode: 401, statusMessage: 'Unauthorized');
+      interceptor.reply('GET', '/api/v1/user', statusCode: 401, statusMessage: 'Unauthorized');
 
       final result = await AuthService.instance.getUserProfile();
       expect(result, isNull);
     });
 
     test('returns null on 403 forbidden', () async {
-      interceptor.reply('GET', '/v1/user', statusCode: 403, statusMessage: 'Forbidden');
+      interceptor.reply('GET', '/api/v1/user', statusCode: 403, statusMessage: 'Forbidden');
 
       final result = await AuthService.instance.getUserProfile();
       expect(result, isNull);
@@ -188,9 +188,9 @@ void main() {
     test('returns null on network error/exception', () async {
       interceptor.throwError(
         'GET',
-        '/v1/user',
+        '/api/v1/user',
         DioException(
-          requestOptions: RequestOptions(path: '/v1/user'),
+          requestOptions: RequestOptions(path: '/api/v1/user'),
           type: DioExceptionType.connectionError,
           error: 'connection error',
         ),

@@ -9,6 +9,7 @@ import '../../widgets/global/password_form_field.dart';
 import '../../widgets/global/primary_button.dart';
 import '../../widgets/global/text_link_button.dart';
 import '../../utils/validators.dart';
+import '../../utils/app_spacing.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -47,10 +48,10 @@ class _SignupScreenState extends State<SignupScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created successfully! Welcome to Cadence!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Text('Account created successfully! Welcome to Cadent!'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -59,7 +60,7 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Signup failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -91,23 +92,23 @@ class _SignupScreenState extends State<SignupScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.1),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
                               'C',
                               style: TextStyle(
                                 fontSize: 40,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        AppSpacing.gapXL,
                         const AuthHeader(
-                          title: 'Join Cadence',
+                          title: 'Join Cadent',
                           subtitle: 'Create your account to get started',
                         ),
                         const SizedBox(height: 48),
@@ -123,7 +124,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 hintText: 'Enter your name',
                                 validator: Validators.name,
                               ),
-                              const SizedBox(height: 16),
+                              AppSpacing.gapMD,
                               AppTextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
@@ -131,19 +132,19 @@ class _SignupScreenState extends State<SignupScreen> {
                                 hintText: 'Enter your email address',
                                 validator: Validators.email,
                               ),
-                              const SizedBox(height: 16),
+                              AppSpacing.gapMD,
                               PasswordFormField(
                                 controller: _passwordController,
                                 validator: Validators.password,
                               ),
-                              const SizedBox(height: 16),
+                              AppSpacing.gapMD,
                               PasswordFormField(
                                 controller: _confirmPasswordController,
                                 labelText: 'Confirm Password',
                                 hintText: 'Re-enter your password',
                                 validator: (value) => Validators.confirmPassword(value, _passwordController.text),
                               ),
-                              const SizedBox(height: 24),
+                              AppSpacing.gapXL,
 
                               // Signup Button
                               Consumer<AuthProvider>(
@@ -152,11 +153,10 @@ class _SignupScreenState extends State<SignupScreen> {
                                     text: 'Create Account',
                                     onPressed: _handleSignup,
                                     isLoading: auth.isLoading,
-                                    textColor: Colors.white,
                                   );
                                 },
                               ),
-                              const SizedBox(height: 16),
+                              AppSpacing.gapMD,
 
                               // Login link
                               Row(

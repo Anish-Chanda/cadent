@@ -1,6 +1,7 @@
 import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import '../../models/recording_session_model.dart';
+import '../../utils/app_spacing.dart';
 import 'recording_control_panel.dart';
 
 /// Full-screen stats view shown when the card is expanded.
@@ -30,7 +31,7 @@ class RecordingStatsFull extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: model.isRecording ? Colors.red : Colors.orange,
+              color: model.isRecording ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.secondary,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -38,82 +39,53 @@ class RecordingStatsFull extends StatelessWidget {
               children: [
                 Icon(
                   model.isRecording ? Icons.fiber_manual_record : Icons.pause,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onError,
                   size: 16,
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.gapHorizontalXS,
                 Text(
                   model.isRecording ? 'RECORDING' : 'PAUSED',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onError),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          AppSpacing.gapXXL,
         ],
 
         // Time Display
         Text(
           model.formattedTime,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 56,
-            fontWeight: FontWeight.w300,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w300, fontFeatures: const [FontFeature.tabularFigures()]),
         ),
         Text(
           'Running Time',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
         ),
-        const SizedBox(height: 32),
+        AppSpacing.gapXXL,
 
         // Distance Display
         Text(
           model.formattedDistance,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 40,
-            fontWeight: FontWeight.w400,
-          ),
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w400),
         ),
         Text(
           'Distance',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
         ),
-        const SizedBox(height: 24),
+        AppSpacing.gapXL,
 
         // Speed Display (only show when recording)
         if (model.isRecording) ...[
           Text(
             model.formattedSpeed,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 32,
-              fontWeight: FontWeight.w400,
-            ),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w400),
           ),
           Text(
             'Current Speed',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 24),
+          AppSpacing.gapXL,
         ],
 
         const Spacer(),

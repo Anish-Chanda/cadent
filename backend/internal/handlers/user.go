@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/mail"
+	"strings"
 
 	"github.com/anish-chanda/cadence/backend/internal/db"
 	"github.com/anish-chanda/cadence/backend/internal/logger"
@@ -115,19 +117,26 @@ func HandleUpdateUser(database db.Database, log logger.ServiceLogger) http.Handl
 		updates := make(map[string]interface{})
 
 		if updateReq.Name != nil {
-			if *updateReq.Name == "" {
+			trimmedName := strings.TrimSpace(*updateReq.Name)
+			if trimmedName == "" {
 				http.Error(w, "Name cannot be empty", http.StatusBadRequest)
 				return
 			}
-			updates["name"] = *updateReq.Name
+			updates["name"] = trimmedName
 		}
 
 		if updateReq.Email != nil {
-			if *updateReq.Email == "" {
+			trimmedEmail := strings.TrimSpace(strings.ToLower(*updateReq.Email))
+			if trimmedEmail == "" {
 				http.Error(w, "Email cannot be empty", http.StatusBadRequest)
 				return
 			}
-			updates["email"] = *updateReq.Email
+			// Validate email format using RFC 5322
+			if _, err := mail.ParseAddress(trimmedEmail); err != nil {
+				http.Error(w, "Invalid email format", http.StatusBadRequest)
+				return
+			}
+			updates["email"] = trimmedEmail
 			//this might trigger email verification in future
 		}
 

@@ -11,6 +11,12 @@ type Config struct {
 	// Database configuration
 	Dsn string
 
+	// Database connection pool configuration
+	DBMaxConns        int32 // Maximum number of connections in the pool
+	DBMinConns        int32 // Minimum number of connections in the pool
+	DBMaxConnLifetime int   // Maximum lifetime of a connection in minutes
+	DBMaxConnIdleTime int   // Maximum idle time of a connection in minutes
+
 	// Server configuration
 	Port uint
 
@@ -38,6 +44,12 @@ func LoadConfig() Config {
 	return Config{
 		// Database
 		Dsn: getRequiredEnv("POSTGRES_DSN"),
+
+		// Database pool configuration
+		DBMaxConns:        int32(getEnvIntOrDefault("DB_MAX_CONNS", 5)),
+		DBMinConns:        int32(getEnvIntOrDefault("DB_MIN_CONNS", 1)),
+		DBMaxConnLifetime: getEnvIntOrDefault("DB_MAX_CONN_LIFETIME_MINUTES", 60),
+		DBMaxConnIdleTime: getEnvIntOrDefault("DB_MAX_CONN_IDLE_TIME_MINUTES", 30),
 
 		// Server
 		Port: uint(getEnvIntOrDefault("PORT", 8080)),

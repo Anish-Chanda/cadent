@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -75,7 +76,8 @@ func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerF
 			return
 		}
 
-		if !strings.Contains(email, "@") {
+		// Validate email format using RFC 5322
+		if _, err := mail.ParseAddress(email); err != nil {
 			response := SignupResponse{
 				Success: false,
 				Message: "Invalid email format",
@@ -207,6 +209,9 @@ func verifyPassword(password, encoded string) (bool, error) {
 
 // HandleLogin handles local authentication by checking email and password
 func HandleLogin(database db.Database, email, password string) (bool, error) {
+	// Normalize email
+	email = strings.TrimSpace(strings.ToLower(email))
+
 	// Get user by email
 	user, err := database.GetUserByEmail(context.TODO(), email)
 	if err != nil {

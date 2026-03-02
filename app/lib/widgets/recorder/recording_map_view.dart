@@ -2,9 +2,11 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import '../../utils/app_theme.dart';
 
 /// Map view widget for the recorder screen.
 /// Displays a MapLibre map with user location tracking.
+/// Automatically uses dark map style when in dark mode.
 class RecordingMapView extends StatelessWidget {
   final Function(MapLibreMapController) onMapCreated;
   final List<Position>? positions;
@@ -18,7 +20,7 @@ class RecordingMapView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MapLibreMap(
-      styleString: 'https://tiles.openfreemap.org/styles/liberty',
+      styleString: AppTheme.getMapStyle(context),
       initialCameraPosition: const CameraPosition(
         target: LatLng(37.7749, -122.4194), // Default to San Francisco
         zoom: 14.0,

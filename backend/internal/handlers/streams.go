@@ -12,6 +12,7 @@ import (
 	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/models"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // Stream processing constants
@@ -51,6 +52,13 @@ func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) ht
 		if activityID == "" {
 			log.Error("Missing activity ID in URL path", nil)
 			http.Error(w, "Activity ID is required", http.StatusBadRequest)
+			return
+		}
+
+		// Validate activity ID format
+		if _, err := uuid.Parse(activityID); err != nil {
+			log.Error("Invalid activity ID format", err)
+			http.Error(w, "Invalid activity ID format", http.StatusBadRequest)
 			return
 		}
 

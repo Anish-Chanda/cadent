@@ -17,7 +17,7 @@ class AuthService {
   Future<String> signup({required String email, required String password, required String name}) async {
     final dio = HttpClient.instance.dio;
     final response = await dio.post(
-      '/signup',
+      '/api/signup',
       data: {'user': email, 'passwd': password, 'name': name},
     );
 
@@ -39,7 +39,7 @@ class AuthService {
   Future<void> login({required String email, required String password}) async {
     final dio = HttpClient.instance.dio;
     final response = await dio.post(
-      '/auth/local/login?session=1',
+      '/api/auth/local/login?session=1',
       data: {'user': email, 'passwd': password},
     );
 
@@ -58,7 +58,7 @@ class AuthService {
     try {
       final dio = HttpClient.instance.dio;
       // Use the /v1/user endpoint - returns user data if authenticated, 401 if not
-      final response = await dio.get('/v1/user');
+      final response = await dio.get('/api/v1/user');
 
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;

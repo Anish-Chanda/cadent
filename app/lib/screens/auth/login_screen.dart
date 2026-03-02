@@ -10,6 +10,7 @@ import '../../widgets/global/password_form_field.dart';
 import '../../widgets/global/primary_button.dart';
 import '../../widgets/global/text_link_button.dart';
 import '../../utils/validators.dart';
+import '../../utils/app_spacing.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -70,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         // App Logo/Title
                         const AuthLogo(),
-                        const SizedBox(height: 24),
+                        AppSpacing.gapXL,
                         const AuthHeader(title: 'Welcome!'),
                         const SizedBox(height: 56),
 
@@ -86,12 +87,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 hintText: 'Enter your email address',
                                 validator: Validators.email,
                               ),
-                              const SizedBox(height: 16),
+                              AppSpacing.gapMD,
                               PasswordFormField(
                                 controller: _passwordController,
                                 validator: Validators.password,
                               ),
-                              const SizedBox(height: 24),
+                              AppSpacing.gapXL,
 
                               // Login Button
                               Consumer<AuthProvider>(
@@ -100,7 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     text: 'Login',
                                     onPressed: _handleLogin,
                                     isLoading: auth.isLoading,
-                                    textColor: Colors.white,
                                   );
                                 },
                               ),
