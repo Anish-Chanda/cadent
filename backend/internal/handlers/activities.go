@@ -35,7 +35,6 @@ type CreateActivityRequest struct {
 	Title            string    `json:"title"`
 	Description      *string   `json:"description"`
 	PerceivedEffort  int16     `json:"perceived_effort"`
-	UserMaxHRBpm     *int16    `json:"user_max_hr_bpm"`
 	Samples          []Sample  `json:"samples"`
 }
 
@@ -91,7 +90,6 @@ type ActivityResult struct {
 	Description     string        `json:"description"`
 	Type            string        `json:"type"`
 	PerceivedEffort int16         `json:"perceived_effort"`
-	UserMaxHRBpm    *int16        `json:"user_max_hr_bpm,omitempty"`
 	StartTime       time.Time     `json:"start_time"`
 	EndTime         *time.Time    `json:"end_time"`
 	Stats           ActivityStats `json:"stats"`
@@ -136,12 +134,6 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		if req.PerceivedEffort < 1 || req.PerceivedEffort > 10 {
 			http.Error(w, "perceived_effort must be between 1 and 10", http.StatusBadRequest)
 			return
-		}
-		if req.UserMaxHRBpm != nil {
-			if *req.UserMaxHRBpm < 1 || *req.UserMaxHRBpm > 300 {
-				http.Error(w, "user_max_hr_bpm must be between 1 and 300", http.StatusBadRequest)
-				return
-			}
 		}
 
 		// Validate sample data completeness
@@ -593,7 +585,6 @@ func buildActivityModel(req CreateActivityRequest, userID string, polyline strin
 		Title:            req.Title,
 		Description:      req.Description,
 		PerceivedEffort:  req.PerceivedEffort,
-		UserMaxHRBpm:     req.UserMaxHRBpm,
 		ActivityType:     models.ActivityType(req.ActivityType),
 		StartTime:        startTime,
 		EndTime:          &endTime,
@@ -657,7 +648,6 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 		Description:     stringOrDefault(activity.Description, ""),
 		Type:            string(activity.ActivityType),
 		PerceivedEffort: activity.PerceivedEffort,
-		UserMaxHRBpm:    activity.UserMaxHRBpm,
 		StartTime:       activity.StartTime,
 		EndTime:         activity.EndTime,
 		ProcessingVer:   activity.ProcessingVer,

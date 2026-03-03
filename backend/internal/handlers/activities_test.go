@@ -966,7 +966,6 @@ func TestBuildActivityModel(t *testing.T) {
 		Title:            "Test Run",
 		Description:      func() *string { s := "Test Description"; return &s }(),
 		PerceivedEffort:  7,
-		UserMaxHRBpm:     func() *int16 { v := int16(190); return &v }(),
 		Samples: []Sample{
 			{T: 1000, Lat: 40.0, Lon: -74.0},
 			{T: 2000, Lat: 40.001, Lon: -74.001},
@@ -1011,8 +1010,5 @@ func TestBuildActivityModel(t *testing.T) {
 	}
 	if activity.PerceivedEffort != req.PerceivedEffort {
 		t.Errorf("PerceivedEffort = %d, want %d", activity.PerceivedEffort, req.PerceivedEffort)
-	}
-	if activity.UserMaxHRBpm == nil || *activity.UserMaxHRBpm != *req.UserMaxHRBpm {
-		t.Errorf("UserMaxHRBpm = %v, want %d", activity.UserMaxHRBpm, *req.UserMaxHRBpm)
 	}
 }

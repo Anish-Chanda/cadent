@@ -523,8 +523,7 @@ func TestCreateActivity_Unit(t *testing.T) {
 						pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
 						pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
 						pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
-						pgxmock.AnyArg(), pgxmock.AnyArg(),
-						pgxmock.AnyArg()).
+						pgxmock.AnyArg(), pgxmock.AnyArg()).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 			},
 			expectedError: false,
@@ -552,8 +551,7 @@ func TestCreateActivity_Unit(t *testing.T) {
 						pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
 						pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
 						pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
-						pgxmock.AnyArg(), pgxmock.AnyArg(),
-						pgxmock.AnyArg()).
+						pgxmock.AnyArg(), pgxmock.AnyArg()).
 					WillReturnError(fmt.Errorf("foreign key constraint violation"))
 			},
 			expectedError: true,
@@ -603,14 +601,14 @@ func TestGetActivityByID_Unit(t *testing.T) {
 					"id", "user_id", "client_activity_id", "title", "description", "type",
 					"start_time", "end_time", "elapsed_time", "distance_m", "elevation_gain_m",
 					"elevation_loss_m", "max_height_m", "min_height_m",
-					"avg_speed_mps", "max_speed_mps", "avg_hr_bpm", "max_hr_bpm", "perceived_effort", "user_max_hr_bpm", "processing_ver",
+					"avg_speed_mps", "max_speed_mps", "avg_hr_bpm", "max_hr_bpm", "perceived_effort", "processing_ver",
 					"polyline", "bbox_min_lat", "bbox_min_lon", "bbox_max_lat", "bbox_max_lon",
 					"start_lat", "start_lon", "end_lat", "end_lon", "file_url", "created_at", "updated_at",
 				}).AddRow(
 					activityID, "user-123", clientActivityID, "Test Activity", nil, models.ActivityTypeRun,
 					time.Now(), endTime, 1800, distance, nil,
 					nil, nil, nil,
-					nil, nil, nil, nil, int16(5), nil, 1,
+					nil, nil, nil, nil, int16(5), 1,
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil, time.Now(), time.Now(),
 				)
@@ -698,7 +696,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 					"id", "user_id", "client_activity_id", "title", "description", "type",
 					"start_time", "end_time", "elapsed_time", "distance_m", "elevation_gain_m",
 					"elevation_loss_m", "max_height_m", "min_height_m",
-					"avg_speed_mps", "max_speed_mps", "avg_hr_bpm", "max_hr_bpm", "perceived_effort", "user_max_hr_bpm", "processing_ver",
+					"avg_speed_mps", "max_speed_mps", "avg_hr_bpm", "max_hr_bpm", "perceived_effort", "processing_ver",
 					"polyline", "bbox_min_lat", "bbox_min_lon", "bbox_max_lat", "bbox_max_lon",
 					"start_lat", "start_lon", "end_lat", "end_lon", "file_url", "created_at", "updated_at",
 				}).
@@ -706,7 +704,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 						activityID1, userID, clientActivityID1, "Activity 1", nil, models.ActivityTypeRun,
 						time.Now(), endTime, 1800, distance, nil,
 						nil, nil, nil,
-						nil, nil, nil, nil, int16(5), nil, 1,
+						nil, nil, nil, nil, int16(5), 1,
 						nil, nil, nil, nil, nil,
 						nil, nil, nil, nil, nil, time.Now(), time.Now(),
 					).
@@ -714,7 +712,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 						activityID2, userID, clientActivityID2, "Activity 2", nil, models.ActivityTypeRun,
 						time.Now(), endTime, 1800, distance, nil,
 						nil, nil, nil,
-						nil, nil, nil, nil, int16(5), nil, 1,
+						nil, nil, nil, nil, int16(5), 1,
 						nil, nil, nil, nil, nil,
 						nil, nil, nil, nil, nil, time.Now(), time.Now(),
 					)
@@ -734,7 +732,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 					"id", "user_id", "client_activity_id", "title", "description", "type",
 					"start_time", "end_time", "elapsed_time", "distance_m", "elevation_gain_m",
 					"elevation_loss_m", "max_height_m", "min_height_m",
-					"avg_speed_mps", "max_speed_mps", "avg_hr_bpm", "max_hr_bpm", "perceived_effort", "user_max_hr_bpm", "processing_ver",
+					"avg_speed_mps", "max_speed_mps", "avg_hr_bpm", "max_hr_bpm", "perceived_effort", "processing_ver",
 					"polyline", "bbox_min_lat", "bbox_min_lon", "bbox_max_lat", "bbox_max_lon",
 					"start_lat", "start_lon", "end_lat", "end_lon", "file_url", "created_at", "updated_at",
 				})

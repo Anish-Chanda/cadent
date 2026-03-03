@@ -124,12 +124,12 @@ func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activi
 			id, user_id, client_activity_id, title, description, type,
 			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
 			elevation_loss_m, max_height_m, min_height_m,
-			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, perceived_effort, user_max_hr_bpm, processing_ver,
+			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, perceived_effort, processing_ver,
 			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
 			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
-			$23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+			$22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32
 		)
 	`
 
@@ -153,7 +153,6 @@ func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activi
 		activity.AvgHRBpm,
 		activity.MaxHRBpm,
 		activity.PerceivedEffort,
-		activity.UserMaxHRBpm,
 		activity.ProcessingVer,
 		activity.Polyline,
 		activity.BBoxMinLat,
@@ -187,7 +186,7 @@ func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) (
 			id, user_id, client_activity_id, title, description, type,
 			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
 			elevation_loss_m, max_height_m, min_height_m,
-			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, perceived_effort, user_max_hr_bpm, processing_ver,
+			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, perceived_effort, processing_ver,
 			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
 			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
 		FROM activities 
@@ -225,7 +224,6 @@ func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) (
 			&activity.AvgHRBpm,
 			&activity.MaxHRBpm,
 			&activity.PerceivedEffort,
-			&activity.UserMaxHRBpm,
 			&activity.ProcessingVer,
 			&activity.Polyline,
 			&activity.BBoxMinLat,
@@ -323,7 +321,7 @@ func (s *PostgresDB) GetActivityByID(ctx context.Context, activityID string) (*m
 			id, user_id, client_activity_id, title, description, type,
 			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
 			elevation_loss_m, max_height_m, min_height_m,
-			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, perceived_effort, user_max_hr_bpm, processing_ver,
+			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, perceived_effort, processing_ver,
 			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
 			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
 		FROM activities 
@@ -351,7 +349,6 @@ func (s *PostgresDB) GetActivityByID(ctx context.Context, activityID string) (*m
 		&activity.AvgHRBpm,
 		&activity.MaxHRBpm,
 		&activity.PerceivedEffort,
-		&activity.UserMaxHRBpm,
 		&activity.ProcessingVer,
 		&activity.Polyline,
 		&activity.BBoxMinLat,
