@@ -4,5 +4,5 @@ package main
 // These values are injected at build time via ldflags
 var (
 	Version   = ""
-	BuildHash = ""
+	BuildHash = "202d07e"
 )
