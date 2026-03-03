@@ -51,6 +51,8 @@ install-deps: ## Install dependencies for backend and mobile app
 	cd $(BACKEND_DIR) && go mod tidy
 	@echo "Installing flutter dependencies..."
 	cd $(FRONTEND_DIR) && flutter pub get
+	@echo "Installing web dependencies..."
+	cd $(WEB_DIR) && npm install
 
 test: ## Run backend and flutter tests
 	cd $(BACKEND_DIR) && go test ./... --cover
