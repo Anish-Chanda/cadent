@@ -33,7 +33,14 @@ class ActivitiesService {
     }
   }
 
-  Future<bool> saveActivity(RecordingSessionModel session, {String? title, String? description}) async {
+  Future<bool> saveActivity(
+    RecordingSessionModel session,
+    {
+    String? title,
+    String? description,
+    int? perceivedEffort,
+    int? userMaxHrBpm,
+  }) async {
     try {
       final uuid = Uuid();
       final clientActivityId = uuid.v4();
@@ -44,6 +51,8 @@ class ActivitiesService {
         'client_activity_id': clientActivityId,
         'title': title ?? '${session.activityType.displayName} Activity',
         'description': description ?? 'Recorded on ${DateTime.now().toIso8601String()}',
+        'perceived_effort': perceivedEffort ?? 5,
+        if (userMaxHrBpm != null) 'user_max_hr_bpm': userMaxHrBpm,
         'start_time': session.startTime?.toIso8601String(),
         'samples': session.positions.map((position) => {
           'lon': position.longitude,

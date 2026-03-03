@@ -365,6 +365,20 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                label: 'Perceived Effort',
+                value: widget.activity.perceivedEffort?.toString() ?? 'N/A',
+                unit: widget.activity.perceivedEffort != null ? '/10' : '',
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(child: SizedBox.shrink()),
+          ],
+        ),
       ],
     );
   }
