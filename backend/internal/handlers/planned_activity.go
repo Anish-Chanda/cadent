@@ -13,9 +13,8 @@ import (
 )
 
 type CreatePlannedActivityRequest struct {
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Tags        []string `json:"tags"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
 
 	ActivityType string    `json:"activityType"`
 	StartTime    time.Time `json:"startTime"`
@@ -69,7 +68,6 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 			Description:           &req.Description,
 			Type:                  models.ActivityType(req.ActivityType),
 			StartTime:             req.StartTime,
-			Tags:                  req.Tags,
 			PlannedDistanceM:      req.PlannedDistanceMeter,
 			PlannedDurationS:      req.PlannedDurationSecond,
 			PlannedElevationGainM: req.PlannedElevationGainMeter,

@@ -1,12 +1,11 @@
 CREATE TABLE planned_activities (
     -- Identity and User Reference
-    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     
     -- Descriptive Fields
     title text NOT NULL,
     description text,
-    tags text[], 
     
     -- Activity Metadata
     type activity_type NOT NULL,

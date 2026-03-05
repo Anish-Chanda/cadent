@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // PlannedActivity represents a scheduled or intended activity in the calendar.
@@ -9,13 +11,12 @@ import (
 // "Planned vs. Actual" comparison logic.
 type PlannedActivity struct {
 	// Identity and User Reference
-	ID     int    `json:"id" db:"id"`
-	UserID string `json:"userId" db:"user_id"`
+	ID     uuid.UUID `json:"id" db:"id"`
+	UserID string    `json:"userId" db:"user_id"`
 
 	// Descriptive Fields
-	Title       string   `json:"title" db:"title"`
-	Description *string  `json:"description" db:"description"`
-	Tags        []string `json:"tags" db:"tags"`
+	Title       string  `json:"title" db:"title"`
+	Description *string `json:"description" db:"description"`
 
 	// Activity Metadata
 	Type      ActivityType `json:"activityType" db:"type"`

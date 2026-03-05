@@ -120,11 +120,11 @@ func (s *PostgresDB) CreatePlannedActivity(ctx context.Context, plan *models.Pla
 
 	query := `
         INSERT INTO planned_activities (
-            user_id, title, description, tags, type, start_time, 
+            user_id, title, description, type, start_time, 
             planned_distance_m, planned_duration_s, planned_elevation_gain_m, 
             target_avg_speed_mps, target_power_watt
         ) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id, created_at, updated_at`
 
 	// Execute query and scan the DB-generated fields back into the model
@@ -132,7 +132,6 @@ func (s *PostgresDB) CreatePlannedActivity(ctx context.Context, plan *models.Pla
 		plan.UserID,
 		plan.Title,
 		plan.Description,
-		plan.Tags,
 		plan.Type,
 		plan.StartTime,
 		plan.PlannedDistanceM,
