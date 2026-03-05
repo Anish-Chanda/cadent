@@ -365,7 +365,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        AppSpacing.gapMD,
         Row(
           children: [
             Expanded(
@@ -375,7 +375,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                 unit: widget.activity.perceivedEffort != null ? '/10' : '',
               ),
             ),
-            const SizedBox(width: 16),
+            AppSpacing.gapHorizontalMD,
             const Expanded(child: SizedBox.shrink()),
           ],
         ),

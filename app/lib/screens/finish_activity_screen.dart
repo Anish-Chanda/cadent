@@ -27,7 +27,8 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
   final _descriptionController = TextEditingController();
   final _titleFocus = FocusNode();
   final _descriptionFocus = FocusNode();
-  int _perceivedEffort = 5;
+  int? _perceivedEffort;
+  int _sliderValue = 5; // Slider display value when effort is being tracked
 
   @override
   void initState() {
@@ -219,37 +220,70 @@ class _FinishActivityScreenState extends State<FinishActivityScreen> {
               ),
             ),
             AppSpacing.gapSM,
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Theme.of(context).dividerColor),
+            
+            // Checkbox to skip effort rating
+            CheckboxListTile(
+              title: Text(
+                'Skip effort rating',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
               ),
-              child: Column(
-                children: [
-                  Slider(
-                    min: 1,
-                    max: 10,
-                    divisions: 9,
-                    value: _perceivedEffort.toDouble(),
-                    label: '$_perceivedEffort',
-                    onChanged: (value) {
-                      setState(() {
-                        _perceivedEffort = value.round();
-                      });
-                    },
-                  ),
-                  Text(
-                    'Selected effort: $_perceivedEffort/10',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
-                      fontWeight: FontWeight.w500,
+              value: _perceivedEffort == null,
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value == true) {
+                    _perceivedEffort = null;
+                  } else {
+                    _perceivedEffort = _sliderValue;
+                  }
+                });
+              },
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+            
+            AppSpacing.gapSM,
+            
+            // Effort slider (disabled when skipped)
+            Opacity(
+              opacity: _perceivedEffort == null ? 0.5 : 1.0,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                ),
+                child: Column(
+                  children: [
+                    Slider(
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      value: _perceivedEffort?.toDouble() ?? _sliderValue.toDouble(),
+                      label: '${_perceivedEffort ?? _sliderValue}',
+                      onChanged: _perceivedEffort == null ? null : (value) {
+                        setState(() {
+                          _sliderValue = value.round();
+                          _perceivedEffort = _sliderValue;
+                        });
+                      },
                     ),
-                  ),
-                ],
+                    Text(
+                      _perceivedEffort == null 
+                        ? 'Skipped' 
+                        : 'Selected effort: $_perceivedEffort/10',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             

@@ -34,7 +34,7 @@ type CreateActivityRequest struct {
 	ActivityType     string    `json:"activity_type"`
 	Title            string    `json:"title"`
 	Description      *string   `json:"description"`
-	PerceivedEffort  int16     `json:"perceived_effort"`
+	PerceivedEffort  *int16    `json:"perceived_effort"`
 	Samples          []Sample  `json:"samples"`
 }
 
@@ -89,7 +89,7 @@ type ActivityResult struct {
 	Title           string        `json:"title"`
 	Description     string        `json:"description"`
 	Type            string        `json:"type"`
-	PerceivedEffort int16         `json:"perceived_effort"`
+	PerceivedEffort *int16        `json:"perceived_effort"`
 	StartTime       time.Time     `json:"start_time"`
 	EndTime         *time.Time    `json:"end_time"`
 	Stats           ActivityStats `json:"stats"`
@@ -131,7 +131,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 			http.Error(w, "At least 2 samples are required", http.StatusBadRequest)
 			return
 		}
-		if req.PerceivedEffort < 1 || req.PerceivedEffort > 10 {
+		if req.PerceivedEffort != nil && (*req.PerceivedEffort < 1 || *req.PerceivedEffort > 10) {
 			http.Error(w, "perceived_effort must be between 1 and 10", http.StatusBadRequest)
 			return
 		}

@@ -965,7 +965,7 @@ func TestBuildActivityModel(t *testing.T) {
 		ActivityType:     "running",
 		Title:            "Test Run",
 		Description:      func() *string { s := "Test Description"; return &s }(),
-		PerceivedEffort:  7,
+		PerceivedEffort:  func() *int16 { e := int16(7); return &e }(),
 		Samples: []Sample{
 			{T: 1000, Lat: 40.0, Lon: -74.0},
 			{T: 2000, Lat: 40.001, Lon: -74.001},
