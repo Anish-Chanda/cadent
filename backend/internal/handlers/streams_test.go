@@ -36,6 +36,10 @@ func NewMockDatabase() *MockDatabase {
 	}
 }
 
+func (m *MockDatabase) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	return &models.PlannedActivity{}, nil
+}
+
 func (m *MockDatabase) GetActivityByID(ctx context.Context, activityID string) (*models.Activity, error) {
 	if err, exists := m.errors["GetActivityByID"]; exists {
 		return nil, err
