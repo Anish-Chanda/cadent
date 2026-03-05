@@ -151,7 +151,7 @@ class Activity {
   String get formattedDistanceKm => distanceKm.toStringAsFixed(2);
   String get formattedDistanceMi => distanceMiles.toStringAsFixed(2);
   String get formattedElevationM => stats?.elevationGainM != null ? '${stats!.elevationGainM}' : '0';
-  String get formattedElevationFt => stats?.elevationGainM != null ? '${stats!.elevationGainM * 3.28}' : '0';
+  String get formattedElevationFt => stats?.elevationGainM != null ? '${(stats!.elevationGainM * 3.28).toStringAsFixed(2)}' : '0';
   
   String get formattedDuration {
     final elapsedTime = stats?.elapsedSeconds.round() ?? 0;
