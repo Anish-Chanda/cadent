@@ -23,7 +23,7 @@ HTTP 200
 ### Test 1: Create activity with campus loop data
 # This is the primary test - validates all calculated metrics with real 220-point GPS data
 # Expected: ~2.28km distance, ~414s duration, road_biking type, complete metrics
-POST http://localhost:8080/v1/activities
+POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 file,tests/campus_loop_220pts.test.json;
 
