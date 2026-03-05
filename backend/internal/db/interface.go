@@ -18,7 +18,8 @@ type Database interface {
 	GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error)
 	CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error)
 	GetActivityByID(ctx context.Context, activityID string) (*models.Activity, error)
-	
+	CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error)
+
 	// --- Activity Streams ---
 	GetActivityStreams(ctx context.Context, activityID string, lod models.StreamLOD) ([]models.ActivityStream, error)
 	CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error
