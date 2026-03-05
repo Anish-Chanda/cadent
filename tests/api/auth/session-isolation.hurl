@@ -1,7 +1,7 @@
 # Session Isolation Tests - Users can only access their own data
 
 # Setup: Create first user
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: user1_uuid={{newUuid}}
@@ -16,7 +16,7 @@ HTTP 201
 [Captures]
 user1_id: jsonpath "$.user_id"
 
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: {{user1_email}}
 passwd: {{user1_password}}
@@ -27,7 +27,7 @@ cookie "JWT[HttpOnly]" exists
 cookie "JWT[Path]" == "/"
 
 # User 1 accesses their own data
-GET http://localhost:8080/v1/user
+GET http://localhost:8080/api/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user1_id}}"
@@ -35,13 +35,13 @@ jsonpath "$.email" == "{{user1_email}}"
 jsonpath "$.name" == "User One"
 
 # User 1 accesses their activities
-GET http://localhost:8080/v1/activities
+GET http://localhost:8080/api/v1/activities
 HTTP 200
 [Asserts]
 jsonpath "$.activities" count == 0
 
 # Setup: Create second user
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: user2_uuid={{newUuid}}
@@ -56,7 +56,7 @@ HTTP 201
 [Captures]
 user2_id: jsonpath "$.user_id"
 
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: {{user2_email}}
 passwd: {{user2_password}}
@@ -65,7 +65,7 @@ HTTP 200
 cookie "JWT" exists
 
 # User 2 sees only their own data
-GET http://localhost:8080/v1/user
+GET http://localhost:8080/api/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user2_id}}"
@@ -76,13 +76,13 @@ jsonpath "$.id" != "{{user1_id}}"
 jsonpath "$.email" != "{{user1_email}}"
 
 # User 2 sees only their own activities
-GET http://localhost:8080/v1/activities
+GET http://localhost:8080/api/v1/activities
 HTTP 200
 [Asserts]
 jsonpath "$.activities" count == 0
 
 # Update User 2's profile
-PATCH http://localhost:8080/v1/user
+PATCH http://localhost:8080/api/v1/user
 Content-Type: application/json
 {
     "name": "Updated User Two"
@@ -93,7 +93,7 @@ jsonpath "$.id" == "{{user2_id}}"
 jsonpath "$.name" == "Updated User Two"
 
 # Re-authenticate as User 1
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: {{user1_email}}
 passwd: {{user1_password}}
@@ -102,7 +102,7 @@ HTTP 200
 cookie "JWT" exists
 
 # Verify User 1's data unchanged
-GET http://localhost:8080/v1/user
+GET http://localhost:8080/api/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user1_id}}"
@@ -111,7 +111,7 @@ jsonpath "$.name" == "User One"
 jsonpath "$.name" != "Updated User Two"
 
 # Switch to User 2 session
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: {{user2_email}}
 passwd: {{user2_password}}
@@ -119,14 +119,14 @@ HTTP 200
 [Asserts]
 cookie "JWT" exists
 
-GET http://localhost:8080/v1/user
+GET http://localhost:8080/api/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user2_id}}"
 jsonpath "$.name" == "Updated User Two"
 
 # Switch back to User 1 session
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: {{user1_email}}
 passwd: {{user1_password}}
@@ -134,28 +134,28 @@ HTTP 200
 [Asserts]
 cookie "JWT" exists
 
-GET http://localhost:8080/v1/user
+GET http://localhost:8080/api/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user1_id}}"
 jsonpath "$.name" == "User One"
 
 # Failed login attempt
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: invalid@test.com
 passwd: wrongpassword
 HTTP 401
 
 # Session still valid - failed login doesn't clear existing valid JWT cookie
-GET http://localhost:8080/v1/user
+GET http://localhost:8080/api/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user1_id}}"
 jsonpath "$.name" == "User One"
 
 # Create third user to verify no data leakage
-POST http://localhost:8080/signup
+POST http://localhost:8080/api/signup
 Content-Type: application/json
 [Options]
 variable: user3_uuid={{newUuid}}
@@ -169,13 +169,13 @@ HTTP 201
 [Captures]
 user3_id: jsonpath "$.user_id"
 
-POST http://localhost:8080/auth/local/login
+POST http://localhost:8080/api/auth/local/login
 [Form]
 user: {{user3_email}}
 passwd: password789
 HTTP 200
 
-GET http://localhost:8080/v1/user
+GET http://localhost:8080/api/v1/user
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{user3_id}}"

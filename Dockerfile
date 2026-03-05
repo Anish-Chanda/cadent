@@ -1,4 +1,21 @@
-# Build stage
+
+
+
+# Web build stage
+FROM node:20-alpine AS web-builder
+
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY web/package*.json ./web/
+WORKDIR /app/web
+RUN npm ci
+
+# Copy web source and build
+COPY web/ .
+RUN npm run build
+
+# Go build stage
 FROM golang:1.25.1-alpine AS builder
 
 # Version arguments
@@ -14,8 +31,11 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy backend source code
 COPY backend/ ./backend/
+
+# Copy built web files from web-builder stage
+COPY --from=web-builder /app/backend/web/dist ./backend/web/dist
 
 # Build the application with version injection
 WORKDIR /app/backend
