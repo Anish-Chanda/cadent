@@ -9,7 +9,6 @@ import (
 	"github.com/anish-chanda/cadence/backend/internal/db"
 	"github.com/anish-chanda/cadence/backend/internal/logger"
 	"github.com/anish-chanda/cadence/backend/internal/models"
-	"github.com/go-pkgz/auth/v2/token"
 )
 
 type CreatePlannedActivityRequest struct {
@@ -31,12 +30,6 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 		ctx := r.Context()
 
 		// 1. Auth Check
-		user, err := token.GetUserInfo(r)
-		if err != nil {
-			log.Error("Unauthorized access attempt", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
 		userID, err := getAuthenticatedUserID(ctx, r, database, log)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -83,18 +76,11 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 		}
 
 		// 4. Build Success Response
-		savedDescription := ""
-		if saved.Description != nil {
-			savedDescription = *saved.Description
-		}
-
 		response := map[string]interface{}{
 			"status":  "success",
-			"message": "Activity created",
+			"message": "plannedActivityCreated",
 			"data": map[string]string{
-				"title":       saved.Title,
-				"description": savedDescription,
-				"created_by":  user.Name,
+				"plannedActivityId": saved.ID.String(),
 			},
 		}
 
