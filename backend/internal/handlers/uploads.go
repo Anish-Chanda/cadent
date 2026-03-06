@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -43,7 +42,7 @@ type UploadResponse struct {
 // Parameters- enrich (true) to add elevation data, title and description to override file metadata
 func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.Background()
+		ctx := r.Context()
 
 		// Limit request body size
 		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
@@ -474,7 +473,6 @@ func parseFITRecordMessage(msg proto.Message) (Sample, bool) {
 		// Some FIT files use the "altitude" field, others use "enhanced_altitude" depending
 		// on the producer. Accept both to ensure embedded elevation is detected.
 		case "altitude", "enhanced_altitude":
-			fmt.Println("Found altitude field in FIT record:", field)
 			altitude = float64(uint32(field.Value.Uint32()))
 			hasAltitude = true
 		}
