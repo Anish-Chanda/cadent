@@ -692,6 +692,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 			name:   "multiple activities found",
 			userID: userID,
 			setupMock: func(mock pgxmock.PgxConnIface) {
+				effort := int16(5)
 				rows := pgxmock.NewRows([]string{
 					"id", "user_id", "client_activity_id", "title", "description", "type",
 					"start_time", "end_time", "elapsed_time", "distance_m", "elevation_gain_m",
@@ -704,7 +705,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 						activityID1, userID, clientActivityID1, "Activity 1", nil, models.ActivityTypeRun,
 						time.Now(), endTime, 1800, distance, nil,
 						nil, nil, nil,
-						nil, nil, nil, nil, int16(5), 1,
+						nil, nil, nil, nil, &effort, 1,
 						nil, nil, nil, nil, nil,
 						nil, nil, nil, nil, nil, time.Now(), time.Now(),
 					).
@@ -712,7 +713,7 @@ func TestGetActivitiesByUserID_Unit(t *testing.T) {
 						activityID2, userID, clientActivityID2, "Activity 2", nil, models.ActivityTypeRun,
 						time.Now(), endTime, 1800, distance, nil,
 						nil, nil, nil,
-						nil, nil, nil, nil, int16(5), 1,
+						nil, nil, nil, nil, &effort, 1,
 						nil, nil, nil, nil, nil,
 						nil, nil, nil, nil, nil, time.Now(), time.Now(),
 					)

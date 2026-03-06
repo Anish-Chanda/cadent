@@ -209,7 +209,7 @@ void main() {
       );
       expect(ok, isTrue);
       final body = (captor.lastData as Map<String, dynamic>);
-      expect(body['perceived_effort'], 5);
+      expect(body['perceived_effort'], isNull);
     });
 
     test('returns false on non-200', () async {

@@ -274,7 +274,7 @@ void main() {
       expect(titleField.controller?.text, 'Cycling Activity');
     });
 
-    testWidgets('returns default perceived effort on save', (tester) async {
+    testWidgets('returns null perceived effort when effort is skipped', (tester) async {
       Map<String, dynamic>? result;
 
       await tester.pumpWidget(
@@ -310,7 +310,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(result?['action'], 'save');
-      expect(result?['perceived_effort'], 5);
+      expect(result?['perceived_effort'], isNull);
     });
   });
 }
