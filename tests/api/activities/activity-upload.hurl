@@ -5,8 +5,9 @@
 #                                          Strava reference values: 11.05 km, 35:12 elapsed, 97 m elevation gain
 #   tests/campus_loop_220pts_var_time.gpx — Synthetic GPX (created with online tools); no elevation,
 #                                           type=run, triggers Valhalla elevation enrichment
+#   tests/Morning_Run.fit                - Real Strava export (run); embedded <ele>, type=run
+#                                          Strava reference values: 7.08 km, 29:58 elapsed, 106 m elevation gain
 #
-# TODO: Add FIT file upload tests once processFITFile is implemented.
 
 POST http://localhost:8080/api/v1/activities/upload
 [Multipart]
@@ -136,3 +137,50 @@ POST http://localhost:8080/api/v1/activities/upload
 [Multipart]
 enrich: false
 HTTP 400
+
+# Test 5: FIT with embedded elevation, enrich=false
+POST http://localhost:8080/api/v1/activities/upload
+[Multipart]
+file: file,tests/Morning_Run.fit; application/octet-stream
+enrich: false
+HTTP 201
+[Captures]
+run_id: jsonpath "$.id"
+[Asserts]
+jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
+GET http://localhost:8080/api/v1/activities
+HTTP 200
+[Asserts]
+jsonpath "$.activities" count == 3
+jsonpath "$.activities[0].id" == "{{run_id}}"
+jsonpath "$.activities[0].type" == "run"
+jsonpath "$.activities[0].description" == ""
+# Strava reference: 106 m gain; our threshold-based calc is close but not identical
+jsonpath "$.activities[0].stats.elevation_gain_m" > 90
+jsonpath "$.activities[0].stats.elevation_gain_m" < 120
+jsonpath "$.activities[0].stats.elevation_loss_m" > 70
+jsonpath "$.activities[0].stats.elevation_loss_m" < 130
+# Strava reference: 7.08 km; haversine may differ slightly
+jsonpath "$.activities[0].stats.distance_m" > 6950
+jsonpath "$.activities[0].stats.distance_m" < 7200
+# Strava reference shows 29:58 **moving time**;
+jsonpath "$.activities[0].stats.elapsed_seconds" > 2000
+jsonpath "$.activities[0].stats.elapsed_seconds" < 2200
+jsonpath "$.activities[0].bbox.min_lat" exists
+jsonpath "$.activities[0].bbox.max_lat" exists
+jsonpath "$.activities[0].bbox.min_lon" exists
+jsonpath "$.activities[0].bbox.max_lon" exists
+jsonpath "$.activities[0].start.lat" exists
+jsonpath "$.activities[0].start.lon" exists
+jsonpath "$.activities[0].polyline" exists
+
+GET http://localhost:8080/api/v1/activities/{{run_id}}/streams?lod=medium&type=time,distance,elevation,speed
+HTTP 200
+[Asserts]
+jsonpath "$.activity_id" == "{{run_id}}"
+jsonpath "$.lod" == "medium"
+jsonpath "$.index_by" == "distance"
+jsonpath "$.num_points" > 0
+jsonpath "$.original_num_points" > 0
+jsonpath "$.streams" count == 4
