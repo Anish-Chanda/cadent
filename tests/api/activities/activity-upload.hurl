@@ -156,6 +156,11 @@ jsonpath "$.activities" count == 3
 jsonpath "$.activities[0].id" == "{{run_id}}"
 jsonpath "$.activities[0].type" == "run"
 jsonpath "$.activities[0].description" == ""
+# Strava reference: 106 m gain; our threshold-based calc is close but not identical
+jsonpath "$.activities[0].stats.elevation_gain_m" > 90
+jsonpath "$.activities[0].stats.elevation_gain_m" < 600
+jsonpath "$.activities[0].stats.elevation_loss_m" > 70
+jsonpath "$.activities[0].stats.elevation_loss_m" < 650
 # Strava reference: 7.08 km; haversine may differ slightly
 jsonpath "$.activities[0].stats.distance_m" > 6950
 jsonpath "$.activities[0].stats.distance_m" < 7400
