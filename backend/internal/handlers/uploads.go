@@ -18,6 +18,8 @@ import (
 	"github.com/anish-chanda/cadence/backend/internal/store"
 	"github.com/anish-chanda/cadence/backend/internal/valhalla"
 	"github.com/google/uuid"
+	"github.com/muktihari/fit/decoder"
+	"github.com/muktihari/fit/proto"
 	gpxlib "github.com/twpayne/go-gpx"
 )
 
@@ -166,6 +168,17 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 					fileContent = updated
 				}
 			}
+
+			// For FIT uploads we enrich the samples and regenerate the FIT file
+			if ext == ".fit" && elevationHeights != nil {
+				for i := range samples {
+					if i < len(elevationHeights) {
+						h := elevationHeights[i]
+						samples[i].Ele = &h
+					}
+				}
+			}
+
 		} else if hasElevation {
 			// File already carries elevation, derive stats from the embedded sample values so the
 			// activity record has valid gain/loss/max/min.
@@ -189,7 +202,11 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 			Samples:          samples,
 		}
 		activity := buildActivityModel(uploadReq, userID, polyline, totalDistance, bounds, elevationData, elapsedSeconds, avgSpeedMs)
-
+		if ext == ".fit" && elevationHeights != nil && enrichParam == "true" {
+			if err := createFITFile(ctx, activity, samples, objectStore, log); err != nil {
+				log.Error("Failed to regenerate enriched FIT file", err)
+			}
+		}
 		// Store the file to disk in original format (GPX or FIT), including elevation if enrichment was applied
 		originalFileKey := fmt.Sprintf("activities/%s/%s%s", userID, activity.ID.String(), ext)
 		fileReader := bytes.NewReader(fileContent)
@@ -392,6 +409,137 @@ func calculateElevationStatsFromSamples(samples []Sample) *valhalla.ElevationCha
 // processFITFile parses a FIT file and extracts samples, metadata, and whether embedded elevation is present.
 // Parsers must convert activity types from GPX/FIT formats to our models.ActivityType enum.
 func processFITFile(fileContent []byte, filename string) ([]Sample, ActivityMetadata, bool, error) {
-	// TODO: Implement FIT parsing logic
-	return nil, ActivityMetadata{}, false, fmt.Errorf("FIT processing not yet implemented")
+	dec := decoder.New(bytes.NewReader(fileContent))
+
+	fitFile, err := dec.Decode()
+	if err != nil {
+		return nil, ActivityMetadata{}, false, fmt.Errorf("failed to decode FIT file: %w", err)
+	}
+
+	var samples []Sample
+	var metadata ActivityMetadata
+	hasElevation := false
+
+	for _, msg := range fitFile.Messages {
+		switch msg.Num.String() {
+
+		case "record":
+			sample, ok := parseFITRecordMessage(msg)
+			if ok {
+				if sample.Ele != nil {
+					hasElevation = true
+				}
+				samples = append(samples, sample)
+			}
+
+		case "session":
+			parseFITSessionMessage(msg, &metadata)
+		}
+	}
+
+	if len(samples) == 0 {
+		return nil, ActivityMetadata{}, false, fmt.Errorf("FIT file contains no valid record messages")
+	}
+
+	return samples, metadata, hasElevation, nil
+}
+
+func parseFITRecordMessage(msg proto.Message) (Sample, bool) {
+	var (
+		timestampSec uint32
+		latSemi      int32
+		lonSemi      int32
+		altitude     float64
+		hasAltitude  bool
+		hasTime      bool
+		hasLat       bool
+		hasLon       bool
+	)
+
+	for _, field := range msg.Fields {
+		switch field.Name {
+
+		case "timestamp":
+			timestampSec = field.Value.Uint32()
+			hasTime = true
+
+		case "position_lat":
+			latSemi = field.Value.Int32()
+			hasLat = true
+
+		case "position_long":
+			lonSemi = field.Value.Int32()
+			hasLon = true
+
+		// Some FIT files use the "altitude" field, others use "enhanced_altitude" depending
+		// on the producer. Accept both to ensure embedded elevation is detected.
+		case "altitude", "enhanced_altitude":
+			fmt.Println("Found altitude field in FIT record:", field)
+			altitude = float64(uint32(field.Value.Uint32()))
+			hasAltitude = true
+		}
+	}
+
+	if !hasTime || !hasLat || !hasLon {
+		return Sample{}, false
+	}
+
+	garminEpoch := time.Date(1989, 12, 31, 0, 0, 0, 0, time.UTC)
+	timestamp := garminEpoch.Add(time.Duration(timestampSec) * time.Second)
+
+	sample := Sample{
+		T:   timestamp.UnixMilli(),
+		Lat: semicirclesToDegrees(latSemi),
+		Lon: semicirclesToDegrees(lonSemi),
+	}
+
+	if hasAltitude {
+		ele := altitude
+		sample.Ele = &ele
+	}
+
+	return sample, true
+}
+
+func semicirclesToDegrees(semicircles int32) float64 {
+	return float64(semicircles) * (180.0 / (1 << 31))
+}
+
+func parseFITSessionMessage(msg proto.Message, metadata *ActivityMetadata) {
+	for _, field := range msg.Fields {
+		switch field.Name {
+
+		case "sport":
+			sportEnum := field.Value.Uint8()
+			metadata.ActivityType = mapFITSportEnum(sportEnum)
+
+		case "name":
+			name := field.Value.String()
+			if name != "" {
+				metadata.Title = name
+			}
+
+		case "start_time":
+			sec := field.Value.Uint32()
+
+			garminEpoch := time.Date(1989, 12, 31, 0, 0, 0, 0, time.UTC)
+			t := garminEpoch.Add(time.Duration(sec) * time.Second)
+
+			// Only use date fallback if no real name was found
+			if metadata.Title == "" {
+				metadata.Title = "Activity on " + t.Format("2006-01-02")
+			}
+		}
+	}
+}
+
+func mapFITSportEnum(v uint8) models.ActivityType {
+	switch v {
+	case 1:
+		return models.ActivityTypeRun
+	case 2:
+		return models.ActivityTypeRoadBike
+	default:
+		return models.ActivityType("")
+	}
 }
