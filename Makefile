@@ -51,6 +51,8 @@ install-deps: ## Install dependencies for backend and mobile app
 	cd $(BACKEND_DIR) && go mod tidy
 	@echo "Installing flutter dependencies..."
 	cd $(FRONTEND_DIR) && flutter pub get
+	@echo "Installing web dependencies..."
+	cd $(WEB_DIR) && npm install
 
 test: ## Run backend and flutter tests
 	cd $(BACKEND_DIR) && go test ./... --cover
@@ -85,6 +87,7 @@ docker-build-api: ## Build backend API Docker image with version info
 build-api: set-version ## Build web app then Go binary with web embedded
 	@echo "Building web application..."
 	cd $(WEB_DIR) && npm run build
+	@touch $(BACKEND_DIR)/web/dist/.gitkeep
 	@echo "Building Go application..."
 	cd $(BACKEND_DIR) && go build -o ../$(GO_BUILD_DIR)/$(GO_APP_NAME) .
 	@$(MAKE) clean-version
@@ -92,6 +95,8 @@ build-api: set-version ## Build web app then Go binary with web embedded
 run-api: build-api ## Build web + Go binary (web embedded) then run the server
 	@set -a && [ -f ./.env ] && . ./.env && set +a && \
 		./bin/$(GO_APP_NAME)
+	@echo "Cleaning versions"
+	@$(MAKE) clean-version
 
 # ==== Mobile App Targets ====
 
@@ -103,6 +108,7 @@ build-apk: set-version ## Build mobile app APK
 run-app: set-version ## Run mobile app on connected device
 	@echo "Running Flutter application..."
 	cd $(FRONTEND_DIR) && flutter run
+	@echo "Cleaning versions"
 	@$(MAKE) clean-version
 
 # ==== web stuff ====
@@ -110,11 +116,13 @@ run-app: set-version ## Run mobile app on connected device
 build-web: set-version ## Build web application for production
 	@echo "Building web application..."
 	cd $(WEB_DIR) && npm run build
+	@touch $(BACKEND_DIR)/web/dist/.gitkeep
 	@$(MAKE) clean-version
 
 run-web-dev: set-version ## Runs the web server, Note: normally the api serves static files, but this is useful for development
 	@echo "Starting web development server..."
 	cd $(WEB_DIR) && npm run dev
+	@echo "Cleaning versions"
 	@$(MAKE) clean-version
 
 # ==== E2E Testing Targets ====
