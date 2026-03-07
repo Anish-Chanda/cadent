@@ -33,9 +33,11 @@ void main() {
       expect(find.text('Distance'), findsOneWidget);
       expect(find.text('Title'), findsOneWidget);
       expect(find.text('Description'), findsOneWidget);
+      expect(find.text('How much effort did you put into this activity (1-10)?'), findsOneWidget);
 
       // Verify form fields
       expect(find.byType(TextField), findsNWidgets(2));
+      expect(find.byType(Slider), findsOneWidget);
 
       // Verify buttons
       expect(find.text('Discard'), findsOneWidget);
@@ -270,6 +272,45 @@ void main() {
         find.widgetWithText(TextField, 'Cycling Activity'),
       );
       expect(titleField.controller?.text, 'Cycling Activity');
+    });
+
+    testWidgets('returns null perceived effort when effort is skipped', (tester) async {
+      Map<String, dynamic>? result;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () async {
+                  result = await Navigator.push<Map<String, dynamic>>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FinishActivityScreen(
+                        formattedTime: testFormattedTime,
+                        formattedDistance: testFormattedDistance,
+                        activityName: testActivityName,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      final saveButton = find.widgetWithText(ElevatedButton, 'Save Activity');
+      await tester.ensureVisible(saveButton);
+      await tester.tap(saveButton);
+      await tester.pumpAndSettle();
+
+      expect(result?['action'], 'save');
+      expect(result?['perceived_effort'], isNull);
     });
   });
 }

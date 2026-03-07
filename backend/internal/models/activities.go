@@ -42,6 +42,9 @@ type Activity struct {
 	AvgHRBpm *int16 `json:"avg_hr_bpm" db:"avg_hr_bpm"`
 	MaxHRBpm *int16 `json:"max_hr_bpm" db:"max_hr_bpm"`
 
+	// User-provided effort rating (nullable)
+	PerceivedEffort *int16 `json:"perceived_effort" db:"perceived_effort"`
+
 	// Processing metadata
 	ProcessingVer int `json:"processing_ver" db:"processing_ver"`
 
