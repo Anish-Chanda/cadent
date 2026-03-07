@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect, isRedirect } from '@tanstack/react-router'
 import { getCurrentUser } from '@/lib/api'
+import { TopBar } from '@/components/top-bar'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context, location }) => {
@@ -17,5 +18,18 @@ export const Route = createFileRoute('/_authenticated')({
       })
     }
   },
-  component: () => <Outlet />,
+  component: AuthenticatedLayout,
 })
+
+function AuthenticatedLayout() {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <TopBar />
+      <main className="flex-1">
+        <div className="mx-auto w-full max-w-screen-2xl">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  )
+}
