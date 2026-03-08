@@ -50,8 +50,8 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "walk",
-    "title": "Minimum Effort Walk",
+    "activity_type": "road_bike",
+    "title": "Minimum Effort Bike",
     "description": "Testing minimum perceived_effort value",
     "perceived_effort": 1,
     "samples": [
@@ -181,7 +181,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "walk",
+    "activity_type": "road_bike",
     "title": "Negative Effort",
     "description": "Testing perceived_effort = -1",
     "perceived_effort": -1,
