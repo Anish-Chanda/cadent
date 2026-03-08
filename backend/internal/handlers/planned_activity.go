@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -12,8 +13,8 @@ import (
 )
 
 type CreatePlannedActivityRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
 
 	ActivityType string    `json:"activityType"`
 	StartTime    time.Time `json:"startTime"`
@@ -53,12 +54,18 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 			sendError(w, http.StatusBadRequest, "Valid Start Time is required")
 			return
 		}
+		// Validate activity_type enum database insertion to return 400
+		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
+			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
+			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType))
+			return
+		}
 
 		// 3. Save to Database
 		plan := &models.PlannedActivity{
 			UserID:                userID,
 			Title:                 req.Title,
-			Description:           &req.Description,
+			Description:           req.Description,
 			Type:                  models.ActivityType(req.ActivityType),
 			StartTime:             req.StartTime,
 			PlannedDistanceM:      req.PlannedDistanceMeter,
