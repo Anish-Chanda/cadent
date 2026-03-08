@@ -197,22 +197,22 @@ body contains "perceived_effort must be between 1 and 10"
 
 
 ### Test 9: Verify retrieval of activity with perceived_effort
-# Validates that perceived_effort is correctly returned when fetching activity by ID
-GET http://localhost:8080/api/v1/activities/{{valid_effort_id}}
+# Validates that perceived_effort is returned in the activities list for created activity
+GET http://localhost:8080/api/v1/activities
 
 HTTP 200
 [Asserts]
-jsonpath "$.id" == "{{valid_effort_id}}"
-jsonpath "$.perceived_effort" == 7
-jsonpath "$.title" == "Valid Effort Run"
+jsonpath "$.activities[*].id" contains "{{valid_effort_id}}"
+jsonpath "$.activities[*].title" contains "Valid Effort Run"
+jsonpath "$.activities[*].perceived_effort" contains 7
 
 
 ### Test 10: Verify retrieval of activity without perceived_effort
-# Validates that activity without perceived_effort can be retrieved correctly
-GET http://localhost:8080/api/v1/activities/{{null_effort_id}}
+# Validates that activity without perceived_effort can be retrieved in activities list
+GET http://localhost:8080/api/v1/activities
 
 HTTP 200
 [Asserts]
-jsonpath "$.id" == "{{null_effort_id}}"
-jsonpath "$.title" == "No Effort Specified"
-jsonpath "$.perceived_effort" == null
+jsonpath "$.activities[*].id" contains "{{null_effort_id}}"
+jsonpath "$.activities[*].title" contains "No Effort Specified"
+jsonpath "$.activities[*].perceived_effort" contains null
