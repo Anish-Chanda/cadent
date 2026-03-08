@@ -1,1 +1,1 @@
-DROP TABLE plannedActivities;
+DROP TABLE planned_activities;
