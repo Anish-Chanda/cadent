@@ -115,6 +115,42 @@ func (s *PostgresDB) CreateUser(ctx context.Context, user *models.UserRecord) er
 
 // --- Activities stuff ---
 
+func (s *PostgresDB) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	s.log.Info(fmt.Sprintf("Database creating planned entry for title: %s", plan.Title))
+
+	query := `
+        INSERT INTO planned_activities (
+            user_id, title, description, type, start_time, 
+            planned_distance_m, planned_duration_s, planned_elevation_gain_m, 
+            target_avg_speed_mps, target_power_watt
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id, created_at, updated_at`
+
+	// Execute query and scan the DB-generated fields back into the model
+	err := s.pool.QueryRow(ctx, query,
+		plan.UserID,
+		plan.Title,
+		plan.Description,
+		plan.Type,
+		plan.StartTime,
+		plan.PlannedDistanceM,
+		plan.PlannedDurationS,
+		plan.PlannedElevationGainM,
+		plan.TargetAvgSpeedMps,
+		plan.TargetPowerWatt,
+	).Scan(&plan.ID, &plan.CreatedAt, &plan.UpdatedAt)
+
+	if err != nil {
+		s.log.Error("Database insert/scan failed for planned activity", err)
+		return nil, err
+	}
+
+	s.log.Info(fmt.Sprintf("Postgres planned entry created with ID: %d", plan.ID))
+
+	return plan, nil
+}
+
 // CreateActivity creates a new activity in the database
 func (s *PostgresDB) CreateActivity(ctx context.Context, activity *models.Activity) error {
 	s.log.Debug(fmt.Sprintf("Creating new activity for user: %s", activity.UserID))
