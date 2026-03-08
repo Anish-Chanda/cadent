@@ -26,7 +26,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "road_bike",
     "title": "Valid Effort Run",
     "description": "Testing valid perceived_effort value",
     "perceived_effort": 7,
@@ -71,7 +71,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "road_bike",
     "title": "Maximum Effort Run",
     "description": "Testing maximum perceived_effort value",
     "perceived_effort": 10,
@@ -93,7 +93,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "road_bike",
     "title": "No Effort Specified",
     "description": "Testing omitted perceived_effort field",
     "samples": [
@@ -108,8 +108,8 @@ null_effort_id: jsonpath "$.id"
 [Asserts]
 jsonpath "$.id" exists
 jsonpath "$.title" == "No Effort Specified"
-# perceived_effort should be null or not present when not provided
-jsonpath "$.perceived_effort" not exists
+# perceived_effort is serialized as explicit null when not provided
+jsonpath "$.perceived_effort" == null
 
 
 ### Test 5: Create activity with explicit null perceived_effort
@@ -131,7 +131,7 @@ HTTP 201
 [Asserts]
 jsonpath "$.id" exists
 jsonpath "$.title" == "Explicit Null Effort"
-jsonpath "$.perceived_effort" not exists
+jsonpath "$.perceived_effort" == null
 
 
 ### Test 6: Reject activity with perceived_effort below valid range (0)
@@ -140,7 +140,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "road_bike",
     "title": "Invalid Low Effort",
     "description": "Testing perceived_effort = 0",
     "perceived_effort": 0,
@@ -161,7 +161,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "run",
+    "activity_type": "road_bike",
     "title": "Invalid High Effort",
     "description": "Testing perceived_effort = 11",
     "perceived_effort": 11,
@@ -215,4 +215,4 @@ HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{null_effort_id}}"
 jsonpath "$.title" == "No Effort Specified"
-jsonpath "$.perceived_effort" not exists
+jsonpath "$.perceived_effort" == null
