@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 	"github.com/go-pkgz/auth/v2/token"
 )
 

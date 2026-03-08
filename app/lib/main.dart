@@ -24,13 +24,13 @@ void main() async {
           create: (_) => ThemeProvider(AppTheme.lightTheme),
         ),
       ],
-      child: const CadenceApp(),
+      child: const CadentApp(),
     ),
   );
 }
 
-class CadenceApp extends StatelessWidget {
-  const CadenceApp({super.key});
+class CadentApp extends StatelessWidget {
+  const CadentApp({super.key});
 
   @override
   Widget build(BuildContext context) {

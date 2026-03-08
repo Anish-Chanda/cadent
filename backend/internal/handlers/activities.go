@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/compression"
-	"github.com/anish-chanda/cadence/backend/internal/db"
-	"github.com/anish-chanda/cadence/backend/internal/geo"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
-	"github.com/anish-chanda/cadence/backend/internal/store"
-	"github.com/anish-chanda/cadence/backend/internal/valhalla"
+	"github.com/anish-chanda/cadent/backend/internal/compression"
+	"github.com/anish-chanda/cadent/backend/internal/db"
+	"github.com/anish-chanda/cadent/backend/internal/geo"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/store"
+	"github.com/anish-chanda/cadent/backend/internal/valhalla"
 	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 	"github.com/muktihari/fit/encoder"
@@ -544,9 +544,9 @@ func createCompressedStreams(activityID uuid.UUID, keepIndices []int, fullStream
 	// For now, we store all stream types in one record with their respective compressed bytes
 	// In a more advanced implementation, you might want separate records for each stream type
 	// with their own codec metadata
-	_ = distanceCodec // suppress unused warning
+	_ = distanceCodec  // suppress unused warning
 	_ = elevationCodec // suppress unused warning
-	_ = speedCodec // suppress unused warning
+	_ = speedCodec     // suppress unused warning
 
 	return []models.ActivityStream{stream}, nil
 }
@@ -990,7 +990,7 @@ func decimateByDistance(fullStream *FullResolutionStream, targetPoints int) []in
 func compressDIBS(data []float64, decimalPlaces int) ([]byte, map[string]interface{}) {
 	opts := compression.CompressOptions{
 		DecimalPlaces: decimalPlaces,
-		BlockLog2:     8, // 256 samples per block
+		BlockLog2:     8,     // 256 samples per block
 		EnableCRC:     false, // Disable CRC for embedded use to save space
 	}
 

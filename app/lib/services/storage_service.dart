@@ -1,6 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _kServerUrlKey = 'cadence_server_url';
+const _kServerUrlKey = 'cadent_server_url';
 
 class StorageService {
   static Future<SharedPreferences> _prefs() async =>

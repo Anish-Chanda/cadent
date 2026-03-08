@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:cadence/screens/recorder_screen.dart';
+import 'package:cadent/screens/recorder_screen.dart';
 
 void main() {
   group('RecorderScreen - Basic UI Tests', () {

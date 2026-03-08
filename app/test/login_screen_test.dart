@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:cadence/screens/auth/login_screen.dart';
-import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadent/screens/auth/login_screen.dart';
+import 'package:cadent/providers/auth_provider.dart';
 
 import 'Mocks/mock_auth_provider.dart';
 
