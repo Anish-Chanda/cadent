@@ -1,5 +1,5 @@
 # Variables
-API_VERSION = v0.11.0
+API_VERSION = v0.12.0
 MOBILE_VERSION = v0.9.0
 WEB_VERSION = v0.2.0
 
