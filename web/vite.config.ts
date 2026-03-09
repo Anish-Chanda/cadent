@@ -15,6 +15,12 @@ const config = defineConfig({
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     viteReact(),
   ],
+  test: {
+    globals: true,
+    alias: {
+      '@': new URL('./src', import.meta.url).pathname,
+    },
+  },
   build: {
     // Output directly into the Go backend so it can be embedded in the binary
     outDir: '../backend/web/dist',
