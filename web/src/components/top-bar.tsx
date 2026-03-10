@@ -107,7 +107,7 @@ export function TopBar() {
           </NavDropdown>
 
           <NavDropdown label="Training">
-            <DropdownLink to="/dashboard" icon={CalendarDays}>
+            <DropdownLink to="/dashboard/training/calendar" icon={CalendarDays}>
               Training Calendar
             </DropdownLink>
           </NavDropdown>
