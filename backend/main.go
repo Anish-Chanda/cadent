@@ -159,6 +159,7 @@ func main() {
 			// Activity endpoints
 			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
 			r.Get("/activities", handlers.HandleGetActivities(database, *log))
+			r.Get("/activities/{id}", handlers.HandleGetActivityByID(database, *log))
 			r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
 			r.Post("/activities/upload", handlers.HandleActivityUpload(database, valhallaClient, objectStore, *log))
 
