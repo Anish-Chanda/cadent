@@ -675,6 +675,26 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 	}
 }
 
+// createPlannedActivityResult creates an PlannedActivityResult from the PlannedActivity model only
+// This function should be used in both HTTP handlers to reduce duplication
+func createPlannedActivityResult(PlannedActivity *models.PlannedActivity) PlannedActivityResult {
+
+	return PlannedActivityResult{
+		ID:            plannedActivity.ID.String(),
+		Title:         plannedActivity.Title,
+		Description:   stringOrDefault(plannedActivity.Description, ""),
+		Type:          string(plannedActivity.ActivityType),
+		StartTime:     plannedActivity.StartTime,
+		PlannedDistance: plannedActivity.planned_distance_m,
+		PlannedDuration: plannedActivity.planned_duration_s,
+		PlannedElevationGain: plannedActivity.planned_elevation_gain_m,
+		TargetAvgSpeed: plannedActivity.target_avg_speed_mps,
+		TargetPower: plannedActivity.target_power_watt,
+		CreatedAt: activity.CreatedAt,
+		UpdatedAt: activity.UpdatedAt,
+	}
+}
+
 func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
@@ -704,6 +724,74 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 
 		response := GetActivitiesResponse{
 			Activities: results,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}
+}
+
+func HandleGetActivityCalendar(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.Background()
+
+		// Get authenticated user ID using the same helper function
+		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+        startDateStr := r.URL.Query().Get("startDate")
+        endDateStr := r.URL.Query().Get("endDate")
+
+        if startDateStr == "" || endDateStr == "" {
+            http.Error(w, "start and end dates are required", http.StatusBadRequest)
+            return
+        }
+
+        startDate, err := time.Parse("2006-01-02", startDateStr)
+        if err != nil {
+            http.Error(w, "invalid start date format (use YYYY-MM-DD)", http.StatusBadRequest)
+            return
+        }
+
+        endDate, err := time.Parse("2006-01-02", endDateStr)
+        if err != nil {
+            http.Error(w, "invalid end date format (use YYYY-MM-DD)", http.StatusBadRequest)
+            return
+        }
+
+        if endDate < startDate {
+            http.Error(w, "invalid date range: endDate must be greater than or equal to startDate", http.StatusBadRequest)
+            return
+        }
+
+		// Get user's activities from database
+		activities, plannedActivities, err := database.GetActivitiesByUserIDAndDate(ctx, userID, startDate, endDate)
+		if err != nil {
+			log.Error("Failed to get activities from database", err)
+			http.Error(w, "Failed to retrieve activities", http.StatusInternalServerError)
+			return
+		}
+
+		// Transform activities to the response format using the unified helper function
+		// Initialize as empty slice to ensure we always return [] instead of null
+		resultActivities := make([]ActivityResult, 0, len(activities))
+		for _, activity := range activities {
+			result := createActivityResult(&activity)
+			results = append(resultActivities, result)
+		}
+
+        resultPlannedActivities := make([]ActivityResult, 0, len(plannedActivities))
+        for _, plannedActivity := range plannedActivities {
+            result := createPlannedActivityResult(&plannedActivity)
+            results = append(resultPlannedActivities, result)
+        }
+
+		response := GetActivitiesResponse{
+			Activities: resultActivities,
+			PlannedActivities: resultPlannedActivities
 		}
 
 		w.Header().Set("Content-Type", "application/json")

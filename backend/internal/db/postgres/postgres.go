@@ -252,6 +252,132 @@ func (s *PostgresDB) GetActivitiesByUserID(ctx context.Context, userID string) (
 	return activities, nil
 }
 
+func (s *PostgresDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, error) {
+	s.log.Debug(fmt.Sprintf("Fetching activities for user: %s", userID))
+
+	query := `
+		SELECT
+			id, user_id, client_activity_id, title, description, type,
+			start_time, end_time, elapsed_time, distance_m, elevation_gain_m,
+			elevation_loss_m, max_height_m, min_height_m,
+			avg_speed_mps, max_speed_mps, avg_hr_bpm, max_hr_bpm, processing_ver,
+			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
+			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
+		FROM activities
+		WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
+		ORDER BY start_time DESC
+	`
+
+	rows, err := s.pool.Query(ctx, query, userID, start_date, end_date)
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while fetching activities for user: %s", userID), err)
+		return nil, fmt.Errorf("failed to get activities: %w", err)
+	}
+	defer rows.Close()
+
+	var activities []models.Activity
+	for rows.Next() {
+        var activity models.Activity
+        err := rows.Scan(
+            &activity.ID,
+            &activity.UserID,
+            &activity.ClientActivityID,
+            &activity.Title,
+            &activity.Description,
+            &activity.ActivityType,
+            &activity.StartTime,
+            &activity.EndTime,
+            &activity.ElapsedTime,
+            &activity.DistanceM,
+            &activity.ElevationGainM,
+            &activity.ElevationLossM,
+            &activity.MaxHeightM,
+            &activity.MinHeightM,
+            &activity.AvgSpeedMps,
+            &activity.MaxSpeedMps,
+            &activity.AvgHRBpm,
+            &activity.MaxHRBpm,
+            &activity.ProcessingVer,
+            &activity.Polyline,
+            &activity.BBoxMinLat,
+            &activity.BBoxMinLon,
+            &activity.BBoxMaxLat,
+            &activity.BBoxMaxLon,
+            &activity.StartLat,
+            &activity.StartLon,
+            &activity.EndLat,
+            &activity.EndLon,
+            &activity.FileURL,
+            &activity.CreatedAt,
+            &activity.UpdatedAt,
+        )
+        if err != nil {
+            s.log.Error(fmt.Sprintf("Error scanning activity row for user: %s", userID), err)
+            return nil, fmt.Errorf("failed to scan activity: %w", err)
+        }
+        activities = append(activities, activity)
+    }
+
+    if err = rows.Err(); err != nil {
+        s.log.Error(fmt.Sprintf("Row iteration error for user: %s", userID), err)
+        return nil, fmt.Errorf("failed to iterate activities: %w", err)
+    }
+
+    s.log.Debug(fmt.Sprintf("Successfully retrieved %d activities for user: %s", len(activities), userID))
+
+    query := `
+        SELECT
+            id, user_id, title, description, type,
+            start_time, planned_distance_m, planned_duration_s,
+            planned_elevation_gain_m, target_avg_speed_mps, target_power_watt,
+            created_at, updated_at
+        FROM planned_activities
+        WHERE user_id = $1 AND start_time >= $2 AND start_time <= $3
+        ORDER BY start_time DESC
+    `
+
+    rows, err := s.pool.Query(ctx, query, userID, start_date, end_date)
+    if err != nil {
+        s.log.Error(fmt.Sprintf("Database error while fetching planned activities for user: %s", userID), err)
+        return nil, fmt.Errorf("failed to get planned activities: %w", err)
+    }
+    defer rows.Close()
+
+    var plannedActivities []models.PlannedActivity
+    for rows.Next() {
+        var plannedActivity models.PlannedActivity
+        err := rows.Scan(
+            &activity.ID,
+            &activity.UserID,
+            &activity.ClientActivityID,
+            &activity.Title,
+            &activity.Description,
+            &activity.ActivityType,
+            &activity.StartTime,
+            &activity.planned_distance_m,
+            &activity.planned_duration_s,
+            &activity.planned_elevation_gain_m,
+            &activity.target_avg_speed_mps,
+            &activity.target_power_watt,
+            &activity.CreatedAt,
+            &activity.UpdatedAt,
+        )
+        if err != nil {
+            s.log.Error(fmt.Sprintf("Error scanning planned activity row for user: %s", userID), err)
+            return nil, fmt.Errorf("failed to scan planned activity: %w", err)
+        }
+        plannedActivities = append(plannedActivities, plannedActivity)
+    }
+
+    if err = rows.Err(); err != nil {
+        s.log.Error(fmt.Sprintf("Row iteration error for user: %s", userID), err)
+        return nil, fmt.Errorf("failed to iterate planned activities: %w", err)
+    }
+    s.log.Debug(fmt.Sprintf("Successfully retrieved %d planned activities for user: %s", len(activities), userID))
+
+    return activities, plannedActivities, nil
+}
+
 // CheckIdempotency checks if a client activity ID already exists
 func (s *PostgresDB) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	s.log.Debug(fmt.Sprintf("Checking idempotency for client activity ID: %s", clientActivityID))

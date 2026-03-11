@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/anish-chanda/cadence/backend/internal/models"
 )
@@ -16,6 +17,7 @@ type Database interface {
 	// --- Activities stuff ----
 	CreateActivity(ctx context.Context, activity *models.Activity) error
 	GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error)
+	GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity error)
 	CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error)
 	GetActivityByID(ctx context.Context, activityID string) (*models.Activity, error)
 	
