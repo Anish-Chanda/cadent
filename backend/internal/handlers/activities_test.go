@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/models"
-	"github.com/anish-chanda/cadence/backend/internal/valhalla"
+	"github.com/anish-chanda/cadent/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/valhalla"
 	"github.com/google/uuid"
 )
 

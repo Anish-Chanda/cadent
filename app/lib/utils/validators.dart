@@ -59,7 +59,7 @@ class Validators {
   /// Server URL validator
   /// 
   /// Accepted format examples:
-  /// - http://cadence.local
+  /// - http://cadent.local
   /// - https://api.example.com
   /// - http://192.168.1.100:8080
   /// 

@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 )
 
 type Database interface {

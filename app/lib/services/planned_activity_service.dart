@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import '../services/http_client.dart';
-import 'package:cadence/models/planned_activity.dart';
+import 'package:cadent/models/planned_activity.dart';
 
 class PlannedActivityService {
   PlannedActivityService._();
