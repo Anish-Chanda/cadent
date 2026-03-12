@@ -1,5 +1,5 @@
 import { DropdownMenu } from 'radix-ui'
-import { ChevronDown, Settings, LogOut, Activity, CalendarDays } from 'lucide-react'
+import { ChevronDown, Settings, LogOut, Activity, CalendarDays, Plus, CalendarPlus } from 'lucide-react'
 import { Link, useRouter } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/auth-context'
 import { cn } from '@/lib/utils'
@@ -107,7 +107,7 @@ export function TopBar() {
           </NavDropdown>
 
           <NavDropdown label="Training">
-            <DropdownLink to="/dashboard" icon={CalendarDays}>
+            <DropdownLink to="/dashboard/training/calendar" icon={CalendarDays}>
               Training Calendar
             </DropdownLink>
           </NavDropdown>
@@ -115,6 +115,53 @@ export function TopBar() {
 
         {/* Push profile to the right */}
         <div className="flex-1" />
+
+        {/* Quick create dropdown */}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger
+            className={cn(
+              'flex size-8 items-center justify-center rounded-full',
+              'text-muted-foreground transition-colors',
+              'hover:bg-accent hover:text-accent-foreground',
+              'data-[state=open]:bg-accent data-[state=open]:text-accent-foreground',
+              'outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'cursor-pointer select-none mr-1',
+            )}
+            aria-label="Create new"
+          >
+            <Plus className="size-4" strokeWidth={2.5} />
+          </DropdownMenu.Trigger>
+
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              sideOffset={8}
+              align="end"
+              className={cn(
+                'z-50 min-w-48 overflow-hidden rounded-lg border bg-popover p-1 shadow-md',
+                'data-[state=open]:animate-in data-[state=closed]:animate-out',
+                'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+                'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+                'data-[side=bottom]:slide-in-from-top-2',
+              )}
+            >
+              <DropdownMenu.Item
+                className={cn(
+                  'flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm',
+                  'text-foreground/80 outline-none transition-colors',
+                  'hover:bg-accent hover:text-accent-foreground',
+                  'focus:bg-accent focus:text-accent-foreground',
+                )}
+                onSelect={() => {
+                  // TODO: Launch create planned activity form/modal
+                  console.log('Create planned activity')
+                }}
+              >
+                <CalendarPlus className="size-4 shrink-0 text-muted-foreground" />
+                Create planned activity
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
 
         {/* User profile dropdown */}
         <DropdownMenu.Root>

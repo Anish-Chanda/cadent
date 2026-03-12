@@ -1,0 +1,311 @@
+/* Calendar base */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+/* ---- Week day header row (MON, TUE, ...) ---- */
+.rbc-header {
+  padding: 12px 8px;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid hsl(var(--border));
+}
+
+.rbc-month-header {
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 8px 8px 0 0;
+}
+
+/* ---- Month view container ---- */
+.rbc-month-view {
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rbc-month-row {
+  border: none;
+  overflow: visible;
+}
+
+/* ---- Background cells (.rbc-day-bg) ---- */
+.rbc-day-bg {
+  border-left: 1px solid hsl(var(--border));
+  border-top: 1px solid hsl(var(--border));
+  transition: background-color 0.15s ease;
+}
+
+.rbc-off-range-bg {
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+/* Ensure .rbc-day-bg fills its wrapper (DateCellWrapper adds a flex parent) */
+.rbc-day-bg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Today's cell background (applied by library to .rbc-day-bg) */
+.rbc-today {
+  background-color: rgb(89 196 247 / 0.1) !important;
+}
+
+/* Override library default bold for .rbc-now (today's date cell) */
+.rbc-date-cell.rbc-now {
+  font-weight: inherit;
+}
+
+/* Override library .rbc-current styling — we handle today via .rbc-date-today */
+.rbc-date-cell.rbc-current {
+  font-weight: inherit;
+}
+
+/* ---- Content layer ---- */
+.rbc-row-content {
+  position: relative;
+  z-index: 4;
+}
+
+.rbc-row {
+  overflow: visible;
+}
+
+.rbc-row-segment {
+  padding: 4px 6px;
+}
+
+/* ---- Date cells ---- */
+.rbc-date-cell {
+  padding: 0;
+  text-align: right;
+}
+
+/* Override library default bold for .rbc-now (today's date cell) */
+.rbc-date-cell.rbc-now {
+  font-weight: inherit;
+}
+
+/* Override library .rbc-current styling — we handle today via .rbc-date-today */
+.rbc-date-cell.rbc-current {
+  font-weight: inherit;
+}
+
+/* ---- Custom date header (MonthDateHeader) ---- */
+.rbc-month-date-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px;
+  gap: 4px;
+}
+
+/* Date number */
+.rbc-date-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: hsl(var(--foreground));
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.rbc-date-number:hover {
+  background-color: hsl(var(--accent));
+}
+
+/* Today's date badge — solid blue pill */
+.rbc-date-today {
+  background-color: #59c4f7 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.rbc-date-today:hover {
+  background-color: #3db5f5 !important;
+}
+
+/* Off-range dates */
+.rbc-off-range .rbc-date-number {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+/* ---- Add Activity Button (hidden until .rbc-cell-hovered) ---- */
+.rbc-add-activity-btn {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background-color: hsl(var(--background));
+  border: 1.5px solid black;
+  border-radius: 6px;
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+/* Show the button when DateCellWrapper sets .rbc-cell-hovered on the date-cell */
+.rbc-cell-hovered .rbc-add-activity-btn {
+  display: flex;
+}
+
+.rbc-add-activity-btn:hover {
+  background-color: hsl(var(--accent));
+  border-color: hsl(var(--foreground) / 0.3);
+}
+
+/* ---- Event styles ---- */
+.rbc-event {
+  background-color: #59c4f7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.rbc-event:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.rbc-event.rbc-selected {
+  background-color: #3db5f5;
+}
+
+.rbc-event-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.rbc-event-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rbc-event + .rbc-event {
+  margin-top: 2px;
+}
+
+/* ---- Show More link ---- */
+.rbc-show-more {
+  background-color: transparent;
+  color: #59c4f7;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  margin: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.rbc-show-more:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* ---- Popup overlay ---- */
+.rbc-overlay {
+  background-color: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 8px;
+  z-index: 50;
+}
+
+.rbc-overlay-header {
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid hsl(var(--border));
+  margin: -8px -8px 8px -8px;
+}
+
+/* ---- Suppress default toolbar button styles ---- */
+.rbc-toolbar button {
+  all: unset;
+}
+
+/* ---- Dark mode adjustments ---- */
+@media (prefers-color-scheme: dark) {
+  .rbc-today {
+    background-color: rgb(89 196 247 / 0.12) !important;
+  }
+
+  .rbc-date-today {
+    background-color: #59c4f7 !important;
+    color: white !important;
+  }
+
+  .rbc-date-today:hover {
+    background-color: #6ccef9 !important;
+  }
+
+  .rbc-add-activity-btn {
+    background-color: hsl(var(--popover));
+  }
+
+  .rbc-event {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .rbc-off-range-bg {
+    background-color: hsl(var(--muted) / 0.1);
+  }
+
+  .rbc-overlay {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .rbc-header {
+    padding: 8px 4px;
+    font-size: 0.625rem;
+  }
+
+  .rbc-month-date-header {
+    padding: 4px;
+  }
+
+  .rbc-date-number {
+    font-size: 0.75rem;
+    min-width: 24px;
+    height: 24px;
+  }
+
+  .rbc-add-activity-btn span {
+    display: none;
+  }
+
+  .rbc-event {
+    padding: 2px 4px;
+    font-size: 0.75rem;
+  }
+}
