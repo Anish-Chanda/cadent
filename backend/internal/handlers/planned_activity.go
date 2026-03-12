@@ -1,0 +1,100 @@
+package handlers
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/anish-chanda/cadence/backend/internal/db"
+	"github.com/anish-chanda/cadence/backend/internal/logger"
+	"github.com/anish-chanda/cadence/backend/internal/models"
+)
+
+type CreatePlannedActivityRequest struct {
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+
+	ActivityType string    `json:"activityType"`
+	StartTime    time.Time `json:"startTime"`
+
+	PlannedDistanceMeter             *float64 `json:"plannedDistanceMeter"`
+	PlannedDurationSecond            *int     `json:"plannedDurationSecond"`
+	PlannedElevationGainMeter        *float64 `json:"plannedElevationGainMeter"`
+	TargetAverageSpeedMeterPerSecond *float64 `json:"targetAverageSpeedMeterPerSecond"`
+	TargetPowerWatt                  *int     `json:"targetPowerWatt"`
+}
+
+func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		// 1. Auth Check
+		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		// 2. Decode the JSON Body
+		var req CreatePlannedActivityRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.Error("Failed to decode plan request", err)
+			sendError(w, http.StatusBadRequest, "Invalid JSON format")
+			return
+		}
+
+		// Validation
+		if strings.TrimSpace(req.Title) == "" || strings.TrimSpace(req.ActivityType) == "" {
+			sendError(w, http.StatusBadRequest, "Title and Activity Type are required")
+			return
+		}
+		if req.StartTime.IsZero() {
+			sendError(w, http.StatusBadRequest, "Valid Start Time is required")
+			return
+		}
+		// Validate activity_type enum database insertion to return 400
+		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
+			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
+			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType))
+			return
+		}
+
+		// 3. Save to Database
+		plan := &models.PlannedActivity{
+			UserID:                userID,
+			Title:                 req.Title,
+			Description:           req.Description,
+			Type:                  models.ActivityType(req.ActivityType),
+			StartTime:             req.StartTime,
+			PlannedDistanceM:      req.PlannedDistanceMeter,
+			PlannedDurationS:      req.PlannedDurationSecond,
+			PlannedElevationGainM: req.PlannedElevationGainMeter,
+			TargetAvgSpeedMps:     req.TargetAverageSpeedMeterPerSecond,
+			TargetPowerWatt:       req.TargetPowerWatt,
+		}
+
+		saved, err := database.CreatePlannedActivity(ctx, plan)
+		if err != nil {
+			log.Error("Database failed", err)
+			sendError(w, http.StatusInternalServerError, "Failed to save to database")
+			return
+		}
+
+		// 4. Build Success Response
+		response := map[string]interface{}{
+			"id": saved.ID.String(),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+func sendError(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
