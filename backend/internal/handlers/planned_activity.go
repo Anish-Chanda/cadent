@@ -84,11 +84,7 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 
 		// 4. Build Success Response
 		response := map[string]interface{}{
-			"status":  "success",
-			"message": "plannedActivityCreated",
-			"data": map[string]string{
-				"plannedActivityId": saved.ID.String(),
-			},
+			"id": saved.ID.String(),
 		}
 
 		w.Header().Set("Content-Type", "application/json")

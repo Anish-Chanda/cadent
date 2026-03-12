@@ -116,7 +116,7 @@ func (s *PostgresDB) CreateUser(ctx context.Context, user *models.UserRecord) er
 // --- Activities stuff ---
 
 func (s *PostgresDB) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
-	s.log.Info(fmt.Sprintf("Database creating planned entry for title: %s", plan.Title))
+	s.log.Debug(fmt.Sprintf("Database creating planned entry for title: %s", plan.Title))
 
 	query := `
         INSERT INTO planned_activities (
@@ -146,7 +146,7 @@ func (s *PostgresDB) CreatePlannedActivity(ctx context.Context, plan *models.Pla
 		return nil, err
 	}
 
-	s.log.Info(fmt.Sprintf("Postgres planned entry created with ID: %d", plan.ID))
+	s.log.Debug(fmt.Sprintf("Postgres planned entry created with ID: %d", plan.ID))
 
 	return plan, nil
 }

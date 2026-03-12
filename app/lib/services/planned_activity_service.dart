@@ -11,7 +11,7 @@ class PlannedActivityService {
   Future<bool> createPlannedActivity(PlannedActivity plan) async {
     try {
       final response = await HttpClient.instance.dio.post(
-        '/api/v1/plan',
+        '/api/v1/activities/plan',
         data: plan.toJson(),
       );
 

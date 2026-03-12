@@ -160,8 +160,6 @@ func main() {
 			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
 			r.Get("/activities", handlers.HandleGetActivities(database, *log))
 			r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
-
-			// Messing Around
 			r.Post("/activities/plan", handlers.HandleCreatePlannedActivity(database, *log))
 
 			// User endpoints
