@@ -17,8 +17,8 @@ void main() {
     setUp(() {
       // Create a complete mock activity with all required fields
       mockAppSettingsProvider = MockAppSettingsProvider();
-       when(() => mockAppSettingsProvider.metricUnitDisplayName)
-      .thenReturn('Meters');
+      when(() => mockAppSettingsProvider.isMetric).thenReturn(true);
+      when(() => mockAppSettingsProvider.metricUnitDisplayName).thenReturn('Meters');
       mockActivity = Activity(
         id: '1',
         title: 'Morning Run',

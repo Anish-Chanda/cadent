@@ -28,8 +28,7 @@ void main() {
       when(() => mockActivitiesProvider.isEmpty).thenReturn(false);
       when(() => mockActivitiesProvider.errorMessage).thenReturn(null);
       when(() => mockActivitiesProvider.activities).thenReturn([]);
-      when(() => mockAppSettingsProvider.metricUnitDisplayName)
-      .thenReturn('Meters');
+      when(() => mockAppSettingsProvider.isMetric).thenReturn(true);
 
       when(
         () => mockActivitiesProvider.loadingState,

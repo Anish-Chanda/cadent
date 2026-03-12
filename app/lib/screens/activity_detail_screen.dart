@@ -323,7 +323,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
 
 
   Widget _buildStatsGrid() {
-    final isMetric = context.read<AppSettingsProvider>().metricUnitDisplayName == "Meters";
+    final activity = widget.activity.withIsMetric(context.read<AppSettingsProvider>().isMetric);
     return Column(
       children: [
         // Primary stats row
@@ -332,44 +332,44 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             Expanded(
               child: _buildStatItem(
                 label: 'Distance',
-                value: isMetric ? widget.activity.formattedDistanceKm : widget.activity.formattedDistanceMi,
-                unit: isMetric ? 'km' : 'mi',
+                value: activity.formattedDistance,
+                unit: activity.distanceUnit,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildStatItem(
                 label: 'Moving Time',
-                value: _formatDuration(widget.activity.stats!.elapsedSeconds),
+                value: _formatDuration(activity.stats!.elapsedSeconds),
                 unit: '',
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Secondary stats row
         Row(
           children: [
             Expanded(
               child: _buildStatItem(
                 label: 'Elevation Gain',
-                value: isMetric ? widget.activity.formattedElevationM : widget.activity.formattedElevationFt,
-                unit: isMetric ? 'm' : 'ft',
+                value: activity.formattedElevation,
+                unit: activity.elevationUnit,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: widget.activity.activityType == 'road_biking'
+              child: activity.activityType == 'road_biking'
                   ? _buildStatItem(
                       label: 'Avg Speed',
-                      value: isMetric ? widget.activity.formattedSpeedKph : widget.activity.formattedSpeedMph,
-                      unit: isMetric ? 'kph' : 'mph',
+                      value: activity.formattedSpeed,
+                      unit: activity.speedUnit,
                     )
                   : _buildStatItem(
                       label: 'Avg Pace',
-                      value: isMetric ? widget.activity.formattedPaceKm : widget.activity.formattedPaceMi,
-                      unit: context.read<AppSettingsProvider>().metricUnitDisplayName == 'Meters' ? '/km' : '/mi',
+                      value: activity.formattedPace,
+                      unit: activity.paceUnit,
                     ),
             ),
           ],

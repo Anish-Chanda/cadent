@@ -16,7 +16,7 @@ class ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metersOrMiles = context.read<AppSettingsProvider>().metricUnitDisplayName;
+    final activity = this.activity.withIsMetric(context.read<AppSettingsProvider>().isMetric);
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -66,7 +66,7 @@ class ActivityCard extends StatelessWidget {
                         context: context,
                         icon: Icons.straighten,
                         label: 'Distance',
-                        value: metersOrMiles == 'Meters' ? '${activity.formattedDistanceKm} km' : '${activity.formattedDistanceMi} mi',
+                        value: '${activity.formattedDistance} ${activity.distanceUnit}',
                       ),
                       // Flexible space for center alignment
                       Expanded(
@@ -75,7 +75,7 @@ class ActivityCard extends StatelessWidget {
                             context: context,
                             icon: Icons.terrain,
                             label: 'Elevation',
-                            value: metersOrMiles == 'Meters' ? '${activity.formattedElevationM} m' : '${activity.formattedElevationFt} ft',
+                            value: '${activity.formattedElevation} ${activity.elevationUnit}',
                           ),
                         ),
                       ),
