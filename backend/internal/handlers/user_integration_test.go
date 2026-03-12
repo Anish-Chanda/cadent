@@ -94,6 +94,10 @@ func (m *IntegrationUserMockDB) GetActivityStreams(ctx context.Context, activity
 func (m *IntegrationUserMockDB) CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error {
 	return nil
 }
+
+func (m *IntegrationUserMockDB) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	return &models.PlannedActivity{}, nil
+}
 func (m *IntegrationUserMockDB) Connect(dsn string) error { return nil }
 func (m *IntegrationUserMockDB) Close() error             { return nil }
 func (m *IntegrationUserMockDB) Migrate() error           { return nil }

@@ -72,6 +72,9 @@ func (m *mockDatabase) GetActivityStreams(ctx context.Context, activityID string
 func (m *mockDatabase) CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error {
 	return nil
 }
+func (m *mockDatabase) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	return &models.PlannedActivity{}, nil
+}
 func (m *mockDatabase) Connect(dsn string) error { return nil }
 func (m *mockDatabase) Close() error             { return nil }
 func (m *mockDatabase) Migrate() error           { return nil }

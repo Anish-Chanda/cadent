@@ -186,6 +186,7 @@ void main() {
         RecordingSessionModel(),
         title: 'My Ride',
         description: 'Fun route',
+        perceivedEffort: 8,
       );
 
       expect(ok, isTrue);
@@ -197,6 +198,7 @@ void main() {
       expect(body['description'], 'Fun route');
       expect(body['activity_type'], isNotEmpty);
       expect(body['client_activity_id'], isA<String>());
+      expect(body['perceived_effort'], 8);
       expect(body['samples'], isA<List>());
     });
 
@@ -206,6 +208,8 @@ void main() {
         RecordingSessionModel(),
       );
       expect(ok, isTrue);
+      final body = (captor.lastData as Map<String, dynamic>);
+      expect(body['perceived_effort'], isNull);
     });
 
     test('returns false on non-200', () async {
