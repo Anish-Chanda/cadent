@@ -844,13 +844,13 @@ func calculateDerivedStats(activityType string, speedMs float64, distanceM float
 
 	if speedMs > 0 {
 		switch activityType {
-		case "road_bike":
+		case "road_biking":
 			// For bike activities, show speed in km/h and mph
 			speedKmh := speedMs * 3.6      // m/s to km/h
 			speedMph := speedMs * 2.236936 // m/s to mph
 			derived.SpeedKmh = &speedKmh
 			derived.SpeedMph = &speedMph
-		case "run":
+		case "running":
 			// For running activities, show pace in seconds per km and per mile
 			paceSPerKm := 1000.0 / speedMs     // seconds per km
 			paceSPerMile := 1609.344 / speedMs // seconds per mile

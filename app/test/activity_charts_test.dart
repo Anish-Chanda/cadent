@@ -2,19 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:cadent/widgets/activity_charts.dart';
-import 'package:cadent/models/streams.dart';
+import 'package:cadence/widgets/activity_charts.dart';
+import 'package:cadence/models/streams.dart';
+import 'package:cadence/providers/app_settings_provider.dart';
+import 'package:provider/provider.dart';
 
 // Mock classes
 class MockStreamsModel extends Mock implements StreamsModel {}
+class MockAppSettingsProvider extends Mock implements AppSettingsProvider {}
 
 void main() {
   group('ActivityCharts', () {
     late MockStreamsModel mockStreams;
 
+    late MockAppSettingsProvider mockSettings;
+
     setUp(() {
       mockStreams = MockStreamsModel();
+      mockSettings = MockAppSettingsProvider();
+      // default to metric for tests
+      when(() => mockSettings.metricUnitDisplayName).thenReturn('Meters');
     });
+
+    // helper builder for each test so we always provide the settings provider
+    Widget buildChart() {
+      return ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockSettings,
+        child: MaterialApp(
+          home: Scaffold(body: ActivityCharts(streams: mockStreams)),
+        ),
+      );
+    }
 
     testWidgets('displays placeholder when no data is available', (
       tester,
@@ -25,11 +43,7 @@ void main() {
       when(() => mockStreams.streams).thenReturn({});
       when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-        ),
-      );
+      await tester.pumpWidget(buildChart());
 
       expect(find.text('Performance'), findsOneWidget);
       expect(find.text('No streams available'), findsOneWidget);
@@ -48,11 +62,7 @@ void main() {
       when(() => mockStreams.streams).thenReturn({'distance': distances});
       when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-        ),
-      );
+      await tester.pumpWidget(buildChart());
 
       expect(find.text('Performance'), findsOneWidget);
       expect(find.text('Elevation (m)'), findsOneWidget);
@@ -71,11 +81,7 @@ void main() {
       when(() => mockStreams.streams).thenReturn({'distance': distances});
       when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-        ),
-      );
+      await tester.pumpWidget(buildChart());
 
       expect(find.text('Speed (km/h)'), findsOneWidget);
     });
@@ -92,13 +98,10 @@ void main() {
       when(() => mockStreams.streams).thenReturn({'distance': distances});
       when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-        ),
-      );
+      await tester.pumpWidget(buildChart());
 
-      expect(find.text('Splits (km)'), findsOneWidget);
+      // header should mention the splits unit; we don't hard‑code km/mi here
+      expect(find.textContaining('Splits'), findsOneWidget);
     });
 
     testWidgets('toggle switches between Distance and Time views', (
@@ -114,11 +117,7 @@ void main() {
       when(() => mockStreams.streams).thenReturn({'distance': distances});
       when(() => mockStreams.timeOffsetsSeconds()).thenReturn(timeOffsets);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-        ),
-      );
+      await tester.pumpWidget(buildChart());
 
       // Should show toggle buttons
       expect(find.byType(ToggleButtons), findsOneWidget);
@@ -144,11 +143,7 @@ void main() {
         when(() => mockStreams.streams).thenReturn({'distance': distances});
         when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-          ),
-        );
+        await tester.pumpWidget(buildChart());
 
         verify(
           () => mockStreams.numericSeries('distance'),
@@ -178,11 +173,7 @@ void main() {
         ).thenReturn({'distance_km': distancesKm});
         when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-          ),
-        );
+        await tester.pumpWidget(buildChart());
 
         // Should convert km to meters internally
         expect(find.text('Speed (km/h)'), findsOneWidget);
@@ -202,11 +193,7 @@ void main() {
         when(() => mockStreams.streams).thenReturn({'distance': distances});
         when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-          ),
-        );
+        await tester.pumpWidget(buildChart());
 
         // Should not crash and display speed chart
         expect(find.text('Speed (km/h)'), findsOneWidget);
@@ -219,11 +206,7 @@ void main() {
         when(() => mockStreams.streams).thenReturn({});
         when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-          ),
-        );
+        await tester.pumpWidget(buildChart());
 
         expect(find.text('No streams available'), findsOneWidget);
       });
@@ -240,11 +223,7 @@ void main() {
         when(() => mockStreams.streams).thenReturn({'distance': distances});
         when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-          ),
-        );
+        await tester.pumpWidget(buildChart());
 
         // Should still render without crashing
         expect(find.text('Elevation (m)'), findsOneWidget);
@@ -264,11 +243,7 @@ void main() {
         when(() => mockStreams.streams).thenReturn({'distance': distances});
         when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-          ),
-        );
+        await tester.pumpWidget(buildChart());
 
         final gesture = find.descendant(
           of: find.widgetWithText(Column, 'Elevation (m)'),
@@ -293,11 +268,7 @@ void main() {
         when(() => mockStreams.streams).thenReturn({'distance': distances});
         when(() => mockStreams.timeOffsetsSeconds()).thenReturn([]);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: ActivityCharts(streams: mockStreams)),
-          ),
-        );
+        await tester.pumpWidget(buildChart());
 
         final splitsGesture = find.descendant(
           of: find.widgetWithText(Column, 'Splits (km)'),

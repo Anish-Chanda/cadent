@@ -1,20 +1,29 @@
+import 'package:cadence/providers/app_settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:cadent/screens/activity_detail_screen.dart';
-import 'package:cadent/models/activity.dart';
+import 'package:cadence/screens/activity_detail_screen.dart';
+import 'package:cadence/models/activity.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:provider/provider.dart';
+import 'Mocks/mock_app_settings_provider.dart';
 
 void main() {
   group('ActivityDetailScreen', () {
     late Activity mockActivity;
+    late MockAppSettingsProvider mockAppSettingsProvider;
+   
 
     setUp(() {
       // Create a complete mock activity with all required fields
+      mockAppSettingsProvider = MockAppSettingsProvider();
+      when(() => mockAppSettingsProvider.isMetric).thenReturn(true);
+      when(() => mockAppSettingsProvider.metricUnitDisplayName).thenReturn('Meters');
       mockActivity = Activity(
         id: '1',
         title: 'Morning Run',
         description: 'A nice morning run',
-        activityType: 'run',
+        activityType: 'running',
         perceivedEffort: 7,
         startTime: DateTime(2024, 1, 15, 8, 30),
         endTime: DateTime(2024, 1, 15, 9, 0),
@@ -49,9 +58,14 @@ void main() {
 
     testWidgets('displays all UI elements', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
-
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
+      await tester.pumpAndSettle();
       // Verify main elements
       expect(find.byType(MapLibreMap), findsOneWidget);
       expect(find.byType(DraggableScrollableSheet), findsOneWidget);
@@ -60,8 +74,13 @@ void main() {
 
     testWidgets('displays activity title and date', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -71,8 +90,13 @@ void main() {
 
     testWidgets('displays activity type badge for run', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -81,11 +105,11 @@ void main() {
     });
 
     testWidgets('displays activity type badge for bike', (tester) async {
-      final bikeActivity = Activity(
+      final mockActivity = Activity(
         id: '2',
         title: 'Evening Ride',
         description: 'Evening cycling session',
-        activityType: 'road_bike',
+        activityType: 'road_biking',
         startTime: DateTime(2024, 1, 15, 18, 30),
         endTime: DateTime(2024, 1, 15, 20, 0),
         stats: ActivityStats(
@@ -115,7 +139,12 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: bikeActivity)),
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
       );
 
       await tester.pumpAndSettle();
@@ -126,8 +155,13 @@ void main() {
 
     testWidgets('displays distance stat correctly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -138,8 +172,13 @@ void main() {
 
     testWidgets('displays moving time stat correctly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -149,8 +188,13 @@ void main() {
 
     testWidgets('displays elevation gain stat correctly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -161,13 +205,19 @@ void main() {
 
     testWidgets('displays avg pace for running activities', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
       expect(find.text('AVG PACE'), findsOneWidget);
-      expect(find.text('7:56/km'), findsOneWidget);
+      expect(find.text('7:56'), findsOneWidget);
+      expect(find.text('/km'), findsOneWidget);
     });
 
     testWidgets('displays perceived effort stat', (tester) async {
@@ -183,11 +233,11 @@ void main() {
     });
 
     testWidgets('displays avg speed for biking activities', (tester) async {
-      final bikeActivity = Activity(
+      final mockActivity = Activity(
         id: '2',
         title: 'Evening Ride',
         description: 'Evening cycling session',
-        activityType: 'road_bike',
+        activityType: 'road_biking',
         startTime: DateTime(2024, 1, 15, 18, 30),
         endTime: DateTime(2024, 1, 15, 20, 0),
         stats: ActivityStats(
@@ -217,21 +267,31 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: bikeActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
       expect(find.text('AVG SPEED'), findsOneWidget);
-      expect(find.text('27.00'), findsOneWidget);
-      expect(find.text('km/h'), findsOneWidget);
+      expect(find.text('27.0'), findsOneWidget);
+      expect(find.text('kph'), findsOneWidget);
     });
 
 
     testWidgets('displays drag handle', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -248,6 +308,9 @@ void main() {
 
     testWidgets('back button pops navigation', (tester) async {
       await tester.pumpWidget(
+        ChangeNotifierProvider<AppSettingsProvider>.value(
+          value:mockAppSettingsProvider,
+          child:
         MaterialApp(
           home: Scaffold(
             body: Builder(
@@ -266,6 +329,7 @@ void main() {
             ),
           ),
         ),
+      ),
       );
 
       // Navigate to detail screen
@@ -285,11 +349,11 @@ void main() {
     });
 
     testWidgets('formats duration correctly for hours', (tester) async {
-      final longActivity = Activity(
+      final mockActivity = Activity(
         id: '3',
         title: 'Long Run',
         description: 'A very long run',
-        activityType: 'run',
+        activityType: 'running',
         startTime: DateTime(2024, 1, 15, 8, 0),
         endTime: DateTime(2024, 1, 15, 11, 30),
         stats: ActivityStats(
@@ -319,8 +383,13 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: longActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -329,8 +398,13 @@ void main() {
 
     testWidgets('initializes map with correct style', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -343,8 +417,13 @@ void main() {
 
     testWidgets('initializes map with correct zoom level', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -354,8 +433,13 @@ void main() {
 
     testWidgets('draggable sheet has correct initial size', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 
@@ -370,8 +454,13 @@ void main() {
 
     testWidgets('disposes controllers properly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
-      );
+      ChangeNotifierProvider<AppSettingsProvider>.value(
+        value: mockAppSettingsProvider,
+        child: MaterialApp(
+          home: ActivityDetailScreen(activity: mockActivity),
+        ),
+      ),
+    );
 
       await tester.pumpAndSettle();
 

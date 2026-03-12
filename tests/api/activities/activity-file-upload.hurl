@@ -105,7 +105,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.activities" count == 2
 jsonpath "$.activities[0].id" == "{{campus_id}}"
-jsonpath "$.activities[0].type" == "run"
+jsonpath "$.activities[0].type" == "running"
 jsonpath "$.activities[0].title" == "My Campus Run"
 jsonpath "$.activities[0].stats.elevation_gain_m" > 0
 jsonpath "$.activities[0].stats.elevation_loss_m" > 0
@@ -154,7 +154,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.activities" count == 3
 jsonpath "$.activities[0].id" == "{{run_id}}"
-jsonpath "$.activities[0].type" == "run"
+jsonpath "$.activities[0].type" == "running"
 jsonpath "$.activities[0].description" == ""
 # Strava reference: 106 m gain; our threshold-based calc is close but not identical
 jsonpath "$.activities[0].stats.elevation_gain_m" > 90
