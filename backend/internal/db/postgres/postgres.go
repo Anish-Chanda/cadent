@@ -325,7 +325,7 @@ func (s *PostgresDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID st
 
     s.log.Debug(fmt.Sprintf("Successfully retrieved %d activities for user: %s", len(activities), userID))
 
-    query := `
+    query2 := `
         SELECT
             id, user_id, title, description, type,
             start_time, planned_distance_m, planned_duration_s,
@@ -336,44 +336,44 @@ func (s *PostgresDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID st
         ORDER BY start_time DESC
     `
 
-    rows, err := s.pool.Query(ctx, query, userID, start_date, end_date)
-    if err != nil {
-        s.log.Error(fmt.Sprintf("Database error while fetching planned activities for user: %s", userID), err)
-        return nil, fmt.Errorf("failed to get planned activities: %w", err)
+    rows2, err2 := s.pool.Query(ctx, query2, userID, start_date, end_date)
+    if err2 != nil {
+        s.log.Error(fmt.Sprintf("Database error while fetching planned activities for user: %s", userID), err2)
+        return nil, fmt.Errorf("failed to get planned activities: %w", err2)
     }
-    defer rows.Close()
+    defer rows2.Close()
 
     var plannedActivities []models.PlannedActivity
-    for rows.Next() {
+    for rows2.Next() {
         var plannedActivity models.PlannedActivity
-        err := rows.Scan(
-            &activity.ID,
-            &activity.UserID,
-            &activity.ClientActivityID,
-            &activity.Title,
-            &activity.Description,
-            &activity.ActivityType,
-            &activity.StartTime,
-            &activity.planned_distance_m,
-            &activity.planned_duration_s,
-            &activity.planned_elevation_gain_m,
-            &activity.target_avg_speed_mps,
-            &activity.target_power_watt,
-            &activity.CreatedAt,
-            &activity.UpdatedAt,
+        err2 := rows.Scan(
+            &plannedActivity.ID,
+            &plannedActivity.UserID,
+            &plannedActivity.ClientActivityID,
+            &plannedActivity.Title,
+            &plannedActivity.Description,
+            &plannedActivity.ActivityType,
+            &plannedActivity.StartTime,
+            &plannedActivity.planned_distance_m,
+            &plannedActivity.planned_duration_s,
+            &plannedActivity.planned_elevation_gain_m,
+            &plannedActivity.target_avg_speed_mps,
+            &plannedActivity.target_power_watt,
+            &plannedActivity.CreatedAt,
+            &plannedActivity.UpdatedAt,
         )
-        if err != nil {
-            s.log.Error(fmt.Sprintf("Error scanning planned activity row for user: %s", userID), err)
-            return nil, fmt.Errorf("failed to scan planned activity: %w", err)
+        if err2 != nil {
+            s.log.Error(fmt.Sprintf("Error scanning planned activity row for user: %s", userID), err2)
+            return nil, fmt.Errorf("failed to scan planned activity: %w", err2)
         }
         plannedActivities = append(plannedActivities, plannedActivity)
     }
 
-    if err = rows.Err(); err != nil {
-        s.log.Error(fmt.Sprintf("Row iteration error for user: %s", userID), err)
-        return nil, fmt.Errorf("failed to iterate planned activities: %w", err)
+    if err2 = rows2.Err(); err2 != nil {
+        s.log.Error(fmt.Sprintf("Row iteration error for user: %s", userID), err2)
+        return nil, fmt.Errorf("failed to iterate planned activities: %w", err2)
     }
-    s.log.Debug(fmt.Sprintf("Successfully retrieved %d planned activities for user: %s", len(activities), userID))
+    s.log.Debug(fmt.Sprintf("Successfully retrieved %d planned activities for user: %s", len(plannedActivities), userID))
 
     return activities, plannedActivities, nil
 }
