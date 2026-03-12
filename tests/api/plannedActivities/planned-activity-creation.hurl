@@ -35,4 +35,4 @@ Content-Type: application/json
 }
 HTTP 201
 [Asserts]
-jsonpath "$.status" == "success"
+jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
