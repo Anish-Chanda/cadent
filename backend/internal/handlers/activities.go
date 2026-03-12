@@ -34,13 +34,15 @@ type CreateActivityRequest struct {
 	ActivityType     string    `json:"activity_type"`
 	Title            string    `json:"title"`
 	Description      *string   `json:"description"`
+	PerceivedEffort  *int16    `json:"perceived_effort"`
 	Samples          []Sample  `json:"samples"`
 }
 
 type Sample struct {
-	T   int64   `json:"t"`   // timestamp in unix milliseconds
-	Lat float64 `json:"lat"` // latitude
-	Lon float64 `json:"lon"` // longitude
+	T   int64    `json:"t"`             // timestamp in unix milliseconds
+	Lat float64  `json:"lat"`           // latitude
+	Lon float64  `json:"lon"`           // longitude
+	Ele *float64 `json:"ele,omitempty"` // elevation in meters (optional)
 }
 
 // FullResolutionStream holds full-resolution stream data for all points
@@ -84,20 +86,21 @@ type Coordinate struct {
 }
 
 type ActivityResult struct {
-	ID            string        `json:"id"`
-	Title         string        `json:"title"`
-	Description   string        `json:"description"`
-	Type          string        `json:"type"`
-	StartTime     time.Time     `json:"start_time"`
-	EndTime       *time.Time    `json:"end_time"`
-	Stats         ActivityStats `json:"stats"`
-	BBox          BoundingBox   `json:"bbox"`
-	Start         Coordinate    `json:"start"`
-	End           Coordinate    `json:"end"`
-	Polyline      string        `json:"polyline"`
-	ProcessingVer int           `json:"processing_ver"`
-	CreatedAt     time.Time     `json:"created_at"`
-	UpdatedAt     time.Time     `json:"updated_at"`
+	ID              string        `json:"id"`
+	Title           string        `json:"title"`
+	Description     string        `json:"description"`
+	Type            string        `json:"type"`
+	PerceivedEffort *int16        `json:"perceived_effort"`
+	StartTime       time.Time     `json:"start_time"`
+	EndTime         *time.Time    `json:"end_time"`
+	Stats           ActivityStats `json:"stats"`
+	BBox            BoundingBox   `json:"bbox"`
+	Start           Coordinate    `json:"start"`
+	End             Coordinate    `json:"end"`
+	Polyline        string        `json:"polyline"`
+	ProcessingVer   int           `json:"processing_ver"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
 type GetActivitiesResponse struct {
@@ -127,6 +130,10 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 		if len(req.Samples) < 2 {
 			http.Error(w, "At least 2 samples are required", http.StatusBadRequest)
+			return
+		}
+		if req.PerceivedEffort != nil && (*req.PerceivedEffort < 1 || *req.PerceivedEffort > 10) {
+			http.Error(w, "perceived_effort must be between 1 and 10", http.StatusBadRequest)
 			return
 		}
 
@@ -339,7 +346,8 @@ func processGPSData(samples []Sample) (string, float64, Bounds) {
 	return polyline, totalDistance, bounds
 }
 
-// Helper function to get elevation data and heights from Valhalla
+// Helper function to get elevation data and heights from Valhalla, returns calculated
+// elevation change and array of elevation heights
 func getElevationDataAndHeights(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log logger.ServiceLogger) (*valhalla.ElevationChange, []float64) {
 	heightReq := valhalla.HeightRequest{
 		Range:           false, // range off
@@ -542,9 +550,9 @@ func createCompressedStreams(activityID uuid.UUID, keepIndices []int, fullStream
 	// For now, we store all stream types in one record with their respective compressed bytes
 	// In a more advanced implementation, you might want separate records for each stream type
 	// with their own codec metadata
-	_ = distanceCodec // suppress unused warning
+	_ = distanceCodec  // suppress unused warning
 	_ = elevationCodec // suppress unused warning
-	_ = speedCodec // suppress unused warning
+	_ = speedCodec     // suppress unused warning
 
 	return []models.ActivityStream{stream}, nil
 }
@@ -578,6 +586,7 @@ func buildActivityModel(req CreateActivityRequest, userID string, polyline strin
 		ClientActivityID: req.ClientActivityID,
 		Title:            req.Title,
 		Description:      req.Description,
+		PerceivedEffort:  req.PerceivedEffort,
 		ActivityType:     models.ActivityType(req.ActivityType),
 		StartTime:        startTime,
 		EndTime:          &endTime,
@@ -636,13 +645,14 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 	avgSpeedMs := floatOrDefault(activity.AvgSpeedMps, 0.0)
 
 	return ActivityResult{
-		ID:            activity.ID.String(),
-		Title:         activity.Title,
-		Description:   stringOrDefault(activity.Description, ""),
-		Type:          string(activity.ActivityType),
-		StartTime:     activity.StartTime,
-		EndTime:       activity.EndTime,
-		ProcessingVer: activity.ProcessingVer,
+		ID:              activity.ID.String(),
+		Title:           activity.Title,
+		Description:     stringOrDefault(activity.Description, ""),
+		Type:            string(activity.ActivityType),
+		PerceivedEffort: activity.PerceivedEffort,
+		StartTime:       activity.StartTime,
+		EndTime:         activity.EndTime,
+		ProcessingVer:   activity.ProcessingVer,
 		Stats: ActivityStats{
 			ElapsedSeconds: elapsedSeconds,
 			AvgSpeedMs:     avgSpeedMs,
@@ -853,6 +863,7 @@ func calculateDerivedStats(activityType string, speedMs float64, distanceM float
 }
 
 // processFullResolutionStreams converts samples and elevation data into full-resolution stream arrays
+// Elevation priority: 1) sample.Ele if present, 2) elevationHeights from Valhalla, 3) default to 0
 func processFullResolutionStreams(samples []Sample, elevationData *valhalla.ElevationChange, elevationHeights []float64) *FullResolutionStream {
 	if len(samples) == 0 {
 		return &FullResolutionStream{}
@@ -885,8 +896,12 @@ func processFullResolutionStreams(samples []Sample, elevationData *valhalla.Elev
 			stream.DistanceM[i] = cumulativeDistance
 		}
 
-		// Elevation (use provided elevation heights if available)
-		if elevationHeights != nil && i < len(elevationHeights) {
+		// Elevation - prioritize sample elevation, then Valhalla data, then default to 0
+		if sample.Ele != nil {
+			// Use elevation from sample if provided
+			stream.ElevationM[i] = *sample.Ele
+		} else if elevationHeights != nil && i < len(elevationHeights) {
+			// Fall back to Valhalla elevation data
 			stream.ElevationM[i] = elevationHeights[i]
 		} else {
 			stream.ElevationM[i] = 0 // Default elevation if no data available
@@ -983,7 +998,7 @@ func decimateByDistance(fullStream *FullResolutionStream, targetPoints int) []in
 func compressDIBS(data []float64, decimalPlaces int) ([]byte, map[string]interface{}) {
 	opts := compression.CompressOptions{
 		DecimalPlaces: decimalPlaces,
-		BlockLog2:     8, // 256 samples per block
+		BlockLog2:     8,     // 256 samples per block
 		EnableCRC:     false, // Disable CRC for embedded use to save space
 	}
 

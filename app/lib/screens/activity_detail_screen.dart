@@ -365,6 +365,20 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             ),
           ],
         ),
+        AppSpacing.gapMD,
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                label: 'Perceived Effort',
+                value: widget.activity.perceivedEffort?.toString() ?? 'N/A',
+                unit: widget.activity.perceivedEffort != null ? '/10' : '',
+              ),
+            ),
+            AppSpacing.gapHorizontalMD,
+            const Expanded(child: SizedBox.shrink()),
+          ],
+        ),
       ],
     );
   }
