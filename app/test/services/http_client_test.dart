@@ -3,7 +3,7 @@
 import 'dart:io';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
-import 'package:cadence/services/http_client.dart';
+import 'package:cadent/services/http_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';

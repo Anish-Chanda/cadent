@@ -1,5 +1,5 @@
-import 'package:cadence/screens/home_screen.dart';
-import 'package:cadence/widgets/main_layout.dart';
+import 'package:cadent/screens/home_screen.dart';
+import 'package:cadent/widgets/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mocktail/mocktail.dart';

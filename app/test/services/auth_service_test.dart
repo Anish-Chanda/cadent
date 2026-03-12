@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cadence/services/auth_service.dart';
-import 'package:cadence/services/http_client.dart';
+import 'package:cadent/services/auth_service.dart';
+import 'package:cadent/services/http_client.dart';
 
 // Dio interceptor to return predefined responses by method + path.
 class MockingInterceptor extends Interceptor {

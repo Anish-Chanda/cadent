@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cadence/screens/finish_activity_screen.dart';
+import 'package:cadent/screens/finish_activity_screen.dart';
 
 void main() {
   group('FinishActivityScreen', () {

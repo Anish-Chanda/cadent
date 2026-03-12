@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 )
 
 // mockDatabase implements the db.Database interface for testing
@@ -71,6 +71,9 @@ func (m *mockDatabase) GetActivityStreams(ctx context.Context, activityID string
 }
 func (m *mockDatabase) CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error {
 	return nil
+}
+func (m *mockDatabase) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	return &models.PlannedActivity{}, nil
 }
 func (m *mockDatabase) Connect(dsn string) error { return nil }
 func (m *mockDatabase) Close() error             { return nil }

@@ -1,4 +1,4 @@
-import 'package:cadence/services/storage_service.dart';
+import 'package:cadent/services/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,7 +7,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('StorageService Tests', () {
-    const serverUrlKey = 'cadence_server_url';
+    const serverUrlKey = 'cadent_server_url';
 
     test('getServerUrl should return null if no URL is saved', () async {
       // Arrange: Start with an empty storage
@@ -23,7 +23,7 @@ void main() {
     test('saveServerUrl should correctly persist the URL', () async {
       // Arrange: Start with an empty storage
       SharedPreferences.setMockInitialValues({});
-      const testUrl = 'http://my-cadence-instance.local';
+      const testUrl = 'http://my-cadent-instance.local';
 
       // Act: Save the URL
       await StorageService.saveServerUrl(testUrl);
@@ -35,7 +35,7 @@ void main() {
 
     test('getServerUrl should retrieve a saved URL', () async {
       // Arrange: Start with a pre-filled storage
-      const testUrl = 'http://another-cadence.local';
+      const testUrl = 'http://another-cadent.local';
       SharedPreferences.setMockInitialValues({serverUrlKey: testUrl});
 
       // Act: Get the URL using the service

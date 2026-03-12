@@ -1,4 +1,4 @@
-module github.com/anish-chanda/cadence
+module github.com/anish-chanda/cadent
 
 go 1.25.1
 

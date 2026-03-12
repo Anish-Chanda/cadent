@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anish-chanda/cadence/backend/internal/compression"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/compression"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 	"github.com/google/uuid"
 )
 
@@ -34,6 +34,10 @@ func NewMockDatabase() *MockDatabase {
 		usersByEmail:    make(map[string]*models.UserRecord),
 		errors:          make(map[string]error),
 	}
+}
+
+func (m *MockDatabase) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	return &models.PlannedActivity{}, nil
 }
 
 func (m *MockDatabase) GetActivityByID(ctx context.Context, activityID string) (*models.Activity, error) {

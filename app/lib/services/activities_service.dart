@@ -1,8 +1,8 @@
 import 'dart:developer';
 
 import 'package:uuid/uuid.dart';
-import 'package:cadence/models/activity.dart';
-import 'package:cadence/models/recording_session_model.dart';
+import 'package:cadent/models/activity.dart';
+import 'package:cadent/models/recording_session_model.dart';
 import '../services/http_client.dart';
 
 class ActivitiesService {

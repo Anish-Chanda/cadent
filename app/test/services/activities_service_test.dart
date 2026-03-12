@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:cadence/services/activities_service.dart';
-import 'package:cadence/models/recording_session_model.dart';
-import 'package:cadence/services/http_client.dart';
+import 'package:cadent/services/activities_service.dart';
+import 'package:cadent/models/recording_session_model.dart';
+import 'package:cadent/services/http_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
 
