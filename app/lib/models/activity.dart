@@ -98,6 +98,7 @@ class Activity {
   final String title;
   final String description;
   final String activityType;
+  final int? perceivedEffort;
   final DateTime startTime;
   final DateTime? endTime;
   final ActivityStats? stats;
@@ -115,6 +116,7 @@ class Activity {
     required this.title,
     required this.description,
     required this.activityType,
+    this.perceivedEffort,
     required this.startTime,
     this.endTime,
     this.stats,
@@ -134,6 +136,7 @@ class Activity {
       title: (json['title'] as String).isNotEmpty ? json['title'] as String : 'Untitled Activity',
       description: (json['description'] as String? ?? ''),
       activityType: json['type'] as String,
+      perceivedEffort: json['perceived_effort'] as int?,
       startTime: DateTime.parse(json['start_time'] as String),
       endTime: json['end_time'] != null ? DateTime.parse(json['end_time'] as String) : null,
       stats: json['stats'] != null ? ActivityStats.fromJson(json['stats'] as Map<String, dynamic>) : null,

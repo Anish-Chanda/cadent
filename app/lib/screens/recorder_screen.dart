@@ -207,7 +207,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
             // Update the model with title and description, then save
             final title = result['title'] as String?;
             final description = result['description'] as String?;
-            await _saveActivity(title, description);
+            final perceivedEffort = result['perceived_effort'] as int?;
+            await _saveActivity(title, description, perceivedEffort);
             // Navigate back to home screen after successful save
             Navigator.pop(context);
           } else if (action == 'resume') {
@@ -236,14 +237,14 @@ class _RecorderScreenState extends State<RecorderScreen> {
     }
   }
 
-  Future<void> _saveActivity(String? title, String? description) async {
+  Future<void> _saveActivity(String? title, String? description, int? perceivedEffort) async {
     // Clean up route line before saving and navigating away
     await _cleanupRouteLine();
     
     // Log activity details including GPS point count before resetting
     final model = _controller.model;
-    log('Saving activity with details: title="$title", description="$description"');
-    log('Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${getFormattedDistance()} - GPS points: ${model.positions.length}');
+    log('Saving activity with details: title="$title", description="$description", effort="$perceivedEffort"');
+    log('Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.formattedDistance} - GPS points: ${model.positions.length}');
     
     // Save complete activity data to backend with title and description
     final activityData = _controller.getActivityData();
@@ -255,6 +256,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
         model, 
         title: title, 
         description: description,
+        perceivedEffort: perceivedEffort,
       );
       
       _controller.resetToIdle();
