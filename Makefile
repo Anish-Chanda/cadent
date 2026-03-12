@@ -1,6 +1,6 @@
 # Variables
-API_VERSION = v0.13.0
-MOBILE_VERSION = v0.9.0
+API_VERSION = v0.14.1
+MOBILE_VERSION = v0.9.1
 WEB_VERSION = v0.3.0
 
 # ==== Config ====
