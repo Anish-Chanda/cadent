@@ -1,7 +1,7 @@
 /// Version information for the application
 /// These values are injected at build time via the Makefile
 class AppVersion {
-  static const String version = "";
+  static const String version = "v0.9.0";
   static const String buildHash = "202d07e";
   
   /// Returns formatted version string with build hash
