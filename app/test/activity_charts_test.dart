@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:cadence/widgets/activity_charts.dart';
-import 'package:cadence/models/streams.dart';
+import 'package:cadent/widgets/activity_charts.dart';
+import 'package:cadent/models/streams.dart';
 
 // Mock classes
 class MockStreamsModel extends Mock implements StreamsModel {}

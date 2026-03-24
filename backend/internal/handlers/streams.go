@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anish-chanda/cadence/backend/internal/compression"
-	"github.com/anish-chanda/cadence/backend/internal/db"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/compression"
+	"github.com/anish-chanda/cadent/backend/internal/db"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 )
 
 type Database interface {
@@ -20,7 +20,8 @@ type Database interface {
 	GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity, error)
 	CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error)
 	GetActivityByID(ctx context.Context, activityID string) (*models.Activity, error)
-	
+	CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error)
+
 	// --- Activity Streams ---
 	GetActivityStreams(ctx context.Context, activityID string, lod models.StreamLOD) ([]models.ActivityStream, error)
 	CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:cadence/screens/home_screen.dart';
-import 'package:cadence/providers/activities_provider.dart';
-import 'package:cadence/widgets/activity_card.dart';
-import 'package:cadence/models/activity.dart';
+import 'package:cadent/screens/home_screen.dart';
+import 'package:cadent/providers/activities_provider.dart';
+import 'package:cadent/widgets/activity_card.dart';
+import 'package:cadent/models/activity.dart';
 
 // Create the mock class
 class MockActivitiesProvider extends Mock implements ActivitiesProvider {}

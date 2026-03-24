@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anish-chanda/cadence/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
 )
 
 func setupTestStore(t *testing.T) (*LocalStore, string) {

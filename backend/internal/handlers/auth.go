@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/db"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/db"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
 )

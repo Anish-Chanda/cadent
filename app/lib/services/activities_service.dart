@@ -1,8 +1,8 @@
 import 'dart:developer';
 
 import 'package:uuid/uuid.dart';
-import 'package:cadence/models/activity.dart';
-import 'package:cadence/models/recording_session_model.dart';
+import 'package:cadent/models/activity.dart';
+import 'package:cadent/models/recording_session_model.dart';
 import '../services/http_client.dart';
 
 class ActivitiesService {
@@ -33,7 +33,13 @@ class ActivitiesService {
     }
   }
 
-  Future<bool> saveActivity(RecordingSessionModel session, {String? title, String? description}) async {
+  Future<bool> saveActivity(
+    RecordingSessionModel session,
+    {
+    String? title,
+    String? description,
+    int? perceivedEffort,
+  }) async {
     try {
       final uuid = Uuid();
       final clientActivityId = uuid.v4();
@@ -44,6 +50,7 @@ class ActivitiesService {
         'client_activity_id': clientActivityId,
         'title': title ?? '${session.activityType.displayName} Activity',
         'description': description ?? 'Recorded on ${DateTime.now().toIso8601String()}',
+        'perceived_effort': perceivedEffort,
         'start_time': session.startTime?.toIso8601String(),
         'samples': session.positions.map((position) => {
           'lon': position.longitude,

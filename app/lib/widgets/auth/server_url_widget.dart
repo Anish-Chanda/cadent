@@ -20,13 +20,13 @@ class ServerUrlWidget extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Enter the server URL for your Cadence instance:'),
+            const Text('Enter the server URL for your Cadent instance:'),
             AppSpacing.gapMD,
             TextFormField(
               controller: controller,
               decoration: const InputDecoration(
                 labelText: 'Server URL',
-                hintText: 'http://cadence.local',
+                hintText: 'http://cadent.local',
                 border: OutlineInputBorder(),
               ),
               validator: Validators.serverUrl,

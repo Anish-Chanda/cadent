@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/compression"
-	"github.com/anish-chanda/cadence/backend/internal/db"
-	"github.com/anish-chanda/cadence/backend/internal/geo"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
-	"github.com/anish-chanda/cadence/backend/internal/store"
-	"github.com/anish-chanda/cadence/backend/internal/valhalla"
+	"github.com/anish-chanda/cadent/backend/internal/compression"
+	"github.com/anish-chanda/cadent/backend/internal/db"
+	"github.com/anish-chanda/cadent/backend/internal/geo"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/store"
+	"github.com/anish-chanda/cadent/backend/internal/valhalla"
 	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 	"github.com/muktihari/fit/encoder"
@@ -34,6 +34,7 @@ type CreateActivityRequest struct {
 	ActivityType     string    `json:"activity_type"`
 	Title            string    `json:"title"`
 	Description      *string   `json:"description"`
+	PerceivedEffort  *int16    `json:"perceived_effort"`
 	Samples          []Sample  `json:"samples"`
 }
 
@@ -85,20 +86,21 @@ type Coordinate struct {
 }
 
 type ActivityResult struct {
-	ID            string        `json:"id"`
-	Title         string        `json:"title"`
-	Description   string        `json:"description"`
-	Type          string        `json:"type"`
-	StartTime     time.Time     `json:"start_time"`
-	EndTime       *time.Time    `json:"end_time"`
-	Stats         ActivityStats `json:"stats"`
-	BBox          BoundingBox   `json:"bbox"`
-	Start         Coordinate    `json:"start"`
-	End           Coordinate    `json:"end"`
-	Polyline      string        `json:"polyline"`
-	ProcessingVer int           `json:"processing_ver"`
-	CreatedAt     time.Time     `json:"created_at"`
-	UpdatedAt     time.Time     `json:"updated_at"`
+	ID              string        `json:"id"`
+	Title           string        `json:"title"`
+	Description     string        `json:"description"`
+	Type            string        `json:"type"`
+	PerceivedEffort *int16        `json:"perceived_effort"`
+	StartTime       time.Time     `json:"start_time"`
+	EndTime         *time.Time    `json:"end_time"`
+	Stats           ActivityStats `json:"stats"`
+	BBox            BoundingBox   `json:"bbox"`
+	Start           Coordinate    `json:"start"`
+	End             Coordinate    `json:"end"`
+	Polyline        string        `json:"polyline"`
+	ProcessingVer   int           `json:"processing_ver"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
 type GetActivitiesResponse struct {
@@ -128,6 +130,10 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 		if len(req.Samples) < 2 {
 			http.Error(w, "At least 2 samples are required", http.StatusBadRequest)
+			return
+		}
+		if req.PerceivedEffort != nil && (*req.PerceivedEffort < 1 || *req.PerceivedEffort > 10) {
+			http.Error(w, "perceived_effort must be between 1 and 10", http.StatusBadRequest)
 			return
 		}
 
@@ -544,9 +550,9 @@ func createCompressedStreams(activityID uuid.UUID, keepIndices []int, fullStream
 	// For now, we store all stream types in one record with their respective compressed bytes
 	// In a more advanced implementation, you might want separate records for each stream type
 	// with their own codec metadata
-	_ = distanceCodec // suppress unused warning
+	_ = distanceCodec  // suppress unused warning
 	_ = elevationCodec // suppress unused warning
-	_ = speedCodec // suppress unused warning
+	_ = speedCodec     // suppress unused warning
 
 	return []models.ActivityStream{stream}, nil
 }
@@ -580,6 +586,7 @@ func buildActivityModel(req CreateActivityRequest, userID string, polyline strin
 		ClientActivityID: req.ClientActivityID,
 		Title:            req.Title,
 		Description:      req.Description,
+		PerceivedEffort:  req.PerceivedEffort,
 		ActivityType:     models.ActivityType(req.ActivityType),
 		StartTime:        startTime,
 		EndTime:          &endTime,
@@ -638,13 +645,14 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 	avgSpeedMs := floatOrDefault(activity.AvgSpeedMps, 0.0)
 
 	return ActivityResult{
-		ID:            activity.ID.String(),
-		Title:         activity.Title,
-		Description:   stringOrDefault(activity.Description, ""),
-		Type:          string(activity.ActivityType),
-		StartTime:     activity.StartTime,
-		EndTime:       activity.EndTime,
-		ProcessingVer: activity.ProcessingVer,
+		ID:              activity.ID.String(),
+		Title:           activity.Title,
+		Description:     stringOrDefault(activity.Description, ""),
+		Type:            string(activity.ActivityType),
+		PerceivedEffort: activity.PerceivedEffort,
+		StartTime:       activity.StartTime,
+		EndTime:         activity.EndTime,
+		ProcessingVer:   activity.ProcessingVer,
 		Stats: ActivityStats{
 			ElapsedSeconds: elapsedSeconds,
 			AvgSpeedMs:     avgSpeedMs,
@@ -1078,7 +1086,7 @@ func decimateByDistance(fullStream *FullResolutionStream, targetPoints int) []in
 func compressDIBS(data []float64, decimalPlaces int) ([]byte, map[string]interface{}) {
 	opts := compression.CompressOptions{
 		DecimalPlaces: decimalPlaces,
-		BlockLog2:     8, // 256 samples per block
+		BlockLog2:     8,     // 256 samples per block
 		EnableCRC:     false, // Disable CRC for embedded use to save space
 	}
 

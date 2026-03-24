@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:cadence/services/activities_service.dart';
-import 'package:cadence/models/recording_session_model.dart';
-import 'package:cadence/services/http_client.dart';
+import 'package:cadent/services/activities_service.dart';
+import 'package:cadent/models/recording_session_model.dart';
+import 'package:cadent/services/http_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
 
@@ -186,6 +186,7 @@ void main() {
         RecordingSessionModel(),
         title: 'My Ride',
         description: 'Fun route',
+        perceivedEffort: 8,
       );
 
       expect(ok, isTrue);
@@ -197,6 +198,7 @@ void main() {
       expect(body['description'], 'Fun route');
       expect(body['activity_type'], isNotEmpty);
       expect(body['client_activity_id'], isA<String>());
+      expect(body['perceived_effort'], 8);
       expect(body['samples'], isA<List>());
     });
 
@@ -206,6 +208,8 @@ void main() {
         RecordingSessionModel(),
       );
       expect(ok, isTrue);
+      final body = (captor.lastData as Map<String, dynamic>);
+      expect(body['perceived_effort'], isNull);
     });
 
     test('returns false on non-200', () async {

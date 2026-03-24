@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cadence/utils/validators.dart';
+import 'package:cadent/utils/validators.dart';
 
 void main() {
   group('Validators', () {

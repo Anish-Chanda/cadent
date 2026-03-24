@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:cadence/screens/activity_detail_screen.dart';
-import 'package:cadence/models/activity.dart';
+import 'package:cadent/screens/activity_detail_screen.dart';
+import 'package:cadent/models/activity.dart';
 
 void main() {
   group('ActivityDetailScreen', () {
@@ -15,6 +15,7 @@ void main() {
         title: 'Morning Run',
         description: 'A nice morning run',
         activityType: 'run',
+        perceivedEffort: 7,
         startTime: DateTime(2024, 1, 15, 8, 30),
         endTime: DateTime(2024, 1, 15, 9, 0),
         stats: ActivityStats(
@@ -167,6 +168,18 @@ void main() {
 
       expect(find.text('AVG PACE'), findsOneWidget);
       expect(find.text('7:56/km'), findsOneWidget);
+    });
+
+    testWidgets('displays perceived effort stat', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('PERCEIVED EFFORT'), findsOneWidget);
+      expect(find.text('7'), findsOneWidget);
+      expect(find.text('/10'), findsOneWidget);
     });
 
     testWidgets('displays avg speed for biking activities', (tester) async {
