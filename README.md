@@ -1,158 +1,126 @@
-# Cadent README
+# Cadent
+
+An open-source endurance training app for tracking and analyzing athletic activities.
 
 ## Overview
 
-Cadent is an open‑source, privacy‑first running and cycling tracker designed for athletes, coaches, and developers who need accurate performance analytics without subscription walls or data‑harvesting platforms.
+Cadent is a full-stack, cross-platform application for endurance athletes. It supports recording activities (running, cycling, etc.) with detailed metrics including distance, elevation, speed, and GPS routes. Data can be imported via FIT or GPX files.
 
-This README serves both **users** and **developers**, providing onboarding, hosting, device connectivity, and contribution guidelines.
+**Stack:**
+- **Backend**: Go + chi router, PostgreSQL 17
+- **Mobile**: Flutter (iOS & Android)
+- **Web**: React 19 + TypeScript + TailwindCSS
 
----
+## Prerequisites
 
-## Key Features
+- [Go 1.25+](https://go.dev/)
+- [Flutter 3.9+](https://flutter.dev/)
+- [Node.js 20+](https://nodejs.org/)
+- [Docker](https://www.docker.com/) (for local PostgreSQL)
+- [Make](https://www.gnu.org/software/make/)
 
-* Live GPS activity tracking
-* Offline cache + sync on reconnect
-* Valhalla‑based high‑accuracy map matching
-* BLE device integration (HRM, cadence)
-* Secure authentication (Argon2id + OAuth2)
-* Self‑hosting support (1 CPU core, 2GB RAM minimum)
-* Shareable activity visualizations
-* Open‑source API + integration layer for device vendors
+## Getting Started
 
----
-
-## User Quick Start
-
-1. **Download Cadent** *(store deployment coming soon)*
-2. Create an account or sign in with OAuth
-3. Grant permissions for GPS + sensors
-4. Start an activity → run or ride
-5. Pause/finish → view detailed maps + stats
-
-### Optional: Pair a Heart Rate Monitor
-
-* Navigate to **Settings → Devices → Bluetooth**
-* Select **Pair New Device**
-* Supported profiles include: heart rate, cadence sensors
-
----
-
-## Self‑Hosting Setup
-
-### Minimum Requirements
-
-* 1 CPU core
-* 2GB RAM
-* PostgreSQL 18+
-* Optional: Valhalla + tile server (for local map processing)
-
-### Deployment via Docker
+### 1. Start the database
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.dev.yaml up postgres -d
 ```
 
-Backend, PostgreSQL, Valhalla, and tile server will start.
-
----
-
-## Developer Setup
-
-### Prerequisites
-
-* Flutter SDK
-* Dart
-* Go 1.22+
-* PostgreSQL 18+
-
-### Install & Run
+### 2. Configure environment
 
 ```bash
-git clone https://github.com/sdmay26-14/cadent
-cd cadent/mobile
-flutter pub get
-flutter run
+cp .env.example .env
+# Edit .env with your values
 ```
 
-Backend:
+### 3. Install dependencies
 
 ```bash
-cd cadent/server
-make dev
+make install-deps
 ```
 
----
+### 4. Run the API
 
-## API Overview
+```bash
+make run-api
+```
 
-REST endpoints are documented in the `/docs` module.
+The API server starts on port `8080` by default. The web app is embedded and served at `/`.
 
-* `/auth/*` — login/signup, OAuth
-* `/activities/*` — create, stream, view, share
-* `/devices/*` — BLE integration helpers
+## Development
 
----
+### Run the web app (dev server with hot reload)
 
-## BLE Integration
+```bash
+make run-web-dev
+```
 
-Cadent supports:
+### Run the mobile app
 
-* Heart rate monitors
-* Cadence sensors
-* Cycling wearables
+```bash
+make run-app
+```
 
-BLE reconnect logic ensures data persistence during movement and signal loss.
+### Build for production
 
----
+```bash
+make build          # Backend + mobile APK
+make build-api      # Backend only (embeds web app)
+make build-web      # Web app only
+make build-apk      # Mobile APK only
+```
 
-## Privacy & Data Ownership
+### Docker
 
-Cadent does **not** monetize or share fitness data. Users may:
+```bash
+make docker-build-api    # Build Docker image
+```
 
-* Host locally
-* Disable cloud sync entirely
-* Export/delete all data
+## Testing
 
-Data is stored using encryption standards and secure authentication flows.
+```bash
+make test           # All unit tests
+make test-e2e-api   # End-to-end API tests (requires running server)
+```
 
----
+E2E tests use [Hurl](https://hurl.dev/) and live in the `tests/` directory.
 
-## Testing Overview
+## Project Structure
 
-* **Unit tests** for backend + Flutter service logic
-* **Integration tests** for BLE, routes, and auth
-* **System tests** validating full activity recording
-* **k6 performance tests** for backend throughput
+```
+cadent/
+├── backend/        # Go REST API
+│   ├── internal/   # Handlers, models, DB, storage, geo utilities
+│   └── migrations/ # PostgreSQL migrations
+├── app/            # Flutter mobile app
+├── web/            # React web app
+├── tests/          # E2E tests (Hurl)
+├── Makefile
+├── Dockerfile
+└── docker-compose.dev.yaml
+```
 
----
+## API
+
+All API routes are prefixed with `/api`:
+
+| Prefix | Description |
+|--------|-------------|
+| `/api/auth/*` | Authentication (JWT) |
+| `/api/avatar/*` | Avatar management |
+| `/api/v1/*` | Protected endpoints (activities, users, training plans) |
+
+## Configuration
+
+See `.env.example` for all available configuration options including database connection, JWT secret, storage backend, and service URLs.
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Submit pull request with passing test suite
-
-```bash
-git checkout -b feature/new-module
-```
-
-We welcome:
-
-* Device integration plugins
-* Map style enhancements
-* UI improvements
-
----
+3. Submit a pull request
 
 ## License
 
-Cadent is fully open‑source, built for transparency and community collaboration.
-
----
-
-## Contact & Support
-
-Team Email: [sdmay26-14@iastate.edu](mailto:sdmay26-14@iastate.edu)
-Website: sdmay26-14.sd.ece.iastate.edu
-
-For bug reports, open a GitHub issue with reproduction steps.
+See [LICENSE](LICENSE) for details.
