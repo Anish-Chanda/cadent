@@ -62,7 +62,7 @@ func (m *mockDatabase) GetActivitiesByUserID(ctx context.Context, userID string)
 	return nil, nil
 }
 func (m *mockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity,[]models.PlannedActivity, error) {
-	return nil, nil
+	return nil, nil, nil
 }
 func (m *mockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
