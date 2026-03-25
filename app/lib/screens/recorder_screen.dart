@@ -244,7 +244,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
     // Log activity details including GPS point count before resetting
     final model = _controller.model;
     log('Saving activity with details: title="$title", description="$description", effort="$perceivedEffort"');
-    log('Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.formattedDistance} - GPS points: ${model.positions.length}');
+    log('Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.totalDistanceMeters.toStringAsFixed(0)}m - GPS points: ${model.positions.length}');
     
     // Save complete activity data to backend with title and description
     final activityData = _controller.getActivityData();

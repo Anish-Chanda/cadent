@@ -124,16 +124,6 @@ class RecordingSessionModel {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
-  /// Format distance with appropriate precision
-  String get formattedDistance {
-    return '${totalDistanceMiles.toStringAsFixed(2)} mi';
-  }
-
-  /// Format current speed with appropriate precision
-  String get formattedSpeed {
-    return '${currentSpeedMph.toStringAsFixed(1)} mph';
-  }
-
   // State mutation methods (should only be called by the controller)
   void _setState(RecordingState newState) {
     _state = newState;
@@ -221,7 +211,6 @@ class RecordingSessionModel {
       'distance_miles': totalDistanceMiles,
       'elapsed_seconds': _elapsedSeconds,
       'formatted_time': formattedTime,
-      'formatted_distance': formattedDistance,
       'start_time': _startTime?.toIso8601String(),
       'gps_points': _positions.map((p) => {
         'lat': p.latitude,

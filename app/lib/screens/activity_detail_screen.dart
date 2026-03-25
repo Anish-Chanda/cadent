@@ -3,6 +3,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import '../models/activity.dart';
 import '../providers/app_settings_provider.dart';
 import '../utils/polyline_decoder.dart';
+import '../utils/duration_formatter.dart';
 import '../utils/app_spacing.dart';
 import '../utils/app_theme.dart';
 import 'package:intl/intl.dart';
@@ -340,7 +341,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             Expanded(
               child: _buildStatItem(
                 label: 'Moving Time',
-                value: _formatDuration(activity.stats!.elapsedSeconds),
+                value: formatDuration(activity.stats!.elapsedSeconds),
                 unit: '',
               ),
             ),
@@ -453,20 +454,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
   String _formatDate(DateTime dateTime) {
     final formatter = DateFormat("MMMM d, y 'at' HH:mm");
     return formatter.format(dateTime);
-  }
-  String _formatDuration(double seconds) {
-    final duration = Duration(seconds: seconds.round());
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    final secs = duration.inSeconds % 60;
-
-    final twoDigits = NumberFormat('00');
-
-    if (hours > 0) {
-      return '$hours:${twoDigits.format(minutes)}:${twoDigits.format(secs)}';
-    } else {
-      return '$minutes:${twoDigits.format(secs)}';
-    }
   }
 
   // --- Mock data helpers (for local preview until backend streams are available) ---

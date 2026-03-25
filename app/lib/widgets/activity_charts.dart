@@ -1,17 +1,9 @@
 import 'package:flutter/material.dart';
 import '../utils/app_spacing.dart';
+import '../utils/duration_formatter.dart';
  import '../models/streams.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_settings_provider.dart';
-String _formatDurationFromDouble(double secondsD) {
-  final d = Duration(seconds: secondsD.round());
-
-  if (d.inHours > 0) {
-    return '${d.inHours}:${(d.inMinutes % 60).toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
-  } else {
-    return '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
-  }
-}
 
 /// Clean, single-file chart widget for activities.
 /// - Uses `StreamsModel` when provided (distance in meters on X axis).
@@ -698,7 +690,7 @@ final splits = totalUnits > 0 ? splitsAll.take(totalUnits).toList() : <double>[]
       lines.add(Text('$splitUnitLabel - ${idx + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)));
       final val = (yvals != null && idx < yvals.length) ? yvals[idx] : double.nan;
       if (isTime && !val.isNaN) {
-        lines.add(Text('Time - ${_formatDurationFromDouble(val)}', style: TextStyle(fontSize: 12)));
+        lines.add(Text('Time - ${formatDuration(val)}', style: TextStyle(fontSize: 12)));
       } else if (!val.isNaN) {
         lines.add(Text('Value - ${val.toStringAsFixed(2)}', style: TextStyle(fontSize: 12)));
       } else {
@@ -717,7 +709,7 @@ final splits = totalUnits > 0 ? splitsAll.take(totalUnits).toList() : <double>[]
       if (xv.isNaN) {
         xText = 'n/a';
       } else {
-        xText = isTime ? _formatDurationFromDouble(xv) : xv.toStringAsFixed(2);
+        xText = isTime ? formatDuration(xv) : xv.toStringAsFixed(2);
       }
       String yText;
       if (yv.isNaN) {
@@ -861,15 +853,15 @@ class _SingleLinePainterDistance extends CustomPainter {
       }
 
       if (xIsTime) {
-        tpX.text = TextSpan(text: _formatDurationFromDouble(startVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
+        tpX.text = TextSpan(text: formatDuration(startVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad, baseY));
 
-        tpX.text = TextSpan(text: _formatDurationFromDouble(midVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
+        tpX.text = TextSpan(text: formatDuration(midVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW / 2 - tpX.width / 2, baseY));
 
-        tpX.text = TextSpan(text: _formatDurationFromDouble(endVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
+        tpX.text = TextSpan(text: formatDuration(endVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW - tpX.width, baseY));
       } else {
