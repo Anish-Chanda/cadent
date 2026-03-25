@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:cadence/widgets/activity_charts.dart';
-import 'package:cadence/models/streams.dart';
-import 'package:cadence/providers/app_settings_provider.dart';
+import 'package:cadent/widgets/activity_charts.dart';
+import 'package:cadent/models/streams.dart';
+import 'package:cadent/providers/app_settings_provider.dart';
 import 'package:provider/provider.dart';
 
 // Mock classes

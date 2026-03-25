@@ -1,9 +1,9 @@
-import 'package:cadence/providers/app_settings_provider.dart';
+import 'package:cadent/providers/app_settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:cadence/screens/activity_detail_screen.dart';
-import 'package:cadence/models/activity.dart';
+import 'package:cadent/screens/activity_detail_screen.dart';
+import 'package:cadent/models/activity.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'Mocks/mock_app_settings_provider.dart';
@@ -222,7 +222,12 @@ void main() {
 
     testWidgets('displays perceived effort stat', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: ActivityDetailScreen(activity: mockActivity)),
+        ChangeNotifierProvider<AppSettingsProvider>.value(
+          value: mockAppSettingsProvider,
+          child: MaterialApp(
+            home: ActivityDetailScreen(activity: mockActivity),
+          ),
+        ),
       );
 
       await tester.pumpAndSettle();

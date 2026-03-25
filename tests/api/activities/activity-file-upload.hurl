@@ -45,7 +45,7 @@ HTTP 200
 [Asserts]
 jsonpath "$.activities" count == 1
 jsonpath "$.activities[0].id" == "{{mcfarland_id}}"
-jsonpath "$.activities[0].type" == "road_bike"
+jsonpath "$.activities[0].type" == "road_biking"
 jsonpath "$.activities[0].title" == "Bike ride to McFarland"
 jsonpath "$.activities[0].description" == ""
 # Strava reference: 97 m gain; our threshold-based calc is close but not identical

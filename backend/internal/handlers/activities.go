@@ -173,7 +173,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		// Validate activity_type enum before database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
 			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
-			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", req.ActivityType), http.StatusBadRequest)
 			return
 		}
 		// Process GPS data to create polyline and calculate metrics
