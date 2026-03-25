@@ -21,6 +21,7 @@ void main() {
       mockStreams = MockStreamsModel();
       mockSettings = MockAppSettingsProvider();
       // default to metric for tests
+      when(() => mockSettings.isMetric).thenReturn(true);
       when(() => mockSettings.metricUnitDisplayName).thenReturn('Meters');
     });
 
