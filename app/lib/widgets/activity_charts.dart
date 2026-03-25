@@ -48,7 +48,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
   bool get isMetric => _isMetric;
   @override
   Widget build(BuildContext context) {
-    _isMetric = context.select<AppSettingsProvider, bool>((p) => p.metricUnitDisplayName == 'Meters');
+    _isMetric = context.select<AppSettingsProvider, bool>((p) => p.isMetric);
     if (widget.streams != null) return _buildFromStreams(context, widget.streams!);
     return _buildLegacy(context);
   }
@@ -81,9 +81,9 @@ class _ActivityChartsState extends State<ActivityCharts> {
     final hasSpeed = speeds.isNotEmpty && distances.isNotEmpty;
 
     final speedsDisplay = speeds.map((v) {
-        final kph = v; // v is already in km/h
+        final kph = v < 0 ? 0.0 : v * 3.6; // m/s -> km/h
         return isMetric ? kph : kph * 0.621371;
-    }).toList(); // km/h -> mph if imperial
+    }).toList(); // km/h or mph for display
 
     // splits now represent time per completed unit (km when metric, mi when imperial)
     final splitsAll = isMetric
@@ -129,7 +129,7 @@ final splits = totalUnits > 0 ? splitsAll.take(totalUnits).toList() : <double>[]
               children: [Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Distance')), Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Time'))],
             ),
           ),
-        if (hasElevation) _buildLineChartDistance(context, xForCharts, elevations, Theme.of(context).colorScheme.secondary, isMetric ? 'Elevation (m)' : 'Elevation (ft)', xLabelDist, isMetric ? 'Elevation (m)' : 'Elevation (ft)', xIsTime: !_showDistance),
+        if (hasElevation) _buildLineChartDistance(context, xForCharts, isMetric ? elevations : elevations.map((e) => e * 3.28084).toList(), Theme.of(context).colorScheme.secondary, isMetric ? 'Elevation (m)' : 'Elevation (ft)', xLabelDist, isMetric ? 'Elevation (m)' : 'Elevation (ft)', xIsTime: !_showDistance),
         if (hasSpeed) _buildLineChartDistance(context, xForCharts, speedsDisplay, Theme.of(context).colorScheme.primary, isMetric ? 'Speed (km/h)' : 'Speed (mph)', xLabelDist, 'Speed (${isMetric ? 'km/h' : 'mph'})', yMin: 0, xIsTime: !_showDistance),
         if (splits.isNotEmpty)
           _buildSplitsBarChart(
@@ -646,8 +646,8 @@ final splits = totalUnits > 0 ? splitsAll.take(totalUnits).toList() : <double>[]
   }
 
   Widget _buildMiniPopup(int idx, List<double>? xvals, List<double>? yvals, bool isTime, String xLabel, String yLabel) {
-    // unit string based on user choice (meters vs miles)
-    final String distanceUnit = isMetric ? 'm' : 'mi';
+    // unit string based on user choice (km vs miles)
+    final String distanceUnit = isMetric ? 'km' : 'mi';
     final lines = <Widget>[];
     // determine chart title and color
     final rawChartId = _hoverChartId ?? '';

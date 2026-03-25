@@ -341,7 +341,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _isMetric = context.select<AppSettingsProvider, bool>((p) => p.metricUnitDisplayName == 'Meters');
+    _isMetric = context.select<AppSettingsProvider, bool>((p) => p.isMetric);
     final model = _controller.model;
     
     return Scaffold(

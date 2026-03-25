@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cadent/screens/recorder_screen.dart';
 import 'package:cadent/providers/app_settings_provider.dart';
 
 void main() {
   group('RecorderScreen - Basic UI Tests', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
     testWidgets('displays all basic UI elements when idle', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

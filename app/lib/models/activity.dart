@@ -157,6 +157,7 @@ class Activity {
     title: title,
     description: description,
     activityType: activityType,
+    perceivedEffort: perceivedEffort,
     startTime: startTime,
     endTime: endTime,
     stats: stats,
