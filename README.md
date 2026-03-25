@@ -24,7 +24,7 @@ Cadent is a full-stack, cross-platform application for endurance athletes. It su
 ### 1. Start the database
 
 ```bash
-docker compose -f docker-compose.dev.yaml up postgres -d
+make dev-up
 ```
 
 ### 2. Configure environment
