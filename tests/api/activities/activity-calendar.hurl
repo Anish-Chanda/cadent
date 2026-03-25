@@ -65,7 +65,7 @@ Content-Type: application/json
     "title": "First Activity",
     "description": "Afternoon run through the park",
     "activityType": "road_bike",
-    "startTime": "2026-03-10T07:30:00Z",
+    "startTime": {{now format="%Y-%m-%d"}},
     "plannedDistanceMeter": 25000,
     "plannedDurationSecond": 3600,
     "plannedElevationGainMeter": 120,

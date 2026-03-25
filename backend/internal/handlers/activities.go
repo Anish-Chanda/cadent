@@ -103,6 +103,26 @@ type ActivityResult struct {
 	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
+type PlannedActivityResult struct {
+	ID                      string        `json:"id"`
+	Title                   string        `json:"title"`
+	Description             string        `json:"description"`
+	Type                    string        `json:"type"`
+	StartTime               time.Time     `json:"start_time"`
+	PlannedDistance         *float64       `json:"planned_distance"`
+	PlannedDuration         *int           `json:"planned_duration"`
+	PlannedElevationGain    *float64       `json:"planned_elevation_gain"`
+	TargetAvgSpeed          *float64       `json:"target_power"`
+	TargetPower             *int           `json:"target_power"`
+	CreatedAt               time.Time     `json:"created_at"`
+	UpdatedAt               time.Time     `json:"updated_at"`
+}
+
+type GetCalendarResponse struct {
+    Activities          []ActivityResult          `json:"activities"`
+    PlannedActivities   []PlannedActivityResult   `json:"planned_activities"`
+}
+
 type GetActivitiesResponse struct {
 	Activities []ActivityResult `json:"activities"`
 }
@@ -688,18 +708,18 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 func createPlannedActivityResult(PlannedActivity *models.PlannedActivity) PlannedActivityResult {
 
 	return PlannedActivityResult{
-		ID:            plannedActivity.ID.String(),
-		Title:         plannedActivity.Title,
-		Description:   stringOrDefault(plannedActivity.Description, ""),
-		Type:          string(plannedActivity.ActivityType),
-		StartTime:     plannedActivity.StartTime,
-		PlannedDistance: plannedActivity.planned_distance_m,
-		PlannedDuration: plannedActivity.planned_duration_s,
-		PlannedElevationGain: plannedActivity.planned_elevation_gain_m,
-		TargetAvgSpeed: plannedActivity.target_avg_speed_mps,
-		TargetPower: plannedActivity.target_power_watt,
-		CreatedAt: activity.CreatedAt,
-		UpdatedAt: activity.UpdatedAt,
+		ID:            PlannedActivity.ID.String(),
+		Title:         PlannedActivity.Title,
+		Description:   stringOrDefault(PlannedActivity.Description, ""),
+		Type:          string(PlannedActivity.Type),
+		StartTime:     PlannedActivity.StartTime,
+		PlannedDistance: PlannedActivity.PlannedDistanceM,
+		PlannedDuration: PlannedActivity.PlannedDurationS,
+		PlannedElevationGain: PlannedActivity.PlannedElevationGainM,
+		TargetAvgSpeed: PlannedActivity.TargetAvgSpeedMps,
+		TargetPower: PlannedActivity.TargetPowerWatt,
+		CreatedAt: PlannedActivity.CreatedAt,
+		UpdatedAt: PlannedActivity.UpdatedAt,
 	}
 }
 
@@ -770,7 +790,7 @@ func HandleGetActivityCalendar(database db.Database, log logger.ServiceLogger) h
             return
         }
 
-        if endDate < startDate {
+        if endDate.Before(startDate) {
             http.Error(w, "invalid date range: endDate must be greater than or equal to startDate", http.StatusBadRequest)
             return
         }
@@ -788,18 +808,18 @@ func HandleGetActivityCalendar(database db.Database, log logger.ServiceLogger) h
 		resultActivities := make([]ActivityResult, 0, len(activities))
 		for _, activity := range activities {
 			result := createActivityResult(&activity)
-			results = append(resultActivities, result)
+			resultActivities = append(resultActivities, result)
 		}
 
-        resultPlannedActivities := make([]ActivityResult, 0, len(plannedActivities))
+        resultPlannedActivities := make([]PlannedActivityResult, 0, len(plannedActivities))
         for _, plannedActivity := range plannedActivities {
-            result := createPlannedActivityResult(&plannedActivity)
-            results = append(resultPlannedActivities, result)
+            plannedResult := createPlannedActivityResult(&plannedActivity)
+            resultPlannedActivities = append(resultPlannedActivities, plannedResult)
         }
 
-		response := GetActivitiesResponse{
+		response := GetCalendarResponse{
 			Activities: resultActivities,
-			PlannedActivities: resultPlannedActivities
+			PlannedActivities: resultPlannedActivities,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
