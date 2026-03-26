@@ -102,7 +102,7 @@ GET http://localhost:8080/api/v1/activities/calendar?startDate=2013-06-12&endDat
 
 HTTP 200
 [Asserts]
-jsonpath "$.activities" count = 0
+jsonpath "$.activities" count == 0
 
 ### Test 8: Get Activities in Date Range - Invalid Start Date
 GET http://localhost:8080/api/v1/activities/calendar?startDate=12-06-2013&endDate=2013-06-12
