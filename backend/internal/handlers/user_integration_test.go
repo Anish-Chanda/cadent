@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/db"
 	"github.com/anish-chanda/cadent/backend/internal/logger"
@@ -82,6 +83,11 @@ func (m *IntegrationUserMockDB) CreateActivity(ctx context.Context, activity *mo
 func (m *IntegrationUserMockDB) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
 	return nil, nil
 }
+
+func (m *IntegrationUserMockDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity, error) {
+	return nil, nil, nil
+}
+
 func (m *IntegrationUserMockDB) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
 }
