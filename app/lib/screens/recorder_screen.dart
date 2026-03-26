@@ -41,7 +41,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
   String getFormattedSpeed() {
     final speed = isMetric ? _controller.model.currentSpeedMs * 3.6 : _controller.model.currentSpeedMph;
-    final unit = isMetric ? 'km/h' : 'mph';
+    final unit = isMetric ? 'kph' : 'mph';
     return '${speed.toStringAsFixed(1)} $unit';
   }
 
