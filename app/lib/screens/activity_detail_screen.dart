@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '../models/activity.dart';
+import '../providers/app_settings_provider.dart';
 import '../utils/polyline_decoder.dart';
+import '../utils/duration_formatter.dart';
 import '../utils/app_spacing.dart';
 import '../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../widgets/activity_charts.dart';
 import '../services/streams_service.dart';
+import 'package:provider/provider.dart';
+
 
 
 class ActivityDetailScreen extends StatefulWidget {
   final Activity activity;
+
 
   const ActivityDetailScreen({super.key, required this.activity});
 
@@ -56,10 +61,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      body: Consumer<AppSettingsProvider>(
+        builder: (context, settings, child) => Stack(
         children: [
           // Full-screen map
           _buildFullScreenMap(),
@@ -102,6 +109,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             },
           ),
         ],
+      ),
       ),
     );
   }
@@ -227,7 +235,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          widget.activity.activityType == 'road_bike' 
+                          widget.activity.activityType == 'road_biking'
                               ? Icons.directions_bike 
                               : Icons.directions_run,
                           size: 16,
@@ -235,7 +243,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          widget.activity.activityType == 'road_bike' ? 'Ride' : 'Run',
+                          widget.activity.activityType == 'road_biking' ? 'Ride' : 'Run',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -314,7 +322,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
     );
   }
 
+
   Widget _buildStatsGrid() {
+    final activity = widget.activity.withIsMetric(context.read<AppSettingsProvider>().isMetric);
     return Column(
       children: [
         // Primary stats row
@@ -323,44 +333,44 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
             Expanded(
               child: _buildStatItem(
                 label: 'Distance',
-                value: widget.activity.stats!.derived.distanceKm.toStringAsFixed(2),
-                unit: 'km',
+                value: activity.formattedDistance,
+                unit: activity.distanceUnit,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildStatItem(
                 label: 'Moving Time',
-                value: _formatDuration(widget.activity.stats!.elapsedSeconds),
+                value: formatDuration(activity.stats!.elapsedSeconds),
                 unit: '',
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Secondary stats row
         Row(
           children: [
             Expanded(
               child: _buildStatItem(
                 label: 'Elevation Gain',
-                value: '${widget.activity.stats!.elevationGainM}',
-                unit: 'm',
+                value: activity.formattedElevation,
+                unit: activity.elevationUnit,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: widget.activity.activityType == 'road_bike'
+              child: activity.activityType == 'road_biking'
                   ? _buildStatItem(
                       label: 'Avg Speed',
-                      value: widget.activity.stats!.derived.speedKmh!.toStringAsFixed(2),
-                      unit: 'km/h',
+                      value: activity.formattedSpeed,
+                      unit: activity.speedUnit,
                     )
                   : _buildStatItem(
                       label: 'Avg Pace',
-                      value: widget.activity.formattedPace,
-                      unit: '',
+                      value: activity.formattedPace,
+                      unit: activity.paceUnit,
                     ),
             ),
           ],
@@ -444,20 +454,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen>
   String _formatDate(DateTime dateTime) {
     final formatter = DateFormat("MMMM d, y 'at' HH:mm");
     return formatter.format(dateTime);
-  }
-  String _formatDuration(double seconds) {
-    final duration = Duration(seconds: seconds.round());
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    final secs = duration.inSeconds % 60;
-
-    final twoDigits = NumberFormat('00');
-
-    if (hours > 0) {
-      return '$hours:${twoDigits.format(minutes)}:${twoDigits.format(secs)}';
-    } else {
-      return '$minutes:${twoDigits.format(secs)}';
-    }
   }
 
   // --- Mock data helpers (for local preview until backend streams are available) ---

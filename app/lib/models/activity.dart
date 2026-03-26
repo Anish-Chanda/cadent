@@ -109,6 +109,7 @@ class Activity {
   final int processingVer;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isMetric;
 
   Activity({
     required this.id,
@@ -126,6 +127,7 @@ class Activity {
     required this.processingVer,
     required this.createdAt,
     required this.updatedAt,
+    this.isMetric = false,
   });
 
   factory Activity.fromJson(Map<String, dynamic> json) {
@@ -148,14 +150,43 @@ class Activity {
     );
   }
 
-  // Helper getters for display using derived data
+  /// Returns a copy of this activity with [isMetric] applied.
+  /// Call this once in the widget and use the plain getters below.
+  Activity withIsMetric(bool isMetric) => Activity(
+    id: id,
+    title: title,
+    description: description,
+    activityType: activityType,
+    perceivedEffort: perceivedEffort,
+    startTime: startTime,
+    endTime: endTime,
+    stats: stats,
+    polyline: polyline,
+    bbox: bbox,
+    start: start,
+    end: end,
+    processingVer: processingVer,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    isMetric: isMetric,
+  );
+
+  // Helper getters for display — unit preference is taken from [isMetric]
   double get distanceKm => stats?.derived.distanceKm ?? 0.0;
   double get distanceMiles => stats?.derived.distanceMiles ?? 0.0;
-  
-  String get formattedDistance => '${distanceKm.toStringAsFixed(2)} Km';
-  
-  String get formattedElevation => stats?.elevationGainM != null ? '${stats!.elevationGainM} m' : '0 m';
-  
+
+  String get formattedDistance =>
+      isMetric ? distanceKm.toStringAsFixed(2) : distanceMiles.toStringAsFixed(2);
+  String get distanceUnit => isMetric ? 'km' : 'mi';
+
+  String get formattedElevation {
+    if (stats?.elevationGainM == null) return '0';
+    return isMetric
+        ? '${stats!.elevationGainM}'
+        : (stats!.elevationGainM * 3.28).toStringAsFixed(2);
+  }
+  String get elevationUnit => isMetric ? 'm' : 'ft';
+
   String get formattedDuration {
     final elapsedTime = stats?.elapsedSeconds.round() ?? 0;
     final hours = elapsedTime ~/ 3600;
@@ -166,28 +197,20 @@ class Activity {
     return '$minutes min';
   }
 
-  // helper getters for speed and pace
-  String get formattedSpeed {
-    if (stats?.derived.speedKmh != null) {
-      return '${stats!.derived.speedKmh!.toStringAsFixed(1)} km/h';
-    } else if (stats?.derived.speedMph != null) {
-      return '${stats!.derived.speedMph!.toStringAsFixed(1)} mph';
-    }
-    return 'N/A';
-  }
+  String get formattedSpeed => isMetric
+      ? (stats?.derived.speedKmh?.toStringAsFixed(1) ?? '0.0')
+      : (stats?.derived.speedMph?.toStringAsFixed(1) ?? '0.0');
+  String get speedUnit => isMetric ? 'kph' : 'mph';
 
   String get formattedPace {
-    if (stats?.derived.paceSPerKm != null) {
-      final paceSec = stats!.derived.paceSPerKm!;
-      final minutes = paceSec ~/ 60;
-      final seconds = (paceSec % 60).round();
-      return '$minutes:${seconds.toString().padLeft(2, '0')}/km';
-    } else if (stats?.derived.paceSPerMile != null) {
-      final paceSec = stats!.derived.paceSPerMile!;
-      final minutes = paceSec ~/ 60;
-      final seconds = (paceSec % 60).round();
-      return '$minutes:${seconds.toString().padLeft(2, '0')}/mi';
-    }
-    return 'N/A';
+    final paceSec = isMetric
+        ? stats?.derived.paceSPerKm
+        : stats?.derived.paceSPerMile;
+    if (paceSec == null) return 'N/A';
+    final minutes = paceSec ~/ 60;
+    final seconds = (paceSec % 60).round();
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
+  String get paceUnit => isMetric ? '/km' : '/mi';
+
 }

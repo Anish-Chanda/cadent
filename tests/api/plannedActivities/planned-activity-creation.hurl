@@ -25,7 +25,7 @@ Content-Type: application/json
 {
   "title": "Riverside Tempo Ride",
   "description": "Maintain steady power on the flat sections. Focus on aerobic capacity.",
-  "activityType": "road_bike",
+  "activityType": "road_biking",
   "startTime": "2026-03-10T07:30:00Z",
   "plannedDistanceMeter": 25000,
   "plannedDurationSecond": 3600,

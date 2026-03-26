@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cadent/screens/recorder_screen.dart';
+import 'package:cadent/providers/app_settings_provider.dart';
 
 void main() {
   group('RecorderScreen - Basic UI Tests', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
     testWidgets('displays all basic UI elements when idle', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -32,7 +45,14 @@ void main() {
     });
 
     testWidgets('displays activity type selector when idle', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -53,7 +73,14 @@ void main() {
     });
 
     testWidgets('displays time in initial state', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -71,7 +98,14 @@ void main() {
     });
 
     testWidgets('displays start button when idle', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -79,7 +113,14 @@ void main() {
     });
 
     testWidgets('back button is present', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -87,7 +128,14 @@ void main() {
     });
 
     testWidgets('center location button is present', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -95,7 +143,14 @@ void main() {
     });
 
     testWidgets('map has correct initial configuration', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -117,7 +172,14 @@ void main() {
     });
 
     testWidgets('floating card has correct styling', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -134,7 +196,14 @@ void main() {
     });
 
     testWidgets('does not show delete button when idle', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -145,7 +214,14 @@ void main() {
     testWidgets('does not show distance and speed stats when idle', (
       tester,
     ) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -157,16 +233,24 @@ void main() {
     testWidgets('back button pops navigation', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RecorderScreen()),
-                  );
-                },
-                child: const Text('Open Recorder'),
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider.value(
+                          value: Provider.of<AppSettingsProvider>(context, listen: false),
+                          child: const RecorderScreen(),
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('Open Recorder'),
+                ),
               ),
             ),
           ),
@@ -190,7 +274,14 @@ void main() {
     });
 
     testWidgets('tapping floating card toggles expanded view', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -216,7 +307,14 @@ void main() {
     });
 
     testWidgets('tapping collapse button returns to map view', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -246,7 +344,14 @@ void main() {
     });
 
     testWidgets('activity type selector opens bottom sheet', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 
@@ -259,7 +364,14 @@ void main() {
     });
 
     testWidgets('disposes controllers properly', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: RecorderScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(),
+            child: const RecorderScreen(),
+          ),
+        ),
+      );
 
       await tester.pumpAndSettle();
 

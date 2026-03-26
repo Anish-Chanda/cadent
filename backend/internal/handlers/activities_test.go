@@ -633,7 +633,7 @@ func TestCreateActivityResult(t *testing.T) {
 				ID:            "550e8400-e29b-41d4-a716-446655440000",
 				Title:         "Morning Run",
 				Description:   "Great morning run",
-				Type:          "run",
+				Type:          "running",
 				StartTime:     time.Date(2023, 1, 1, 8, 0, 0, 0, time.UTC),
 				EndTime:       timePtr(time.Date(2023, 1, 1, 9, 0, 0, 0, time.UTC)),
 				ProcessingVer: 1, // int field
@@ -689,7 +689,7 @@ func TestCreateActivityResult(t *testing.T) {
 				ID:            "550e8400-e29b-41d4-a716-446655440001",
 				Title:         "Basic Activity",
 				Description:   "", // default
-				Type:          "road_bike",
+				Type:          "road_biking",
 				StartTime:     time.Date(2023, 1, 2, 10, 0, 0, 0, time.UTC),
 				EndTime:       timePtr(time.Date(2023, 1, 2, 11, 30, 0, 0, time.UTC)),
 				ProcessingVer: 1, // int field
@@ -775,7 +775,7 @@ func TestCalculateDerivedStats(t *testing.T) {
 	}{
 		{
 			name:         "road bike with speed",
-			activityType: "road_bike",
+			activityType: "road_biking",
 			speedMs:      10.0, // 10 m/s = 36 km/h
 			distanceM:    25000.0,
 			expected: DerivedStats{
@@ -787,7 +787,7 @@ func TestCalculateDerivedStats(t *testing.T) {
 		},
 		{
 			name:         "run with pace",
-			activityType: "run",
+			activityType: "running",
 			speedMs:      3.0, // 3 m/s
 			distanceM:    10000.0,
 			expected: DerivedStats{
@@ -799,7 +799,7 @@ func TestCalculateDerivedStats(t *testing.T) {
 		},
 		{
 			name:         "zero speed",
-			activityType: "run",
+			activityType: "running",
 			speedMs:      0.0,
 			distanceM:    5000.0,
 			expected: DerivedStats{
