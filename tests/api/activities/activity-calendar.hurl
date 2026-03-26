@@ -65,7 +65,7 @@ Content-Type: application/json
     "title": "First Activity",
     "description": "Afternoon run through the park",
     "activityType": "road_bike",
-    "startTime": {{now "%Y-%m-%d"}},
+    "startTime": '{{now "%Y-%m-%d"}}',
     "plannedDistanceMeter": 25000,
     "plannedDurationSecond": 3600,
     "plannedElevationGainMeter": 120,
@@ -81,7 +81,7 @@ jsonpath "$.id" exists
 jsonpath "$.type" == "road_bike"
 
 ### Test 6: Get Activities in Date Range
-GET http://localhost:8080/api/v1/activities/calendar?startDate={{now "%Y-%m-%d"}}&endDate={{now "%Y-%m-%d"}}
+GET http://localhost:8080/api/v1/activities/calendar?startDate='{{now "%Y-%m-%d"}}'&endDate='{{now "%Y-%m-%d"}}'
 
 HTTP 200
 [Asserts]
