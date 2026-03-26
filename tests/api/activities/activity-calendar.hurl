@@ -33,8 +33,8 @@ HTTP 200
 [Asserts]
 jsonpath "$.activities" exists
 jsonpath "$.activities" count == 0
-jsonpath "$.plannedActivities" exists
-jsonpath "$.plannedActivities" count == 0
+jsonpath "$.planned_activities" exists
+jsonpath "$.planned_activities" count == 0
 
 ### Test 4: Create small activity for User 1
 POST http://localhost:8080/api/v1/activities
@@ -92,16 +92,17 @@ jsonpath "$.activities[0].type" exists
 jsonpath "$.activities[0].stats" exists
 jsonpath "$.activities[0].stats.distance_m" exists
 jsonpath "$.activities[0].stats.elapsed_seconds" exists
-jsonpath "$.plannedActivities" count >= 1
-jsonpath "$.plannedActivities[0].id" exists
-jsonpath "$.plannedActivities[0].title" exists
-jsonpath "$.activities[0].type" exists
+jsonpath "$.planned_activities" count >= 1
+jsonpath "$.planned_activities[0].id" exists
+jsonpath "$.planned_activities[0].title" exists
+jsonpath "$.planned_activities[0].type" exists
 
 ### Test 7: Get Activities in Date Range - none in range
 GET http://localhost:8080/api/v1/activities/calendar?startDate=2013-06-12&endDate=2013-06-12
 
 HTTP 200
 [Asserts]
+jsonpath "$.activities" count == 0
 jsonpath "$.activities" count == 0
 
 ### Test 8: Get Activities in Date Range - Invalid Start Date
