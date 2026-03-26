@@ -109,11 +109,11 @@ type PlannedActivityResult struct {
 	Description             string        `json:"description"`
 	Type                    string        `json:"type"`
 	StartTime               time.Time     `json:"start_time"`
-	PlannedDistance         *float64       `json:"planned_distance"`
-	PlannedDuration         *int           `json:"planned_duration"`
-	PlannedElevationGain    *float64       `json:"planned_elevation_gain"`
-	TargetAvgSpeed          *float64       `json:"target_power"`
-	TargetPower             *int           `json:"target_power"`
+	PlannedDistance         *float64      `json:"planned_distance"`
+	PlannedDuration         *int          `json:"planned_duration"`
+	PlannedElevationGain    *float64      `json:"planned_elevation_gain"`
+	TargetAvgSpeed          *float64      `json:"target_avg_speed"`
+	TargetPower             *int          `json:"target_power"`
 	CreatedAt               time.Time     `json:"created_at"`
 	UpdatedAt               time.Time     `json:"updated_at"`
 }
