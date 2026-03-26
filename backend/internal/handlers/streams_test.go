@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/compression"
 	"github.com/anish-chanda/cadent/backend/internal/logger"
@@ -98,9 +99,11 @@ func (m *MockDatabase) CreateActivityStreams(ctx context.Context, streams []mode
 func (m *MockDatabase) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
 	return nil, nil
 }
-func (m *mockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity,[]models.PlannedActivity, error) {
+
+func (m *MockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity, error) {
 	return nil, nil, nil
 }
+
 func (m *MockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
 }
