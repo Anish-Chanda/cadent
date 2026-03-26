@@ -33,8 +33,6 @@ HTTP 200
 [Asserts]
 jsonpath "$.activities" exists
 jsonpath "$.activities" count == 0
-jsonpath "$.planned_activities" exists
-jsonpath "$.planned_activities" count == 0
 
 ### Test 4: Create small activity for User 1
 POST http://localhost:8080/api/v1/activities
@@ -59,7 +57,7 @@ jsonpath "$.id" exists
 jsonpath "$.type" == "run"
 
 ### Test 5: Create small planned activity for User 1
-POST http://localhost:8080/api/v1/activities
+POST http://localhost:8080/api/v1/activities/plan
 Content-Type: application/json
 {
     "title": "First Activity",
