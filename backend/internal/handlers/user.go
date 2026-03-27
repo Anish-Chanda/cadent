@@ -7,8 +7,6 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/anish-chanda/cadent/backend/internal/db"
-	"github.com/anish-chanda/cadent/backend/internal/logger"
 	"github.com/go-pkgz/auth/v2/token"
 )
 
@@ -25,15 +23,14 @@ type UserUpdateRequest struct {
 	Email *string `json:"email"`
 }
 
-// HandleGetUser handles GET /v1/user - returns user profile information
-func HandleGetUser(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleGetUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
 		// Get authenticated user information
 		user, err := token.GetUserInfo(r)
 		if err != nil {
-			log.Error("Failed to get user info from token", err)
+			h.log.Error("Failed to get user info from token", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -41,20 +38,20 @@ func HandleGetUser(database db.Database, log logger.ServiceLogger) http.HandlerF
 		// Extract email from token
 		userEmail := user.Name
 		if userEmail == "" {
-			log.Error("No email found in user token", nil)
+			h.log.Error("No email found in user token", nil)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		// Look up database user by email
-		dbUser, err := database.GetUserByEmail(ctx, userEmail)
+		dbUser, err := h.database.GetUserByEmail(ctx, userEmail)
 		if err != nil {
-			log.Error("Failed to get user from database", err)
+			h.log.Error("Failed to get user from database", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		if dbUser == nil {
-			log.Error("User not found in database", nil)
+			h.log.Error("User not found in database", nil)
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -71,15 +68,14 @@ func HandleGetUser(database db.Database, log logger.ServiceLogger) http.HandlerF
 	}
 }
 
-// HandleUpdateUser handles PATCH /v1/user - updates user profile information
-func HandleUpdateUser(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleUpdateUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
 		// Get authenticated user information
 		user, err := token.GetUserInfo(r)
 		if err != nil {
-			log.Error("Failed to get user info from token", err)
+			h.log.Error("Failed to get user info from token", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -87,20 +83,20 @@ func HandleUpdateUser(database db.Database, log logger.ServiceLogger) http.Handl
 		// Extract email from token
 		userEmail := user.Name
 		if userEmail == "" {
-			log.Error("No email found in user token", nil)
+			h.log.Error("No email found in user token", nil)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		// Look up database user by email
-		dbUser, err := database.GetUserByEmail(ctx, userEmail)
+		dbUser, err := h.database.GetUserByEmail(ctx, userEmail)
 		if err != nil {
-			log.Error("Failed to get user from database", err)
+			h.log.Error("Failed to get user from database", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		if dbUser == nil {
-			log.Error("User not found in database", nil)
+			h.log.Error("User not found in database", nil)
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -108,7 +104,7 @@ func HandleUpdateUser(database db.Database, log logger.ServiceLogger) http.Handl
 		// Parse request body
 		var updateReq UserUpdateRequest
 		if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
-			log.Error("Failed to decode request body", err)
+			h.log.Error("Failed to decode request body", err)
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
@@ -146,17 +142,17 @@ func HandleUpdateUser(database db.Database, log logger.ServiceLogger) http.Handl
 		}
 
 		// Update user in database
-		err = database.UpdateUser(ctx, dbUser.ID, updates)
+		err = h.database.UpdateUser(ctx, dbUser.ID, updates)
 		if err != nil {
-			log.Error("Failed to update user in database", err)
+			h.log.Error("Failed to update user in database", err)
 			http.Error(w, "Failed to update user", http.StatusInternalServerError)
 			return
 		}
 
 		// Get updated user data, might have changed by other instances
-		updatedUser, err := database.GetUserByID(ctx, dbUser.ID)
+		updatedUser, err := h.database.GetUserByID(ctx, dbUser.ID)
 		if err != nil {
-			log.Error("Failed to get updated user", err)
+			h.log.Error("Failed to get updated user", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
