@@ -109,7 +109,7 @@ func main() {
 
 	// Create auth service with providers
 	authService := authpkg.NewService(authOptions)
-	apiHandler := handlers.NewHandler(database, valhallaClient, objectStore, *log)
+	apiHandler := handlers.NewHandler(database, valhallaClient, objectStore, log)
 
 	authService.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
 		return apiHandler.HandleLogin(user, password)

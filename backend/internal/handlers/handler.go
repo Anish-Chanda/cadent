@@ -12,11 +12,11 @@ type Handler struct {
 	database       db.Database
 	valhallaClient *valhalla.Client
 	objectStore    store.ObjectStore
-	log            logger.ServiceLogger
+	log            *logger.ServiceLogger
 }
 
 // NewHandler creates a handler set with shared dependencies.
-func NewHandler(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) *Handler {
+func NewHandler(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log *logger.ServiceLogger) *Handler {
 	return &Handler{
 		database:       database,
 		valhallaClient: valhallaClient,

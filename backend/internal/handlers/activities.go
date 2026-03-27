@@ -346,7 +346,7 @@ func processGPSData(samples []Sample) (string, float64, Bounds) {
 
 // Helper function to get elevation data and heights from Valhalla, returns calculated
 // elevation change and array of elevation heights
-func getElevationDataAndHeights(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log logger.ServiceLogger) (*valhalla.ElevationChange, []float64) {
+func getElevationDataAndHeights(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log *logger.ServiceLogger) (*valhalla.ElevationChange, []float64) {
 	heightReq := valhalla.HeightRequest{
 		Range:           false, // range off
 		EncodedPolyline: polyline,
@@ -621,7 +621,7 @@ func buildActivityModel(req CreateActivityRequest, userID string, polyline strin
 }
 
 // Helper function to create and store FIT file
-func createAndStoreFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log logger.ServiceLogger) error {
+func createAndStoreFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log *logger.ServiceLogger) error {
 	objectKey := fmt.Sprintf("activities/%s/%s.fit", activity.UserID, activity.ID.String())
 
 	if err := createFITFile(ctx, activity, samples, objectStore, log); err != nil {
@@ -718,7 +718,7 @@ func (h *Handler) HandleGetActivities() http.HandlerFunc {
 }
 
 // createFITFile generates a FIT file from activity data and saves it to object store
-func createFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log logger.ServiceLogger) error {
+func createFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log *logger.ServiceLogger) error {
 	// Create FIT activity file using muktihari/fit library
 	fitActivity := filedef.NewActivity()
 

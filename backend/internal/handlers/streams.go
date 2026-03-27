@@ -158,7 +158,7 @@ func (h *Handler) HandleGetActivityStreams() http.HandlerFunc {
 }
 
 // getMediumLODStreams retrieves medium LOD streams from database
-func getMediumLODStreams(ctx context.Context, database db.Database, activityID string, requestedTypes []models.StreamType, log logger.ServiceLogger) ([]StreamData, int, int, error) {
+func getMediumLODStreams(ctx context.Context, database db.Database, activityID string, requestedTypes []models.StreamType, log *logger.ServiceLogger) ([]StreamData, int, int, error) {
 	activityStreams, err := database.GetActivityStreams(ctx, activityID, models.StreamLODMedium)
 	if err != nil {
 		log.Error("Failed to get activity streams from database", err)
@@ -214,7 +214,7 @@ func getMediumLODStreams(ctx context.Context, database db.Database, activityID s
 }
 
 // getLowLODStreams calculates low LOD streams by further decimating medium LOD data
-func getLowLODStreams(ctx context.Context, database db.Database, activityID string, requestedTypes []models.StreamType, log logger.ServiceLogger) ([]StreamData, int, int, error) {
+func getLowLODStreams(ctx context.Context, database db.Database, activityID string, requestedTypes []models.StreamType, log *logger.ServiceLogger) ([]StreamData, int, int, error) {
 	// First get medium LOD streams
 	mediumStreams, _, originalNumPoints, err := getMediumLODStreams(ctx, database, activityID, requestedTypes, log)
 	if err != nil {
