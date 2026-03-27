@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/compression"
-	"github.com/anish-chanda/cadent/backend/internal/db"
 	"github.com/anish-chanda/cadent/backend/internal/geo"
 	"github.com/anish-chanda/cadent/backend/internal/logger"
 	"github.com/anish-chanda/cadent/backend/internal/models"
@@ -107,14 +106,14 @@ type GetActivitiesResponse struct {
 	Activities []ActivityResult `json:"activities"`
 }
 
-func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleCreateActivity() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// TODO: Use go routines to optimize stream processing performance
 		ctx := context.Background()
 
 		var req CreateActivityRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			log.Error("Failed to decode request", err)
+			h.log.Error("Failed to decode request", err)
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
@@ -151,9 +150,9 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		// Check idempotency
-		exists, err := database.CheckIdempotency(ctx, req.ClientActivityID.String())
+		exists, err := h.database.CheckIdempotency(ctx, req.ClientActivityID.String())
 		if err != nil {
-			log.Error("Failed to check idempotency", err)
+			h.log.Error("Failed to check idempotency", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -163,16 +162,16 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		// Get authenticated user ID
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		log.Debug(fmt.Sprintf("Processing activity for user: %s", userID))
+		h.log.Debug(fmt.Sprintf("Processing activity for user: %s", userID))
 		// Validate activity_type enum before database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
-			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
+			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
 			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType), http.StatusBadRequest)
 			return
 		}
@@ -180,7 +179,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		polyline, totalDistance, bounds := processGPSData(req.Samples)
 
 		// Get elevation data from Valhalla
-		elevationData, elevationHeights := getElevationDataAndHeights(ctx, valhallaClient, polyline, log)
+		elevationData, elevationHeights := getElevationDataAndHeights(ctx, h.valhallaClient, polyline, h.log)
 
 		// Calculate time-based metrics
 		elapsedSeconds := calculateElapsedSeconds(req.Samples)
@@ -194,7 +193,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 
 		// Validate stream alignment (all arrays should have same length)
 		if err := validateStreamAlignment(fullStream, len(req.Samples)); err != nil {
-			log.Error("Stream alignment validation failed", err)
+			h.log.Error("Stream alignment validation failed", err)
 			http.Error(w, "Internal stream processing error", http.StatusInternalServerError)
 			return
 		}
@@ -206,37 +205,37 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		// Create compressed medium LOD streams
 		activityStreams, err := createCompressedStreams(activity.ID, keepIndices, fullStream)
 		if err != nil {
-			log.Error("Failed to create compressed streams", err)
+			h.log.Error("Failed to create compressed streams", err)
 			http.Error(w, "Failed to process stream data", http.StatusInternalServerError)
 			return
 		}
 
 		// Create and store FIT file
-		if err := createAndStoreFITFile(ctx, activity, req.Samples, objectStore, log); err != nil {
-			log.Error("Failed to create FIT file", err)
+		if err := createAndStoreFITFile(ctx, activity, req.Samples, h.objectStore, h.log); err != nil {
+			h.log.Error("Failed to create FIT file", err)
 			http.Error(w, "Failed to create FIT file", http.StatusInternalServerError)
 			return
 		}
 
 		// Save activity to database
-		if err := database.CreateActivity(ctx, activity); err != nil {
-			log.Error("Failed to save activity to database", err)
+		if err := h.database.CreateActivity(ctx, activity); err != nil {
+			h.log.Error("Failed to save activity to database", err)
 			http.Error(w, "Failed to save activity", http.StatusInternalServerError)
 			return
 		}
 
 		// Save activity streams to database
 		if len(activityStreams) > 0 {
-			if err := database.CreateActivityStreams(ctx, activityStreams); err != nil {
-				log.Error("Failed to save activity streams to database", err)
+			if err := h.database.CreateActivityStreams(ctx, activityStreams); err != nil {
+				h.log.Error("Failed to save activity streams to database", err)
 				// Log error but don't fail the request since main activity was saved
-				log.Info("Activity created successfully but streams failed to save")
+				h.log.Info("Activity created successfully but streams failed to save")
 			} else {
-				log.Debug(fmt.Sprintf("Successfully saved %d streams for activity: %s", len(activityStreams), activity.ID.String()))
+				h.log.Debug(fmt.Sprintf("Successfully saved %d streams for activity: %s", len(activityStreams), activity.ID.String()))
 			}
 		}
 
-		log.Debug(fmt.Sprintf("Created activity: %s for user: %s", activity.ID.String(), userID))
+		h.log.Debug(fmt.Sprintf("Created activity: %s for user: %s", activity.ID.String(), userID))
 
 		// Build and return response
 		result := createActivityResult(activity)
@@ -246,28 +245,27 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 	}
 }
 
-// Helper function to extract and validate authenticated user ID
-func getAuthenticatedUserID(ctx context.Context, r *http.Request, database db.Database, log logger.ServiceLogger) (string, error) {
+func (h *Handler) getAuthenticatedUserID(ctx context.Context, r *http.Request) (string, error) {
 	user, err := token.GetUserInfo(r)
 	if err != nil {
-		log.Error("Failed to get user info from token", err)
+		h.log.Error("Failed to get user info from token", err)
 		return "", fmt.Errorf("Unauthorized")
 	}
 
 	// the goauth package stores email in Name field for local provider
 	userEmail := user.Name
 	if userEmail == "" {
-		log.Error("No email found in user token", nil)
+		h.log.Error("No email found in user token", nil)
 		return "", fmt.Errorf("Unauthorized")
 	}
 
-	dbUser, err := database.GetUserByEmail(ctx, userEmail)
+	dbUser, err := h.database.GetUserByEmail(ctx, userEmail)
 	if err != nil {
-		log.Error("Failed to get user from database", err)
+		h.log.Error("Failed to get user from database", err)
 		return "", fmt.Errorf("Internal server error")
 	}
 	if dbUser == nil {
-		log.Error("User not found in database", nil)
+		h.log.Error("User not found in database", nil)
 		return "", fmt.Errorf("User not found")
 	}
 
@@ -683,21 +681,21 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 	}
 }
 
-func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleGetActivities() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
 		// Get authenticated user ID using the same helper function
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		// Get user's activities from database
-		activities, err := database.GetActivitiesByUserID(ctx, userID)
+		activities, err := h.database.GetActivitiesByUserID(ctx, userID)
 		if err != nil {
-			log.Error("Failed to get activities from database", err)
+			h.log.Error("Failed to get activities from database", err)
 			http.Error(w, "Failed to retrieve activities", http.StatusInternalServerError)
 			return
 		}

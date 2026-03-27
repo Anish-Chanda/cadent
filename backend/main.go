@@ -109,9 +109,10 @@ func main() {
 
 	// Create auth service with providers
 	authService := authpkg.NewService(authOptions)
+	apiHandler := handlers.NewHandler(database, valhallaClient, objectStore, *log)
 
 	authService.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
-		return handlers.HandleLogin(database, user, password)
+		return apiHandler.HandleLogin(user, password)
 	}))
 
 	// Create router
@@ -146,7 +147,7 @@ func main() {
 	router.Mount("/api/avatar", avatarHandler)
 
 	// Custom auth endpoints
-	router.Post("/api/signup", handlers.SignupHandler(database, *log))
+	router.Post("/api/signup", apiHandler.SignupHandler())
 
 	// Mount V1 API routes
 	router.Route("/api/v1", func(r chi.Router) {
@@ -157,15 +158,15 @@ func main() {
 			r.Use(authMiddleware.Auth)
 
 			// Activity endpoints
-			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
-			r.Get("/activities", handlers.HandleGetActivities(database, *log))
-			r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
-			r.Post("/activities/plan", handlers.HandleCreatePlannedActivity(database, *log))
-			r.Post("/activities/upload", handlers.HandleActivityUpload(database, valhallaClient, objectStore, *log))
+			r.Post("/activities", apiHandler.HandleCreateActivity())
+			r.Get("/activities", apiHandler.HandleGetActivities())
+			r.Get("/activities/{id}/streams", apiHandler.HandleGetActivityStreams())
+			r.Post("/activities/plan", apiHandler.HandleCreatePlannedActivity())
+			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
 
 			// User endpoints
-			r.Get("/user", handlers.HandleGetUser(database, *log))
-			r.Patch("/user", handlers.HandleUpdateUser(database, *log))
+			r.Get("/user", apiHandler.HandleGetUser())
+			r.Patch("/user", apiHandler.HandleUpdateUser())
 		})
 	})
 

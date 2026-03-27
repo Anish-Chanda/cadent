@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anish-chanda/cadent/backend/internal/db"
-	"github.com/anish-chanda/cadent/backend/internal/logger"
 	"github.com/anish-chanda/cadent/backend/internal/models"
 )
 
@@ -26,12 +24,12 @@ type CreatePlannedActivityRequest struct {
 	TargetPowerWatt                  *int     `json:"targetPowerWatt"`
 }
 
-func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// 1. Auth Check
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -40,7 +38,7 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 		// 2. Decode the JSON Body
 		var req CreatePlannedActivityRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			log.Error("Failed to decode plan request", err)
+			h.log.Error("Failed to decode plan request", err)
 			sendError(w, http.StatusBadRequest, "Invalid JSON format")
 			return
 		}
@@ -56,7 +54,7 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 		}
 		// Validate activity_type enum database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
-			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
+			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
 			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType))
 			return
 		}
@@ -75,9 +73,9 @@ func HandleCreatePlannedActivity(database db.Database, log logger.ServiceLogger)
 			TargetPowerWatt:       req.TargetPowerWatt,
 		}
 
-		saved, err := database.CreatePlannedActivity(ctx, plan)
+		saved, err := h.database.CreatePlannedActivity(ctx, plan)
 		if err != nil {
-			log.Error("Database failed", err)
+			h.log.Error("Database failed", err)
 			sendError(w, http.StatusInternalServerError, "Failed to save to database")
 			return
 		}

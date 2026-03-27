@@ -42,22 +42,21 @@ type StreamsResponse struct {
 	Streams           []StreamData         `json:"streams"`
 }
 
-// HandleGetActivityStreams handles GET /v1/activities/{id}/streams
-func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleGetActivityStreams() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
 		// Get activity ID from URL path
 		activityID := chi.URLParam(r, "id")
 		if activityID == "" {
-			log.Error("Missing activity ID in URL path", nil)
+			h.log.Error("Missing activity ID in URL path", nil)
 			http.Error(w, "Activity ID is required", http.StatusBadRequest)
 			return
 		}
 
 		// Validate activity ID format
 		if _, err := uuid.Parse(activityID); err != nil {
-			log.Error("Invalid activity ID format", err)
+			h.log.Error("Invalid activity ID format", err)
 			http.Error(w, "Invalid activity ID format", http.StatusBadRequest)
 			return
 		}
@@ -65,39 +64,39 @@ func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) ht
 		// Parse query parameters
 		req, err := parseStreamRequest(r)
 		if err != nil {
-			log.Error("Failed to parse stream request", err)
+			h.log.Error("Failed to parse stream request", err)
 			http.Error(w, fmt.Sprintf("Invalid request parameters: %v", err), http.StatusBadRequest)
 			return
 		}
 
 		// Get authenticated user ID
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		// Get activity to check ownership
-		activity, err := database.GetActivityByID(ctx, activityID)
+		activity, err := h.database.GetActivityByID(ctx, activityID)
 		if err != nil {
-			log.Error("Failed to get activity from database", err)
+			h.log.Error("Failed to get activity from database", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		if activity == nil {
-			log.Info(fmt.Sprintf("Activity not found: %s", activityID))
+			h.log.Info(fmt.Sprintf("Activity not found: %s", activityID))
 			http.Error(w, "Activity not found", http.StatusNotFound)
 			return
 		}
 
 		// Check if the authenticated user owns this activity
 		if activity.UserID != userID {
-			log.Debug(fmt.Sprintf("User %s attempted to access activity %s owned by %s", userID, activityID, activity.UserID))
+			h.log.Debug(fmt.Sprintf("User %s attempted to access activity %s owned by %s", userID, activityID, activity.UserID))
 			http.Error(w, "Activity not found", http.StatusNotFound) // Return 404 instead of 403
 			return
 		}
 
-		log.Debug(fmt.Sprintf("User %s requesting streams for activity %s with LOD %s and types %v", userID, activityID, req.LOD, req.Types))
+		h.log.Debug(fmt.Sprintf("User %s requesting streams for activity %s with LOD %s and types %v", userID, activityID, req.LOD, req.Types))
 
 		// Get activity streams from database based on LOD
 		var responseStreams []StreamData
@@ -106,7 +105,7 @@ func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) ht
 		switch req.LOD {
 		case models.StreamLODMedium:
 			// Get medium LOD from database
-			responseStreams, numPoints, originalNumPoints, err = getMediumLODStreams(ctx, database, activityID, req.Types, log)
+			responseStreams, numPoints, originalNumPoints, err = getMediumLODStreams(ctx, h.database, activityID, req.Types, h.log)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -114,7 +113,7 @@ func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) ht
 
 		case models.StreamLODLow:
 			// Calculate low LOD on the fly from medium LOD
-			responseStreams, numPoints, originalNumPoints, err = getLowLODStreams(ctx, database, activityID, req.Types, log)
+			responseStreams, numPoints, originalNumPoints, err = getLowLODStreams(ctx, h.database, activityID, req.Types, h.log)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -122,7 +121,7 @@ func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) ht
 
 		case models.StreamLODFull:
 			// TODO: Get full resolution from FIT file in object storage
-			log.Error("Full LOD streams not yet implemented - requires FIT file parsing", nil)
+			h.log.Error("Full LOD streams not yet implemented - requires FIT file parsing", nil)
 			http.Error(w, "Full resolution streams not available", http.StatusNotImplemented)
 			return
 
@@ -132,7 +131,7 @@ func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) ht
 		}
 
 		if len(responseStreams) == 0 {
-			log.Info(fmt.Sprintf("No stream data found for activity %s with LOD %s", activityID, req.LOD))
+			h.log.Info(fmt.Sprintf("No stream data found for activity %s with LOD %s", activityID, req.LOD))
 			http.Error(w, "Stream data not found", http.StatusNotFound)
 			return
 		}
@@ -149,12 +148,12 @@ func HandleGetActivityStreams(database db.Database, log logger.ServiceLogger) ht
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Error("Failed to encode response", err)
+			h.log.Error("Failed to encode response", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		log.Debug(fmt.Sprintf("Successfully returned %d stream types for activity %s with LOD %s", len(responseStreams), activityID, req.LOD))
+		h.log.Debug(fmt.Sprintf("Successfully returned %d stream types for activity %s with LOD %s", len(responseStreams), activityID, req.LOD))
 	}
 }
 
