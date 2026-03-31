@@ -98,6 +98,12 @@ func (m *IntegrationUserMockDB) CreateActivityStreams(ctx context.Context, strea
 func (m *IntegrationUserMockDB) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
 	return &models.PlannedActivity{}, nil
 }
+func (m *IntegrationUserMockDB) DeletePlannedActivity(ctx context.Context, activityID string, userID string) error {
+	return nil
+}
+func (m *IntegrationUserMockDB) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
+	return nil
+}
 func (m *IntegrationUserMockDB) Connect(dsn string) error { return nil }
 func (m *IntegrationUserMockDB) Close() error             { return nil }
 func (m *IntegrationUserMockDB) Migrate() error           { return nil }
