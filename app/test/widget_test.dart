@@ -4,22 +4,22 @@
 // utility in the flutter_test package. For example, you can send tap and scroll
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
-import 'package:cadence/widgets/main_layout.dart';
+import 'package:cadent/widgets/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'Mocks/mock_auth_provider.dart';
-import 'package:cadence/providers/auth_provider.dart';
-import 'package:cadence/providers/activities_provider.dart';
-import 'package:cadence/providers/app_settings_provider.dart';
-import 'package:cadence/providers/theme_provider.dart';
-import 'package:cadence/utils/app_theme.dart';
-import 'package:cadence/screens/auth/login_screen.dart';
-import 'package:cadence/main.dart';
-import 'package:cadence/screens/finish_activity_screen.dart';
-import 'package:cadence/screens/recorder_screen.dart';
-import 'package:cadence/screens/settings_screen.dart';
+import 'package:cadent/providers/auth_provider.dart';
+import 'package:cadent/providers/activities_provider.dart';
+import 'package:cadent/providers/app_settings_provider.dart';
+import 'package:cadent/providers/theme_provider.dart';
+import 'package:cadent/utils/app_theme.dart';
+import 'package:cadent/screens/auth/login_screen.dart';
+import 'package:cadent/main.dart';
+import 'package:cadent/screens/finish_activity_screen.dart';
+import 'package:cadent/screens/recorder_screen.dart';
+import 'package:cadent/screens/settings_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -39,7 +39,7 @@ void main() {
             create: (_) => ThemeProvider(AppTheme.lightTheme),
           ),
         ],
-        child: const CadenceApp(),
+        child: const CadentApp(),
       ),
     );
 

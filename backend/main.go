@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/db"
-	"github.com/anish-chanda/cadence/backend/internal/db/postgres"
-	"github.com/anish-chanda/cadence/backend/internal/handlers"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/store"
-	"github.com/anish-chanda/cadence/backend/internal/store/local_store"
-	"github.com/anish-chanda/cadence/backend/internal/valhalla"
+	"github.com/anish-chanda/cadent/backend/internal/db"
+	"github.com/anish-chanda/cadent/backend/internal/db/postgres"
+	"github.com/anish-chanda/cadent/backend/internal/handlers"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/store"
+	"github.com/anish-chanda/cadent/backend/internal/store/local_store"
+	"github.com/anish-chanda/cadent/backend/internal/valhalla"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	authpkg "github.com/go-pkgz/auth/v2"
@@ -109,9 +109,10 @@ func main() {
 
 	// Create auth service with providers
 	authService := authpkg.NewService(authOptions)
+	apiHandler := handlers.NewHandler(database, valhallaClient, objectStore, log)
 
 	authService.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
-		return handlers.HandleLogin(database, user, password)
+		return apiHandler.HandleLogin(user, password)
 	}))
 
 	// Create router
@@ -120,33 +121,33 @@ func main() {
 	// Add middlewares
 	router.Use(middleware.Logger)
 
-  // Health check endpoint
-  router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-	  w.Header().Set("Content-Type", "application/json")
-	  w.WriteHeader(http.StatusOK)
-	  fmt.Fprint(w, `{"status":"ok"}`)
-  })
+	// Health check endpoint
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"status":"ok"}`)
+	})
 
-  // Mount auth routes under /api
-  authHandler, avatarHandler := authService.Handlers()
+	// Mount auth routes under /api
+	authHandler, avatarHandler := authService.Handlers()
 
-  // Wrap auth handler to fix HTTP status codes - return 401 for authentication failures instead of 403
-  wrappedAuthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	  // Intercept status codes to convert 403 to 401 for login failures
-	  // Per HTTP spec: 401 = authentication failed, 403 = authorization/permission denied
-	  isLoginPath := strings.Contains(r.URL.Path, "/login")
-	  rw := &statusCodeInterceptor{
-		  ResponseWriter: w,
-		  isLoginPath:    isLoginPath,
-	  }
-	  authHandler.ServeHTTP(rw, r)
-  })
+	// Wrap auth handler to fix HTTP status codes - return 401 for authentication failures instead of 403
+	wrappedAuthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Intercept status codes to convert 403 to 401 for login failures
+		// Per HTTP spec: 401 = authentication failed, 403 = authorization/permission denied
+		isLoginPath := strings.Contains(r.URL.Path, "/login")
+		rw := &statusCodeInterceptor{
+			ResponseWriter: w,
+			isLoginPath:    isLoginPath,
+		}
+		authHandler.ServeHTTP(rw, r)
+	})
 
-  router.Mount("/api/auth", wrappedAuthHandler)
-  router.Mount("/api/avatar", avatarHandler)
+	router.Mount("/api/auth", wrappedAuthHandler)
+	router.Mount("/api/avatar", avatarHandler)
 
 	// Custom auth endpoints
-	router.Post("/api/signup", handlers.SignupHandler(database, *log))
+	router.Post("/api/signup", apiHandler.SignupHandler())
 
 	// Mount V1 API routes
 	router.Route("/api/v1", func(r chi.Router) {
@@ -157,14 +158,16 @@ func main() {
 			r.Use(authMiddleware.Auth)
 
 			// Activity endpoints
-			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
-			r.Get("/activities", handlers.HandleGetActivities(database, *log))
-			r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
-			r.Post("/activities/upload", handlers.HandleActivityUpload(database, valhallaClient, objectStore, *log))
+			r.Post("/activities", apiHandler.HandleCreateActivity())
+			r.Get("/activities", apiHandler.HandleGetActivities())
+			r.Get("/activities/{id}/streams", apiHandler.HandleGetActivityStreams())
+			r.Post("/activities/plan", apiHandler.HandleCreatePlannedActivity())
+			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
+			r.Get("/activities/calendar", apiHandler.HandleGetActivityCalendar())
 
 			// User endpoints
-			r.Get("/user", handlers.HandleGetUser(database, *log))
-			r.Patch("/user", handlers.HandleUpdateUser(database, *log))
+			r.Get("/user", apiHandler.HandleGetUser())
+			r.Patch("/user", apiHandler.HandleUpdateUser())
 		})
 	})
 

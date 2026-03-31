@@ -1,7 +1,7 @@
 # Variables
-API_VERSION = v0.12.0
-MOBILE_VERSION = v0.9.0
-WEB_VERSION = v0.2.0
+API_VERSION = v0.14.1
+MOBILE_VERSION = v0.9.1
+WEB_VERSION = v0.3.0
 
 # ==== Config ====
 FRONTEND_DIR = app
@@ -13,7 +13,7 @@ GO_MAIN = main
 
 -include .env
 
-.PHONY: install-deps test build build-api build-apk build-web run-api run-app run-web-dev docker-build-api set-version clean-version dev-up dev-down test-e2e-process test-e2e-clean test-e2e-api help
+.PHONY: install-deps test build build-api build-apk build-web run-api run-app run-web-dev docker-build-api set-version clean-version dev-up dev-down test-e2e-process test-e2e-clean test-e2e-api help clean
 .DEFAULT_GOAL := help
 
 help: ## Show this help message
@@ -53,6 +53,14 @@ install-deps: ## Install dependencies for backend and mobile app
 	cd $(FRONTEND_DIR) && flutter pub get
 	@echo "Installing web dependencies..."
 	cd $(WEB_DIR) && npm install
+
+clean: ## Cleans build artifacts and deps
+	@echo "Cleaning Go build artifacts..."
+	cd $(BACKEND_DIR) && go clean
+	@echo "Cleaning Flutter build artifacts..."
+	cd $(FRONTEND_DIR) && flutter clean
+	@echo "Cleaning web build artifacts..."
+	cd $(WEB_DIR) && rm -rf node_modules package-lock.json dist
 
 test: ## Run backend and flutter tests
 	cd $(BACKEND_DIR) && go test ./... --cover

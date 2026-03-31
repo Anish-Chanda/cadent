@@ -133,7 +133,7 @@ class ActivityCard extends StatelessWidget {
         TileLayer(
           // TODO: for development us OSM, replace with custom tiles later
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'dev.cadence.app',
+          userAgentPackageName: 'dev.cadent.app',
         ),
         if (polylinePoints.isNotEmpty)
           PolylineLayer(

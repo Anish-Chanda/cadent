@@ -1,17 +1,17 @@
-import 'package:cadence/screens/home_screen.dart';
-import 'package:cadence/widgets/main_layout.dart';
+import 'package:cadent/screens/home_screen.dart';
+import 'package:cadent/widgets/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'Mocks/mock_auth_provider.dart';
-import 'package:cadence/providers/auth_provider.dart';
-import 'package:cadence/providers/activities_provider.dart';
-import 'package:cadence/providers/app_settings_provider.dart';
-import 'package:cadence/providers/theme_provider.dart';
-import 'package:cadence/utils/app_theme.dart';
-import 'package:cadence/screens/recorder_screen.dart';
-import 'package:cadence/screens/settings_screen.dart';
+import 'package:cadent/providers/auth_provider.dart';
+import 'package:cadent/providers/activities_provider.dart';
+import 'package:cadent/providers/app_settings_provider.dart';
+import 'package:cadent/providers/theme_provider.dart';
+import 'package:cadent/utils/app_theme.dart';
+import 'package:cadent/screens/recorder_screen.dart';
+import 'package:cadent/screens/settings_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -9,13 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/compression"
-	"github.com/anish-chanda/cadence/backend/internal/db"
-	"github.com/anish-chanda/cadence/backend/internal/geo"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
-	"github.com/anish-chanda/cadence/backend/internal/store"
-	"github.com/anish-chanda/cadence/backend/internal/valhalla"
+	"github.com/anish-chanda/cadent/backend/internal/compression"
+	"github.com/anish-chanda/cadent/backend/internal/geo"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/store"
+	"github.com/anish-chanda/cadent/backend/internal/valhalla"
 	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 	"github.com/muktihari/fit/encoder"
@@ -103,18 +102,38 @@ type ActivityResult struct {
 	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
+type PlannedActivityResult struct {
+	ID                      string        `json:"id"`
+	Title                   string        `json:"title"`
+	Description             string        `json:"description"`
+	Type                    string        `json:"type"`
+	StartTime               time.Time     `json:"start_time"`
+	PlannedDistance         *float64      `json:"planned_distance"`
+	PlannedDuration         *int          `json:"planned_duration"`
+	PlannedElevationGain    *float64      `json:"planned_elevation_gain"`
+	TargetAvgSpeed          *float64      `json:"target_avg_speed"`
+	TargetPower             *int          `json:"target_power"`
+	CreatedAt               time.Time     `json:"created_at"`
+	UpdatedAt               time.Time     `json:"updated_at"`
+}
+
+type GetCalendarResponse struct {
+    Activities          []ActivityResult          `json:"activities"`
+    PlannedActivities   []PlannedActivityResult   `json:"planned_activities"`
+}
+
 type GetActivitiesResponse struct {
 	Activities []ActivityResult `json:"activities"`
 }
 
-func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleCreateActivity() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// TODO: Use go routines to optimize stream processing performance
 		ctx := context.Background()
 
 		var req CreateActivityRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			log.Error("Failed to decode request", err)
+			h.log.Error("Failed to decode request", err)
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
@@ -151,9 +170,9 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		// Check idempotency
-		exists, err := database.CheckIdempotency(ctx, req.ClientActivityID.String())
+		exists, err := h.database.CheckIdempotency(ctx, req.ClientActivityID.String())
 		if err != nil {
-			log.Error("Failed to check idempotency", err)
+			h.log.Error("Failed to check idempotency", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -163,16 +182,16 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		// Get authenticated user ID
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		log.Debug(fmt.Sprintf("Processing activity for user: %s", userID))
+		h.log.Debug(fmt.Sprintf("Processing activity for user: %s", userID))
 		// Validate activity_type enum before database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
-			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
+			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
 			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType), http.StatusBadRequest)
 			return
 		}
@@ -180,7 +199,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		polyline, totalDistance, bounds := processGPSData(req.Samples)
 
 		// Get elevation data from Valhalla
-		elevationData, elevationHeights := getElevationDataAndHeights(ctx, valhallaClient, polyline, log)
+		elevationData, elevationHeights := getElevationDataAndHeights(ctx, h.valhallaClient, polyline, h.log)
 
 		// Calculate time-based metrics
 		elapsedSeconds := calculateElapsedSeconds(req.Samples)
@@ -194,7 +213,7 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 
 		// Validate stream alignment (all arrays should have same length)
 		if err := validateStreamAlignment(fullStream, len(req.Samples)); err != nil {
-			log.Error("Stream alignment validation failed", err)
+			h.log.Error("Stream alignment validation failed", err)
 			http.Error(w, "Internal stream processing error", http.StatusInternalServerError)
 			return
 		}
@@ -206,37 +225,37 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 		// Create compressed medium LOD streams
 		activityStreams, err := createCompressedStreams(activity.ID, keepIndices, fullStream)
 		if err != nil {
-			log.Error("Failed to create compressed streams", err)
+			h.log.Error("Failed to create compressed streams", err)
 			http.Error(w, "Failed to process stream data", http.StatusInternalServerError)
 			return
 		}
 
 		// Create and store FIT file
-		if err := createAndStoreFITFile(ctx, activity, req.Samples, objectStore, log); err != nil {
-			log.Error("Failed to create FIT file", err)
+		if err := createAndStoreFITFile(ctx, activity, req.Samples, h.objectStore, h.log); err != nil {
+			h.log.Error("Failed to create FIT file", err)
 			http.Error(w, "Failed to create FIT file", http.StatusInternalServerError)
 			return
 		}
 
 		// Save activity to database
-		if err := database.CreateActivity(ctx, activity); err != nil {
-			log.Error("Failed to save activity to database", err)
+		if err := h.database.CreateActivity(ctx, activity); err != nil {
+			h.log.Error("Failed to save activity to database", err)
 			http.Error(w, "Failed to save activity", http.StatusInternalServerError)
 			return
 		}
 
 		// Save activity streams to database
 		if len(activityStreams) > 0 {
-			if err := database.CreateActivityStreams(ctx, activityStreams); err != nil {
-				log.Error("Failed to save activity streams to database", err)
+			if err := h.database.CreateActivityStreams(ctx, activityStreams); err != nil {
+				h.log.Error("Failed to save activity streams to database", err)
 				// Log error but don't fail the request since main activity was saved
-				log.Info("Activity created successfully but streams failed to save")
+				h.log.Info("Activity created successfully but streams failed to save")
 			} else {
-				log.Debug(fmt.Sprintf("Successfully saved %d streams for activity: %s", len(activityStreams), activity.ID.String()))
+				h.log.Debug(fmt.Sprintf("Successfully saved %d streams for activity: %s", len(activityStreams), activity.ID.String()))
 			}
 		}
 
-		log.Debug(fmt.Sprintf("Created activity: %s for user: %s", activity.ID.String(), userID))
+		h.log.Debug(fmt.Sprintf("Created activity: %s for user: %s", activity.ID.String(), userID))
 
 		// Build and return response
 		result := createActivityResult(activity)
@@ -246,28 +265,27 @@ func HandleCreateActivity(database db.Database, valhallaClient *valhalla.Client,
 	}
 }
 
-// Helper function to extract and validate authenticated user ID
-func getAuthenticatedUserID(ctx context.Context, r *http.Request, database db.Database, log logger.ServiceLogger) (string, error) {
+func (h *Handler) getAuthenticatedUserID(ctx context.Context, r *http.Request) (string, error) {
 	user, err := token.GetUserInfo(r)
 	if err != nil {
-		log.Error("Failed to get user info from token", err)
+		h.log.Error("Failed to get user info from token", err)
 		return "", fmt.Errorf("Unauthorized")
 	}
 
 	// the goauth package stores email in Name field for local provider
 	userEmail := user.Name
 	if userEmail == "" {
-		log.Error("No email found in user token", nil)
+		h.log.Error("No email found in user token", nil)
 		return "", fmt.Errorf("Unauthorized")
 	}
 
-	dbUser, err := database.GetUserByEmail(ctx, userEmail)
+	dbUser, err := h.database.GetUserByEmail(ctx, userEmail)
 	if err != nil {
-		log.Error("Failed to get user from database", err)
+		h.log.Error("Failed to get user from database", err)
 		return "", fmt.Errorf("Internal server error")
 	}
 	if dbUser == nil {
-		log.Error("User not found in database", nil)
+		h.log.Error("User not found in database", nil)
 		return "", fmt.Errorf("User not found")
 	}
 
@@ -348,7 +366,7 @@ func processGPSData(samples []Sample) (string, float64, Bounds) {
 
 // Helper function to get elevation data and heights from Valhalla, returns calculated
 // elevation change and array of elevation heights
-func getElevationDataAndHeights(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log logger.ServiceLogger) (*valhalla.ElevationChange, []float64) {
+func getElevationDataAndHeights(ctx context.Context, valhallaClient *valhalla.Client, polyline string, log *logger.ServiceLogger) (*valhalla.ElevationChange, []float64) {
 	heightReq := valhalla.HeightRequest{
 		Range:           false, // range off
 		EncodedPolyline: polyline,
@@ -623,7 +641,7 @@ func buildActivityModel(req CreateActivityRequest, userID string, polyline strin
 }
 
 // Helper function to create and store FIT file
-func createAndStoreFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log logger.ServiceLogger) error {
+func createAndStoreFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log *logger.ServiceLogger) error {
 	objectKey := fmt.Sprintf("activities/%s/%s.fit", activity.UserID, activity.ID.String())
 
 	if err := createFITFile(ctx, activity, samples, objectStore, log); err != nil {
@@ -683,21 +701,40 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 	}
 }
 
-func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+// createPlannedActivityResult creates an PlannedActivityResult from the PlannedActivity model only
+// This function should be used in both HTTP handlers to reduce duplication
+func createPlannedActivityResult(PlannedActivity *models.PlannedActivity) PlannedActivityResult {
+	return PlannedActivityResult{
+		ID:            PlannedActivity.ID.String(),
+		Title:         PlannedActivity.Title,
+		Description:   stringOrDefault(PlannedActivity.Description, ""),
+		Type:          string(PlannedActivity.Type),
+		StartTime:     PlannedActivity.StartTime,
+		PlannedDistance: PlannedActivity.PlannedDistanceM,
+		PlannedDuration: PlannedActivity.PlannedDurationS,
+		PlannedElevationGain: PlannedActivity.PlannedElevationGainM,
+		TargetAvgSpeed: PlannedActivity.TargetAvgSpeedMps,
+		TargetPower: PlannedActivity.TargetPowerWatt,
+		CreatedAt: PlannedActivity.CreatedAt,
+		UpdatedAt: PlannedActivity.UpdatedAt,
+	}
+}
+
+func (h *Handler) HandleGetActivities() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
 		// Get authenticated user ID using the same helper function
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		// Get user's activities from database
-		activities, err := database.GetActivitiesByUserID(ctx, userID)
+		activities, err := h.database.GetActivitiesByUserID(ctx, userID)
 		if err != nil {
-			log.Error("Failed to get activities from database", err)
+			h.log.Error("Failed to get activities from database", err)
 			http.Error(w, "Failed to retrieve activities", http.StatusInternalServerError)
 			return
 		}
@@ -719,8 +756,76 @@ func HandleGetActivities(database db.Database, log logger.ServiceLogger) http.Ha
 	}
 }
 
+func (h *Handler) HandleGetActivityCalendar() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.Background()
+
+		// Get authenticated user ID using the same helper function
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		startDateStr := r.URL.Query().Get("startDate")
+		endDateStr := r.URL.Query().Get("endDate")
+
+		if startDateStr == "" || endDateStr == "" {
+			http.Error(w, "start and end dates are required", http.StatusBadRequest)
+			return
+		}
+
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			http.Error(w, "invalid start date format (use YYYY-MM-DD)", http.StatusBadRequest)
+			return
+		}
+
+		endDate, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			http.Error(w, "invalid end date format (use YYYY-MM-DD)", http.StatusBadRequest)
+			return
+		}
+
+		if endDate.Before(startDate) {
+			http.Error(w, "invalid date range: endDate must be greater than or equal to startDate", http.StatusBadRequest)
+			return
+		}
+
+		// Get user's activities from database
+		activities, plannedActivities, err := h.database.GetActivitiesByUserIDAndDate(ctx, userID, startDate, endDate)
+		if err != nil {
+			h.log.Error("Failed to get activities from database", err)
+			http.Error(w, "Failed to retrieve activities", http.StatusInternalServerError)
+			return
+		}
+
+		// Transform activities to the response format using the unified helper function
+		// Initialize as empty slice to ensure we always return [] instead of null
+		resultActivities := make([]ActivityResult, 0, len(activities))
+		for _, activity := range activities {
+			result := createActivityResult(&activity)
+			resultActivities = append(resultActivities, result)
+		}
+
+		resultPlannedActivities := make([]PlannedActivityResult, 0, len(plannedActivities))
+		for _, plannedActivity := range plannedActivities {
+			plannedResult := createPlannedActivityResult(&plannedActivity)
+			resultPlannedActivities = append(resultPlannedActivities, plannedResult)
+		}
+
+		response := GetCalendarResponse{
+			Activities: resultActivities,
+			PlannedActivities: resultPlannedActivities,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}
+}
+
 // createFITFile generates a FIT file from activity data and saves it to object store
-func createFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log logger.ServiceLogger) error {
+func createFITFile(ctx context.Context, activity *models.Activity, samples []Sample, objectStore store.ObjectStore, log *logger.ServiceLogger) error {
 	// Create FIT activity file using muktihari/fit library
 	fitActivity := filedef.NewActivity()
 

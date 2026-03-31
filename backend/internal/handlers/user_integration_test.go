@@ -8,10 +8,11 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/db"
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/db"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 )
 
 // IntegrationUserMockDB is a full mock database for integration tests
@@ -82,6 +83,11 @@ func (m *IntegrationUserMockDB) CreateActivity(ctx context.Context, activity *mo
 func (m *IntegrationUserMockDB) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
 	return nil, nil
 }
+
+func (m *IntegrationUserMockDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity, error) {
+	return nil, nil, nil
+}
+
 func (m *IntegrationUserMockDB) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
 }
@@ -93,6 +99,10 @@ func (m *IntegrationUserMockDB) GetActivityStreams(ctx context.Context, activity
 }
 func (m *IntegrationUserMockDB) CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error {
 	return nil
+}
+
+func (m *IntegrationUserMockDB) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	return &models.PlannedActivity{}, nil
 }
 func (m *IntegrationUserMockDB) Connect(dsn string) error { return nil }
 func (m *IntegrationUserMockDB) Close() error             { return nil }

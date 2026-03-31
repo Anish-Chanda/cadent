@@ -8,9 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/anish-chanda/cadence/backend/internal/logger"
-	"github.com/anish-chanda/cadence/backend/internal/models"
+	"github.com/anish-chanda/cadent/backend/internal/logger"
+	"github.com/anish-chanda/cadent/backend/internal/models"
 )
 
 // UserMockDatabase implements the db.Database interface for testing user handlers
@@ -78,6 +79,15 @@ func (m *UserMockDatabase) CreateActivity(ctx context.Context, activity *models.
 func (m *UserMockDatabase) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
 	return nil, nil
 }
+
+func (m *UserMockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity, error) {
+	return nil, nil, nil
+}
+
+func (m *UserMockDatabase) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
+	return &models.PlannedActivity{}, nil
+}
+
 func (m *UserMockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
 }

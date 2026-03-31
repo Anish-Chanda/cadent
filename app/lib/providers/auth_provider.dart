@@ -54,7 +54,7 @@ class AuthProvider with ChangeNotifier {
 
     // Load saved serverUrl or use a default.
     final savedUrl = await StorageService.getServerUrl();
-    provider._serverUrl = savedUrl ?? 'http://cadence.local';
+    provider._serverUrl = savedUrl ?? 'http://cadent.local';
 
     // Initialize AuthService (sets up Dio & loads any persisted cookies).
     await provider._authService.initialize(serverUrl: provider._serverUrl);
