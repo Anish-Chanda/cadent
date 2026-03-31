@@ -372,8 +372,9 @@ func TestHandleLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db := newMockDatabase()
 			tt.setupDB(db)
+			h := NewHandler(db, nil, nil, &logger.ServiceLogger{})
 
-			ok, err := HandleLogin(db, tt.email, tt.password)
+			ok, err := h.HandleLogin(tt.email, tt.password)
 
 			if ok != tt.expectOk {
 				t.Errorf("Expected ok=%v, got ok=%v", tt.expectOk, ok)
@@ -750,8 +751,9 @@ func TestSignupHandler(t *testing.T) {
 				ServiceName: "test",
 			})
 
-			// Create handler
-			handler := SignupHandler(mockDB, *mockLog)
+			// Create handler service and route handler
+			h := NewHandler(mockDB, nil, nil, mockLog)
+			handler := h.SignupHandler()
 
 			// Create request
 			req := httptest.NewRequest(tt.method, "/signup", strings.NewReader(tt.requestBody))

@@ -109,9 +109,10 @@ func main() {
 
 	// Create auth service with providers
 	authService := authpkg.NewService(authOptions)
+	apiHandler := handlers.NewHandler(database, valhallaClient, objectStore, log)
 
 	authService.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
-		return handlers.HandleLogin(database, user, password)
+		return apiHandler.HandleLogin(user, password)
 	}))
 
 	// Create router
@@ -146,7 +147,7 @@ func main() {
 	router.Mount("/api/avatar", avatarHandler)
 
 	// Custom auth endpoints
-	router.Post("/api/signup", handlers.SignupHandler(database, *log))
+	router.Post("/api/signup", apiHandler.SignupHandler())
 
 	// Mount V1 API routes
 	router.Route("/api/v1", func(r chi.Router) {
@@ -165,8 +166,8 @@ func main() {
 			r.Get("/activities/calendar", handlers.HandleGetActivityCalendar(database, *log))
 
 			// User endpoints
-			r.Get("/user", handlers.HandleGetUser(database, *log))
-			r.Patch("/user", handlers.HandleUpdateUser(database, *log))
+			r.Get("/user", apiHandler.HandleGetUser())
+			r.Patch("/user", apiHandler.HandleUpdateUser())
 		})
 	})
 

@@ -325,7 +325,7 @@ func TestGetMediumLODStreams(t *testing.T) {
 	requestedTypes := []models.StreamType{models.StreamTypeTime, models.StreamTypeDistance}
 
 	resultStreams, numPoints, originalNumPoints, err := getMediumLODStreams(
-		context.Background(), mockDB, activityID, requestedTypes, *testLogger)
+		context.Background(), mockDB, activityID, requestedTypes, testLogger)
 
 	if err != nil {
 		t.Errorf("getMediumLODStreams() error = %v, want nil", err)
@@ -360,7 +360,7 @@ func TestGetMediumLODStreams_NoStreamsFound(t *testing.T) {
 	requestedTypes := []models.StreamType{models.StreamTypeTime}
 
 	_, _, _, err := getMediumLODStreams(
-		context.Background(), mockDB, activityID, requestedTypes, *testLogger)
+		context.Background(), mockDB, activityID, requestedTypes, testLogger)
 
 	if err == nil {
 		t.Error("getMediumLODStreams() should return error when no streams found")
@@ -857,14 +857,14 @@ func TestHandleGetActivityStreams(t *testing.T) {
 
 				switch req.LOD {
 				case models.StreamLODMedium:
-					responseStreams, numPoints, originalNumPoints, err = getMediumLODStreams(ctx, mockDB, activityID, req.Types, *mockLog)
+					responseStreams, numPoints, originalNumPoints, err = getMediumLODStreams(ctx, mockDB, activityID, req.Types, mockLog)
 					if err != nil {
 						http.Error(w, "Internal server error", http.StatusInternalServerError)
 						return
 					}
 
 				case models.StreamLODLow:
-					responseStreams, numPoints, originalNumPoints, err = getLowLODStreams(ctx, mockDB, activityID, req.Types, *mockLog)
+					responseStreams, numPoints, originalNumPoints, err = getLowLODStreams(ctx, mockDB, activityID, req.Types, mockLog)
 					if err != nil {
 						http.Error(w, "Internal server error", http.StatusInternalServerError)
 						return
