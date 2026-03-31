@@ -103,23 +103,24 @@ type ActivityResult struct {
 }
 
 type PlannedActivityResult struct {
-	ID                      string        `json:"id"`
-	Title                   string        `json:"title"`
-	Description             string        `json:"description"`
-	Type                    string        `json:"type"`
-	StartTime               time.Time     `json:"start_time"`
-	PlannedDistance         *float64      `json:"planned_distance"`
-	PlannedDuration         *int          `json:"planned_duration"`
-	PlannedElevationGain    *float64      `json:"planned_elevation_gain"`
-	TargetAvgSpeed          *float64      `json:"target_avg_speed"`
-	TargetPower             *int          `json:"target_power"`
-	CreatedAt               time.Time     `json:"created_at"`
-	UpdatedAt               time.Time     `json:"updated_at"`
+	ID                   string          `json:"id"`
+	Title                string          `json:"title"`
+	Description          string          `json:"description"`
+	Type                 string          `json:"type"`
+	StartTime            time.Time       `json:"start_time"`
+	PlannedDistance      *float64        `json:"planned_distance"`
+	PlannedDuration      *int            `json:"planned_duration"`
+	PlannedElevationGain *float64        `json:"planned_elevation_gain"`
+	TargetAvgSpeed       *float64        `json:"target_avg_speed"`
+	TargetPower          *int            `json:"target_power"`
+	Steps                json.RawMessage `json:"steps"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
 }
 
 type GetCalendarResponse struct {
-    Activities          []ActivityResult          `json:"activities"`
-    PlannedActivities   []PlannedActivityResult   `json:"planned_activities"`
+	Activities        []ActivityResult        `json:"activities"`
+	PlannedActivities []PlannedActivityResult `json:"planned_activities"`
 }
 
 type GetActivitiesResponse struct {
@@ -705,18 +706,19 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 // This function should be used in both HTTP handlers to reduce duplication
 func createPlannedActivityResult(PlannedActivity *models.PlannedActivity) PlannedActivityResult {
 	return PlannedActivityResult{
-		ID:            PlannedActivity.ID.String(),
-		Title:         PlannedActivity.Title,
-		Description:   stringOrDefault(PlannedActivity.Description, ""),
-		Type:          string(PlannedActivity.Type),
-		StartTime:     PlannedActivity.StartTime,
-		PlannedDistance: PlannedActivity.PlannedDistanceM,
-		PlannedDuration: PlannedActivity.PlannedDurationS,
+		ID:                   PlannedActivity.ID.String(),
+		Title:                PlannedActivity.Title,
+		Description:          stringOrDefault(PlannedActivity.Description, ""),
+		Type:                 string(PlannedActivity.Type),
+		StartTime:            PlannedActivity.StartTime.UTC(),
+		PlannedDistance:      PlannedActivity.PlannedDistanceM,
+		PlannedDuration:      PlannedActivity.PlannedDurationS,
 		PlannedElevationGain: PlannedActivity.PlannedElevationGainM,
-		TargetAvgSpeed: PlannedActivity.TargetAvgSpeedMps,
-		TargetPower: PlannedActivity.TargetPowerWatt,
-		CreatedAt: PlannedActivity.CreatedAt,
-		UpdatedAt: PlannedActivity.UpdatedAt,
+		TargetAvgSpeed:       PlannedActivity.TargetAvgSpeedMps,
+		TargetPower:          PlannedActivity.TargetPowerWatt,
+		Steps:                PlannedActivity.Steps,
+		CreatedAt:            PlannedActivity.CreatedAt,
+		UpdatedAt:            PlannedActivity.UpdatedAt,
 	}
 }
 
@@ -815,7 +817,7 @@ func (h *Handler) HandleGetActivityCalendar() http.HandlerFunc {
 		}
 
 		response := GetCalendarResponse{
-			Activities: resultActivities,
+			Activities:        resultActivities,
 			PlannedActivities: resultPlannedActivities,
 		}
 

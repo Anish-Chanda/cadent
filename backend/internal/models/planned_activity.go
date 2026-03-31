@@ -1,10 +1,18 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// ActivityStep stores interval-step targets in SI units.
+type ActivityStep struct {
+	DurationS      *int     `json:"durationSecond,omitempty"`
+	DistanceM      *float64 `json:"distanceMeter,omitempty"`
+	TargetSpeedMps *float64 `json:"targetSpeedMeterPerSecond,omitempty"`
+}
 
 // PlannedActivity represents a scheduled or intended activity in the calendar.
 // It is kept separate from the real 'Activity' table to allow for
@@ -23,11 +31,12 @@ type PlannedActivity struct {
 	StartTime time.Time    `json:"startTime" db:"start_time"`
 
 	// Planned Metrics (Using pointers to allow for NULL values in DB)
-	PlannedDistanceM      *float64 `json:"plannedDistanceMeter" db:"planned_distance_m"`
-	PlannedDurationS      *int     `json:"plannedDurationSecond" db:"planned_duration_s"`
-	PlannedElevationGainM *float64 `json:"plannedElevationGainMeter" db:"planned_elevation_gain_m"`
-	TargetAvgSpeedMps     *float64 `json:"targetAverageSpeedMeterPerSecond" db:"target_avg_speed_mps"`
-	TargetPowerWatt       *int     `json:"targetPowerWatt" db:"target_power_watt"`
+	PlannedDistanceM      *float64        `json:"plannedDistanceMeter" db:"planned_distance_m"`
+	PlannedDurationS      *int            `json:"plannedDurationSecond" db:"planned_duration_s"`
+	PlannedElevationGainM *float64        `json:"plannedElevationGainMeter" db:"planned_elevation_gain_m"`
+	TargetAvgSpeedMps     *float64        `json:"targetAverageSpeedMeterPerSecond" db:"target_avg_speed_mps"`
+	TargetPowerWatt       *int            `json:"targetPowerWatt" db:"target_power_watt"`
+	Steps                 json.RawMessage `json:"steps" db:"steps"`
 
 	// Timestamps
 	CreatedAt time.Time `json:"createdAt" db:"created_at"`
