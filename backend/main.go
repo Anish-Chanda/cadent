@@ -158,12 +158,12 @@ func main() {
 			r.Use(authMiddleware.Auth)
 
 			// Activity endpoints
-			r.Post("/activities", handlers.HandleCreateActivity(database, valhallaClient, objectStore, *log))
-			r.Get("/activities", handlers.HandleGetActivities(database, *log))
-			r.Get("/activities/{id}/streams", handlers.HandleGetActivityStreams(database, *log))
-			r.Post("/activities/plan", handlers.HandleCreatePlannedActivity(database, *log))
-			r.Post("/activities/upload", handlers.HandleActivityUpload(database, valhallaClient, objectStore, *log))
-			r.Get("/activities/calendar", handlers.HandleGetActivityCalendar(database, *log))
+			r.Post("/activities", apiHandler.HandleCreateActivity())
+			r.Get("/activities", apiHandler.HandleGetActivities())
+			r.Get("/activities/{id}/streams", apiHandler.HandleGetActivityStreams())
+			r.Post("/activities/plan", apiHandler.HandleCreatePlannedActivity())
+			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
+			r.Get("/activities/calendar", apiHandler.HandleGetActivityCalendar())
 
 			// User endpoints
 			r.Get("/user", apiHandler.HandleGetUser())

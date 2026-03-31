@@ -756,46 +756,46 @@ func (h *Handler) HandleGetActivities() http.HandlerFunc {
 	}
 }
 
-func HandleGetActivityCalendar(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleGetActivityCalendar() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 
 		// Get authenticated user ID using the same helper function
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-        startDateStr := r.URL.Query().Get("startDate")
-        endDateStr := r.URL.Query().Get("endDate")
+		startDateStr := r.URL.Query().Get("startDate")
+		endDateStr := r.URL.Query().Get("endDate")
 
-        if startDateStr == "" || endDateStr == "" {
-            http.Error(w, "start and end dates are required", http.StatusBadRequest)
-            return
-        }
+		if startDateStr == "" || endDateStr == "" {
+			http.Error(w, "start and end dates are required", http.StatusBadRequest)
+			return
+		}
 
-        startDate, err := time.Parse("2006-01-02", startDateStr)
-        if err != nil {
-            http.Error(w, "invalid start date format (use YYYY-MM-DD)", http.StatusBadRequest)
-            return
-        }
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			http.Error(w, "invalid start date format (use YYYY-MM-DD)", http.StatusBadRequest)
+			return
+		}
 
-        endDate, err := time.Parse("2006-01-02", endDateStr)
-        if err != nil {
-            http.Error(w, "invalid end date format (use YYYY-MM-DD)", http.StatusBadRequest)
-            return
-        }
+		endDate, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			http.Error(w, "invalid end date format (use YYYY-MM-DD)", http.StatusBadRequest)
+			return
+		}
 
-        if endDate.Before(startDate) {
-            http.Error(w, "invalid date range: endDate must be greater than or equal to startDate", http.StatusBadRequest)
-            return
-        }
+		if endDate.Before(startDate) {
+			http.Error(w, "invalid date range: endDate must be greater than or equal to startDate", http.StatusBadRequest)
+			return
+		}
 
 		// Get user's activities from database
-		activities, plannedActivities, err := database.GetActivitiesByUserIDAndDate(ctx, userID, startDate, endDate)
+		activities, plannedActivities, err := h.database.GetActivitiesByUserIDAndDate(ctx, userID, startDate, endDate)
 		if err != nil {
-			log.Error("Failed to get activities from database", err)
+			h.log.Error("Failed to get activities from database", err)
 			http.Error(w, "Failed to retrieve activities", http.StatusInternalServerError)
 			return
 		}
@@ -808,11 +808,11 @@ func HandleGetActivityCalendar(database db.Database, log logger.ServiceLogger) h
 			resultActivities = append(resultActivities, result)
 		}
 
-        resultPlannedActivities := make([]PlannedActivityResult, 0, len(plannedActivities))
-        for _, plannedActivity := range plannedActivities {
-            plannedResult := createPlannedActivityResult(&plannedActivity)
-            resultPlannedActivities = append(resultPlannedActivities, plannedResult)
-        }
+		resultPlannedActivities := make([]PlannedActivityResult, 0, len(plannedActivities))
+		for _, plannedActivity := range plannedActivities {
+			plannedResult := createPlannedActivityResult(&plannedActivity)
+			resultPlannedActivities = append(resultPlannedActivities, plannedResult)
+		}
 
 		response := GetCalendarResponse{
 			Activities: resultActivities,
