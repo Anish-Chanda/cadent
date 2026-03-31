@@ -162,6 +162,8 @@ func main() {
 			r.Get("/activities", apiHandler.HandleGetActivities())
 			r.Get("/activities/{id}/streams", apiHandler.HandleGetActivityStreams())
 			r.Post("/activities/plan", apiHandler.HandleCreatePlannedActivity())
+			r.Delete("/activities/plan/{id}", apiHandler.HandleDeletePlannedActivity())
+			r.Patch("/activities/plan", apiHandler.HandleUpdatePlannedActivity())
 			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
 
 			// User endpoints
