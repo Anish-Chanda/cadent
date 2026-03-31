@@ -78,7 +78,7 @@ func (m *mockDatabase) CreatePlannedActivity(ctx context.Context, plan *models.P
 func (m *mockDatabase) DeletePlannedActivity(ctx context.Context, activityID string, userID string) error {
 	return nil
 }
-func (m *mockDatabase) DeletePlannedActivity(ctx context.Context, activityID string, userID string) error {
+func (m *mockDatabase) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
 	return nil
 }
 func (m *mockDatabase) Connect(dsn string) error { return nil }
