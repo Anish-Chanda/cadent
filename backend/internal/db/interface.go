@@ -24,6 +24,10 @@ type Database interface {
 	GetActivityStreams(ctx context.Context, activityID string, lod models.StreamLOD) ([]models.ActivityStream, error)
 	CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error
 
+	// --- Planned Activities ---
+	DeletePlannedActivity(ctx context.Context, activityID string, userID string) error
+	UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error
+
 	// --- Other stuff ---
 
 	// User management methods

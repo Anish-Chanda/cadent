@@ -583,6 +583,84 @@ func (s *PostgresDB) CreateActivityStreams(ctx context.Context, streams []models
 	return nil
 }
 
+// --- Planned Activities ---
+
+// DeletePlannedActivity deletes a planned activity by ID, scoped to the owning user
+func (s *PostgresDB) DeletePlannedActivity(ctx context.Context, activityID string, userID string) error {
+	s.log.Debug(fmt.Sprintf("Deleting planned activity ID: %s for user: %s", activityID, userID))
+
+	query := `DELETE FROM planned_activities WHERE id = $1 AND user_id = $2`
+
+	cmdTag, err := s.pool.Exec(ctx, query, activityID, userID)
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while deleting planned activity ID: %s", activityID), err)
+		return fmt.Errorf("failed to delete planned activity: %w", err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		s.log.Debug(fmt.Sprintf("Planned activity not found with ID: %s for user: %s", activityID, userID))
+		return fmt.Errorf("planned activity not found")
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully deleted planned activity: %s", activityID))
+	return nil
+}
+
+// UpdatePlannedActivity updates a planned activity by ID, scoped to the owning user
+func (s *PostgresDB) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
+	s.log.Debug(fmt.Sprintf("Updating planned activity ID: %s for user: %s with %d fields", activityID, userID, len(updates)))
+
+	if len(updates) == 0 {
+		return fmt.Errorf("no updates provided")
+	}
+
+	// Build dynamic query
+	setClauses := make([]string, 0, len(updates))
+	args := make([]interface{}, 0, len(updates)+2)
+	argIndex := 1
+
+	for field, value := range updates {
+		switch field {
+		case "title", "description", "type", "start_time",
+			"planned_distance_m", "planned_duration_s", "planned_elevation_gain_m",
+			"target_avg_speed_mps", "target_power_watt":
+			setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argIndex))
+			args = append(args, value)
+			argIndex++
+		default:
+			return fmt.Errorf("invalid field for update: %s", field)
+		}
+	}
+
+	// Always update updated_at
+	setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIndex))
+	args = append(args, time.Now())
+	argIndex++
+
+	// Add WHERE clause params
+	args = append(args, activityID, userID)
+
+	query := fmt.Sprintf(`
+		UPDATE planned_activities
+		SET %s
+		WHERE id = $%d AND user_id = $%d
+	`, strings.Join(setClauses, ", "), argIndex, argIndex+1)
+
+	cmdTag, err := s.pool.Exec(ctx, query, args...)
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error while updating planned activity ID: %s", activityID), err)
+		return fmt.Errorf("failed to update planned activity: %w", err)
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		s.log.Debug(fmt.Sprintf("Planned activity not found with ID: %s for user: %s", activityID, userID))
+		return fmt.Errorf("planned activity not found")
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully updated planned activity: %s", activityID))
+	return nil
+}
+
 // --- Other stuff ---
 
 func (s *PostgresDB) Connect(dsn string) error {
