@@ -26,7 +26,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "Valid Effort Run",
     "description": "Testing valid perceived_effort value",
     "perceived_effort": 7,
@@ -50,7 +50,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "Minimum Effort Bike",
     "description": "Testing minimum perceived_effort value",
     "perceived_effort": 1,
@@ -71,7 +71,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "Maximum Effort Run",
     "description": "Testing maximum perceived_effort value",
     "perceived_effort": 10,
@@ -93,7 +93,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "No Effort Specified",
     "description": "Testing omitted perceived_effort field",
     "samples": [
@@ -117,7 +117,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "Explicit Null Effort",
     "description": "Testing explicit null perceived_effort",
     "perceived_effort": null,
@@ -140,7 +140,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "Invalid Low Effort",
     "description": "Testing perceived_effort = 0",
     "perceived_effort": 0,
@@ -161,7 +161,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "Invalid High Effort",
     "description": "Testing perceived_effort = 11",
     "perceived_effort": 11,
@@ -181,7 +181,7 @@ POST http://localhost:8080/api/v1/activities
 Content-Type: application/json
 {
     "client_activity_id": "{{newUuid}}",
-    "activity_type": "road_bike",
+    "activity_type": "road_biking",
     "title": "Negative Effort",
     "description": "Testing perceived_effort = -1",
     "perceived_effort": -1,

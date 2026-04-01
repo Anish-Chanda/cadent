@@ -7,6 +7,8 @@ import '../global/compact_stat.dart';
 /// Displays time, distance, speed, and control buttons.
 class RecordingStatsCompact extends StatelessWidget {
   final RecordingSessionModel model;
+  final String formattedDistance;
+  final String formattedSpeed;
   final VoidCallback? onActivityTypeSelect;
   final VoidCallback? onStart;
   final VoidCallback? onPause;
@@ -16,6 +18,8 @@ class RecordingStatsCompact extends StatelessWidget {
   const RecordingStatsCompact({
     super.key,
     required this.model,
+    required this.formattedDistance,
+    required this.formattedSpeed,
     this.onActivityTypeSelect,
     this.onStart,
     this.onPause,
@@ -162,14 +166,14 @@ class RecordingStatsCompact extends StatelessWidget {
               children: [
                 Expanded(
                   child: CompactStat(
-                    value: model.formattedDistance,
+                    value: formattedDistance,
                     label: 'Distance',
                   ),
                 ),
                 AppSpacing.gapHorizontalLG,
                 Expanded(
                   child: CompactStat(
-                    value: model.isRecording ? model.formattedSpeed : '--',
+                    value: model.isRecording ? formattedSpeed : '--',
                     label: 'Speed',
                   ),
                 ),

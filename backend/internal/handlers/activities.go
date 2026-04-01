@@ -192,7 +192,7 @@ func (h *Handler) HandleCreateActivity() http.HandlerFunc {
 		// Validate activity_type enum before database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
 			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
-			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", req.ActivityType), http.StatusBadRequest)
 			return
 		}
 		// Process GPS data to create polyline and calculate metrics
@@ -949,13 +949,13 @@ func calculateDerivedStats(activityType string, speedMs float64, distanceM float
 
 	if speedMs > 0 {
 		switch activityType {
-		case "road_bike":
+		case "road_biking":
 			// For bike activities, show speed in km/h and mph
 			speedKmh := speedMs * 3.6      // m/s to km/h
 			speedMph := speedMs * 2.236936 // m/s to mph
 			derived.SpeedKmh = &speedKmh
 			derived.SpeedMph = &speedMph
-		case "run":
+		case "running":
 			// For running activities, show pace in seconds per km and per mile
 			paceSPerKm := 1000.0 / speedMs     // seconds per km
 			paceSPerMile := 1609.344 / speedMs // seconds per mile

@@ -6,6 +6,8 @@ import '../utils/polyline_decoder.dart';
 import '../utils/app_spacing.dart';
 import '../utils/app_text_size.dart';
 import '../screens/activity_detail_screen.dart';
+import '../providers/app_settings_provider.dart';
+import 'package:provider/provider.dart';
 
 class ActivityCard extends StatelessWidget {
   final Activity activity;
@@ -14,6 +16,7 @@ class ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activity = this.activity.withIsMetric(context.read<AppSettingsProvider>().isMetric);
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -63,7 +66,7 @@ class ActivityCard extends StatelessWidget {
                         context: context,
                         icon: Icons.straighten,
                         label: 'Distance',
-                        value: activity.formattedDistance,
+                        value: '${activity.formattedDistance} ${activity.distanceUnit}',
                       ),
                       // Flexible space for center alignment
                       Expanded(
@@ -72,7 +75,7 @@ class ActivityCard extends StatelessWidget {
                             context: context,
                             icon: Icons.terrain,
                             label: 'Elevation',
-                            value: activity.formattedElevation,
+                            value: '${activity.formattedElevation} ${activity.elevationUnit}',
                           ),
                         ),
                       ),
