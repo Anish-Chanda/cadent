@@ -191,7 +191,7 @@ func (h *Handler) HandleCreateActivity() http.HandlerFunc {
 		h.log.Debug(fmt.Sprintf("Processing activity for user: %s", userID))
 		// Validate activity_type enum before database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
-			log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
+			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
 			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", req.ActivityType), http.StatusBadRequest)
 			return
 		}
