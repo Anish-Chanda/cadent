@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/logger"
 	"github.com/anish-chanda/cadent/backend/internal/models"
@@ -59,6 +60,9 @@ func (m *mockDatabase) CreateActivity(ctx context.Context, activity *models.Acti
 }
 func (m *mockDatabase) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
 	return nil, nil
+}
+func (m *mockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity,[]models.PlannedActivity, error) {
+	return nil, nil, nil
 }
 func (m *mockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
@@ -368,8 +372,9 @@ func TestHandleLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db := newMockDatabase()
 			tt.setupDB(db)
+			h := NewHandler(db, nil, nil, &logger.ServiceLogger{})
 
-			ok, err := HandleLogin(db, tt.email, tt.password)
+			ok, err := h.HandleLogin(tt.email, tt.password)
 
 			if ok != tt.expectOk {
 				t.Errorf("Expected ok=%v, got ok=%v", tt.expectOk, ok)
@@ -746,8 +751,9 @@ func TestSignupHandler(t *testing.T) {
 				ServiceName: "test",
 			})
 
-			// Create handler
-			handler := SignupHandler(mockDB, *mockLog)
+			// Create handler service and route handler
+			h := NewHandler(mockDB, nil, nil, mockLog)
+			handler := h.SignupHandler()
 
 			// Create request
 			req := httptest.NewRequest(tt.method, "/signup", strings.NewReader(tt.requestBody))

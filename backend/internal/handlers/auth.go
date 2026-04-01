@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/db"
-	"github.com/anish-chanda/cadent/backend/internal/logger"
 	"github.com/anish-chanda/cadent/backend/internal/models"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
@@ -39,8 +38,7 @@ type SignupResponse struct {
 	Message string `json:"message"`
 }
 
-// SignupHandler handles user registration
-func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) SignupHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -49,7 +47,7 @@ func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerF
 
 		var req SignupRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			log.Error("Failed to decode signup request", err)
+			h.log.Error("Failed to decode signup request", err)
 			response := SignupResponse{
 				Success: false,
 				Message: "Invalid request format",
@@ -100,9 +98,9 @@ func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerF
 		}
 
 		// Check if user already exists
-		existingUser, err := database.GetUserByEmail(r.Context(), email)
+		existingUser, err := h.database.GetUserByEmail(r.Context(), email)
 		if err != nil {
-			log.Error("Failed to check existing user", err)
+			h.log.Error("Failed to check existing user", err)
 			response := SignupResponse{
 				Success: false,
 				Message: "Internal server error",
@@ -125,9 +123,9 @@ func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerF
 		}
 
 		// Create new user
-		user, err := createUser(database, email, password, name)
+		user, err := createUser(h.database, email, password, name)
 		if err != nil {
-			log.Error("Failed to create user", err)
+			h.log.Error("Failed to create user", err)
 			response := SignupResponse{
 				Success: false,
 				Message: "Failed to create user account",
@@ -138,7 +136,7 @@ func SignupHandler(database db.Database, log logger.ServiceLogger) http.HandlerF
 			return
 		}
 
-		log.Info(fmt.Sprintf("User created successfully: %s", email))
+		h.log.Info(fmt.Sprintf("User created successfully: %s", email))
 
 		response := SignupResponse{
 			Success: true,
@@ -207,13 +205,12 @@ func verifyPassword(password, encoded string) (bool, error) {
 	return false, nil
 }
 
-// HandleLogin handles local authentication by checking email and password
-func HandleLogin(database db.Database, email, password string) (bool, error) {
+func (h *Handler) HandleLogin(email, password string) (bool, error) {
 	// Normalize email
 	email = strings.TrimSpace(strings.ToLower(email))
 
 	// Get user by email
-	user, err := database.GetUserByEmail(context.TODO(), email)
+	user, err := h.database.GetUserByEmail(context.TODO(), email)
 	if err != nil {
 		return false, fmt.Errorf("failed to get user: %w", err)
 	}

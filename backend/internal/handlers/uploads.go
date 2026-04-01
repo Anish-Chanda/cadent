@@ -11,10 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anish-chanda/cadent/backend/internal/db"
-	"github.com/anish-chanda/cadent/backend/internal/logger"
 	"github.com/anish-chanda/cadent/backend/internal/models"
-	"github.com/anish-chanda/cadent/backend/internal/store"
 	"github.com/anish-chanda/cadent/backend/internal/valhalla"
 	"github.com/google/uuid"
 	"github.com/muktihari/fit/decoder"
@@ -38,9 +35,7 @@ type UploadResponse struct {
 	ID string `json:"id"`
 }
 
-// HandleActivityUpload supports uploading/importing activites from GPX and FIT files.
-// Parameters- enrich (true) to add elevation data, title and description to override file metadata
-func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client, objectStore store.ObjectStore, log logger.ServiceLogger) http.HandlerFunc {
+func (h *Handler) HandleActivityUpload() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -49,7 +44,7 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 
 		// Parse multipart form with size limit
 		if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-			log.Error("Failed to parse multipart form", err)
+			h.log.Error("Failed to parse multipart form", err)
 			// Check if it's a size error or content-type error
 			if strings.Contains(err.Error(), "Content-Type") || strings.Contains(err.Error(), "multipart") {
 				http.Error(w, "Request must use multipart/form-data Content-Type", http.StatusBadRequest)
@@ -62,7 +57,7 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 		// Get the file from form data
 		file, header, err := r.FormFile("file")
 		if err != nil {
-			log.Error("Failed to get file from form", err)
+			h.log.Error("Failed to get file from form", err)
 			http.Error(w, "Missing or invalid 'file' field in form data", http.StatusBadRequest)
 			return
 		}
@@ -85,7 +80,7 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 		descriptionOverride := r.FormValue("description")
 
 		// Get authenticated user ID
-		userID, err := getAuthenticatedUserID(ctx, r, database, log)
+		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -94,7 +89,7 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 		// Read file content
 		fileContent, err := io.ReadAll(file)
 		if err != nil {
-			log.Error("Failed to read file content", err)
+			h.log.Error("Failed to read file content", err)
 			http.Error(w, "Failed to read uploaded file", http.StatusInternalServerError)
 			return
 		}
@@ -111,7 +106,7 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 		}
 
 		if err != nil {
-			log.Error(fmt.Sprintf("Failed to process %s file", strings.ToUpper(ext[1:])), err)
+			h.log.Error(fmt.Sprintf("Failed to process %s file", strings.ToUpper(ext[1:])), err)
 			http.Error(w, fmt.Sprintf("Failed to process %s file: %v", strings.ToUpper(ext[1:]), err), http.StatusBadRequest)
 			return
 		}
@@ -156,13 +151,13 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 		var elevationHeights []float64
 
 		if shouldEnrich && !hasElevation {
-			elevationData, elevationHeights = getElevationDataAndHeights(ctx, valhallaClient, polyline, log)
+			elevationData, elevationHeights = getElevationDataAndHeights(ctx, h.valhallaClient, polyline, h.log)
 
 			// For GPX uploads we can write the elevation back into the file so the stored copy
 			// reflects the enriched data.
 			if ext == ".gpx" && elevationHeights != nil {
 				if updated, enrichErr := enrichGPXWithElevation(fileContent, elevationHeights); enrichErr != nil {
-					log.Error("Failed to enrich GPX with elevation data, storing original", enrichErr)
+					h.log.Error("Failed to enrich GPX with elevation data, storing original", enrichErr)
 				} else {
 					fileContent = updated
 				}
@@ -202,15 +197,15 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 		}
 		activity := buildActivityModel(uploadReq, userID, polyline, totalDistance, bounds, elevationData, elapsedSeconds, avgSpeedMs)
 		if ext == ".fit" && elevationHeights != nil && enrichParam == "true" {
-			if err := createFITFile(ctx, activity, samples, objectStore, log); err != nil {
-				log.Error("Failed to regenerate enriched FIT file", err)
+			if err := createFITFile(ctx, activity, samples, h.objectStore, h.log); err != nil {
+				h.log.Error("Failed to regenerate enriched FIT file", err)
 			}
 		}
 		// Store the file to disk in original format (GPX or FIT), including elevation if enrichment was applied
 		originalFileKey := fmt.Sprintf("activities/%s/%s%s", userID, activity.ID.String(), ext)
 		fileReader := bytes.NewReader(fileContent)
-		if err := objectStore.PutObject(ctx, originalFileKey, fileReader, int64(len(fileContent))); err != nil {
-			log.Error("Failed to store uploaded file", err)
+		if err := h.objectStore.PutObject(ctx, originalFileKey, fileReader, int64(len(fileContent))); err != nil {
+			h.log.Error("Failed to store uploaded file", err)
 			http.Error(w, "Failed to store uploaded file", http.StatusInternalServerError)
 			return
 		}
@@ -221,7 +216,7 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 
 		// Validate stream alignment
 		if err := validateStreamAlignment(fullStream, len(samples)); err != nil {
-			log.Error("Stream alignment validation failed", err)
+			h.log.Error("Stream alignment validation failed", err)
 			http.Error(w, "Internal stream processing error", http.StatusInternalServerError)
 			return
 		}
@@ -232,30 +227,30 @@ func HandleActivityUpload(database db.Database, valhallaClient *valhalla.Client,
 		// Create compressed medium LOD streams
 		activityStreams, err := createCompressedStreams(activity.ID, keepIndices, fullStream)
 		if err != nil {
-			log.Error("Failed to create compressed streams", err)
+			h.log.Error("Failed to create compressed streams", err)
 			http.Error(w, "Failed to process stream data", http.StatusInternalServerError)
 			return
 		}
 
 		// Save activity to database
-		if err := database.CreateActivity(ctx, activity); err != nil {
-			log.Error("Failed to save activity to database", err)
+		if err := h.database.CreateActivity(ctx, activity); err != nil {
+			h.log.Error("Failed to save activity to database", err)
 			http.Error(w, "Failed to save activity", http.StatusInternalServerError)
 			return
 		}
 
 		// Save activity streams to database
 		if len(activityStreams) > 0 {
-			if err := database.CreateActivityStreams(ctx, activityStreams); err != nil {
-				log.Error("Failed to save activity streams to database", err)
+			if err := h.database.CreateActivityStreams(ctx, activityStreams); err != nil {
+				h.log.Error("Failed to save activity streams to database", err)
 				// Log error but don't fail the request since main activity was saved
-				log.Info("Activity created successfully but streams failed to save")
+				h.log.Info("Activity created successfully but streams failed to save")
 			} else {
-				log.Debug(fmt.Sprintf("Successfully saved %d streams for activity: %s", len(activityStreams), activity.ID.String()))
+				h.log.Debug(fmt.Sprintf("Successfully saved %d streams for activity: %s", len(activityStreams), activity.ID.String()))
 			}
 		}
 
-		log.Info(fmt.Sprintf("Successfully processed %s file upload for user %s, activity: %s", strings.ToUpper(ext[1:]), userID, activity.ID.String()))
+		h.log.Info(fmt.Sprintf("Successfully processed %s file upload for user %s, activity: %s", strings.ToUpper(ext[1:]), userID, activity.ID.String()))
 
 		// Return response with activity ID
 		response := UploadResponse{

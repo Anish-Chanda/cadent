@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/compression"
 	"github.com/anish-chanda/cadent/backend/internal/logger"
@@ -98,6 +99,11 @@ func (m *MockDatabase) CreateActivityStreams(ctx context.Context, streams []mode
 func (m *MockDatabase) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
 	return nil, nil
 }
+
+func (m *MockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity, error) {
+	return nil, nil, nil
+}
+
 func (m *MockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
 }
@@ -319,7 +325,7 @@ func TestGetMediumLODStreams(t *testing.T) {
 	requestedTypes := []models.StreamType{models.StreamTypeTime, models.StreamTypeDistance}
 
 	resultStreams, numPoints, originalNumPoints, err := getMediumLODStreams(
-		context.Background(), mockDB, activityID, requestedTypes, *testLogger)
+		context.Background(), mockDB, activityID, requestedTypes, testLogger)
 
 	if err != nil {
 		t.Errorf("getMediumLODStreams() error = %v, want nil", err)
@@ -354,7 +360,7 @@ func TestGetMediumLODStreams_NoStreamsFound(t *testing.T) {
 	requestedTypes := []models.StreamType{models.StreamTypeTime}
 
 	_, _, _, err := getMediumLODStreams(
-		context.Background(), mockDB, activityID, requestedTypes, *testLogger)
+		context.Background(), mockDB, activityID, requestedTypes, testLogger)
 
 	if err == nil {
 		t.Error("getMediumLODStreams() should return error when no streams found")
@@ -851,14 +857,14 @@ func TestHandleGetActivityStreams(t *testing.T) {
 
 				switch req.LOD {
 				case models.StreamLODMedium:
-					responseStreams, numPoints, originalNumPoints, err = getMediumLODStreams(ctx, mockDB, activityID, req.Types, *mockLog)
+					responseStreams, numPoints, originalNumPoints, err = getMediumLODStreams(ctx, mockDB, activityID, req.Types, mockLog)
 					if err != nil {
 						http.Error(w, "Internal server error", http.StatusInternalServerError)
 						return
 					}
 
 				case models.StreamLODLow:
-					responseStreams, numPoints, originalNumPoints, err = getLowLODStreams(ctx, mockDB, activityID, req.Types, *mockLog)
+					responseStreams, numPoints, originalNumPoints, err = getLowLODStreams(ctx, mockDB, activityID, req.Types, mockLog)
 					if err != nil {
 						http.Error(w, "Internal server error", http.StatusInternalServerError)
 						return
