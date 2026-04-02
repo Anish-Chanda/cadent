@@ -27,7 +27,7 @@ Content-Type: application/json
 {
   "title": "Morning Hill Climb",
   "description": "Steady climb with cadence focus.",
-  "activityType": "road_bike",
+  "activityType": "road_biking",
   "startTime": "2026-04-15T06:00:00Z",
   "plannedDistanceMeter": 30000,
   "plannedDurationSecond": 5400,
@@ -76,7 +76,7 @@ PATCH http://localhost:8080/api/v1/activities/plan
 Content-Type: application/json
 {
   "id": "{{activity_id}}",
-  "activityType": "run",
+  "activityType": "running",
   "startTime": "2026-04-20T08:00:00Z"
 }
 HTTP 200
