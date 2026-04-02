@@ -107,6 +107,12 @@ func (m *MockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID 
 func (m *MockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
 }
+func (m *MockDatabase) DeletePlannedActivity(ctx context.Context, activityID string, userID string) error {
+	return nil
+}
+func (m *MockDatabase) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
+	return nil
+}
 func (m *MockDatabase) Connect(dsn string) error { return nil }
 func (m *MockDatabase) Close() error             { return nil }
 func (m *MockDatabase) Migrate() error           { return nil }
