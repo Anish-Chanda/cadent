@@ -167,7 +167,9 @@ func main() {
 			r.Get("/activities/{id}/streams", apiHandler.HandleGetActivityStreams())
 			r.Post("/activities/plan", apiHandler.HandleCreatePlannedActivity())
 			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
-			r.Get("/activities/calendar", apiHandler.HandleGetActivityCalendar())
+
+			// Calendar endpoints
+			r.Get("/calendar", apiHandler.HandleGetActivityCalendar())
 
 			// User endpoints
 			r.Get("/user", apiHandler.HandleGetUser())
