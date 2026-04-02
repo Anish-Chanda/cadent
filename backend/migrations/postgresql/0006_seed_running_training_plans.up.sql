@@ -43,11 +43,11 @@ SELECT
     workouts.type,
     workouts.title,
     workouts.description,
-    workouts.planned_distance_m,
-    workouts.planned_duration_s,
-    workouts.planned_elevation_gain_m,
-    workouts.target_avg_speed_mps,
-    workouts.target_power_watt
+    workouts.planned_distance_m::numeric(12, 2),
+    workouts.planned_duration_s::integer,
+    workouts.planned_elevation_gain_m::numeric(10, 2),
+    workouts.target_avg_speed_mps::numeric(10, 3),
+    workouts.target_power_watt::integer
 FROM inserted_plan
 CROSS JOIN (
     VALUES
@@ -163,11 +163,11 @@ SELECT
     workouts.type,
     workouts.title,
     workouts.description,
-    workouts.planned_distance_m,
-    workouts.planned_duration_s,
-    workouts.planned_elevation_gain_m,
-    workouts.target_avg_speed_mps,
-    workouts.target_power_watt
+    workouts.planned_distance_m::numeric(12, 2),
+    workouts.planned_duration_s::integer,
+    workouts.planned_elevation_gain_m::numeric(10, 2),
+    workouts.target_avg_speed_mps::numeric(10, 3),
+    workouts.target_power_watt::integer
 FROM inserted_plan
 CROSS JOIN (
     VALUES
