@@ -1,23 +1,9 @@
 import 'package:flutter/material.dart';
 import '../utils/app_spacing.dart';
- 
-
-import '../models/streams.dart';
-
-String _formatDurationFromDouble(double secondsD) {
-  final seconds = secondsD.round();
-  if (seconds < 60) return '0:${seconds.toString().padLeft(2, '0')}';
-  if (seconds < 3600) {
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
-  final h = seconds ~/ 3600;
-  final rem = seconds % 3600;
-  final m = rem ~/ 60;
-  final s = rem % 60;
-  return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-}
+import '../utils/duration_formatter.dart';
+ import '../models/streams.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_settings_provider.dart';
 
 /// Clean, single-file chart widget for activities.
 /// - Uses `StreamsModel` when provided (distance in meters on X axis).
@@ -29,7 +15,7 @@ class ActivityCharts extends StatefulWidget {
   final List<DateTime>? elevationTimestamps;
   final List<DateTime>? paceTimestamps;
   final List<double>? distanceSamples;
-
+  
   const ActivityCharts({
     super.key,
     this.streams,
@@ -47,7 +33,6 @@ class ActivityCharts extends StatefulWidget {
 class _ActivityChartsState extends State<ActivityCharts> {
   bool _showDistance = true;
   // Interaction state for draggable scope/tooltip
-  
   bool _draggingLine = false;
   bool _draggingSplits = false;
   String? _hoverChartId;
@@ -59,16 +44,19 @@ class _ActivityChartsState extends State<ActivityCharts> {
   bool _hoverIsTime = false;
   String _hoverXLabel = '';
   String _hoverYLabel = '';
-
+  late bool _isMetric;
+  bool get isMetric => _isMetric;
   @override
   Widget build(BuildContext context) {
+    _isMetric = context.select<AppSettingsProvider, bool>((p) => p.isMetric);
     if (widget.streams != null) return _buildFromStreams(context, widget.streams!);
     return _buildLegacy(context);
   }
 
   Widget _buildFromStreams(BuildContext context, StreamsModel s) {
     final elevations = s.numericSeries('elevation');
-    final speeds = s.numericSeries('speed'); // m/s
+    final speeds = s.numericSeries('speed'); // km/h
+
     // Prefer an explicit distance series from the backend. Support several common keys.
     List<double> getDistanceSeries() {
       final candidates = ['distance', 'distance_total', 'distance_cumulative', 'dist', 'cumdist', 'distance_km'];
@@ -92,12 +80,23 @@ class _ActivityChartsState extends State<ActivityCharts> {
     final hasElevation = elevations.isNotEmpty && distances.isNotEmpty;
     final hasSpeed = speeds.isNotEmpty && distances.isNotEmpty;
 
-    final speedsKmH = speeds.map((v) => v < 0 ? 0.0 : v * 3.6)
-      .toList(); // m/s -> km/h, clamp negatives
-    // splits now represent time per completed kilometer in seconds
-    final splitsAll = _calculateSplitsTimePerKm(distances, speeds);
-    final totalKm = (distances.isNotEmpty ? (distances.last ~/ 1000) : 0);
-    final splits = totalKm > 0 ? splitsAll.take(totalKm).toList() : <double>[];
+    final speedsDisplay = speeds.map((v) {
+        final kph = v < 0 ? 0.0 : v * 3.6; // m/s -> km/h
+        return isMetric ? kph : kph * 0.621371;
+    }).toList(); // km/h or mph for display
+
+    // splits now represent time per completed unit (km when metric, mi when imperial)
+    final splitsAll = isMetric
+        ? _calculateSplitsTimePerKm(distances, speeds)
+        : _calculateSplitsTimePerMile(distances, speeds);
+
+    final totalUnits = distances.isNotEmpty
+        ? (isMetric
+            ? (distances.last ~/ 1000) // still count whole kilometers for splits
+            : (distances.last ~/ 1609))
+        : 0;
+
+final splits = totalUnits > 0 ? splitsAll.take(totalUnits).toList() : <double>[];
 
     // axis toggle (Distance / Time) - show when we have distance samples or time offsets
 
@@ -105,8 +104,11 @@ class _ActivityChartsState extends State<ActivityCharts> {
     // when switching to time mode so indices align with the Y-series samples.
     final timeOffsets = s.timeOffsetsSeconds();
     final xForCharts = _showDistance
-      ? distances.map((d) => d / 1000.0).toList()
-      : (timeOffsets.isNotEmpty ? timeOffsets : _computeElapsedSecondsFromDistancesSpeeds(distances, speeds));
+        ? (isMetric ? distances.map((d) => d / 1000.0).toList() : distances.map((d) => d / 1609.34).toList())
+        : (timeOffsets.isNotEmpty ? timeOffsets : _computeElapsedSecondsFromDistancesSpeeds(distances, speeds));
+
+    final distanceUnit = isMetric ? 'km' : 'mi';
+    final xLabelDist = _showDistance ? 'Distance ($distanceUnit)' : 'Time';
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Performance', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
@@ -127,9 +129,16 @@ class _ActivityChartsState extends State<ActivityCharts> {
               children: [Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Distance')), Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Time'))],
             ),
           ),
-        if (hasElevation) _buildLineChartDistance(context, xForCharts, elevations, Theme.of(context).colorScheme.secondary, 'Elevation (m)', _showDistance ? 'Distance (km)' : 'Time', 'Elevation (m)', xIsTime: !_showDistance),
-        if (hasSpeed) _buildLineChartDistance(context, xForCharts, speedsKmH, Theme.of(context).colorScheme.primary, 'Speed (km/h)', _showDistance ? 'Distance (km)' : 'Time', 'Speed (km/h)', yMin: 0, xIsTime: !_showDistance),
-        if (splits.isNotEmpty) _buildSplitsBarChart(context, splits, 'Km', 'Time per km', isTime: true),
+        if (hasElevation) _buildLineChartDistance(context, xForCharts, isMetric ? elevations : elevations.map((e) => e * 3.28084).toList(), Theme.of(context).colorScheme.secondary, isMetric ? 'Elevation (m)' : 'Elevation (ft)', xLabelDist, isMetric ? 'Elevation (m)' : 'Elevation (ft)', xIsTime: !_showDistance),
+        if (hasSpeed) _buildLineChartDistance(context, xForCharts, speedsDisplay, Theme.of(context).colorScheme.primary, isMetric ? 'Speed (km/h)' : 'Speed (mph)', xLabelDist, 'Speed (${isMetric ? 'km/h' : 'mph'})', yMin: 0, xIsTime: !_showDistance),
+        if (splits.isNotEmpty)
+          _buildSplitsBarChart(
+            context,
+            splits,
+            isMetric ? 'km' : 'mi',
+            isMetric ? 'Time per km' : 'Time per mile',
+            isTime: true,
+          ),
       ]
     ]);
   }
@@ -156,18 +165,26 @@ class _ActivityChartsState extends State<ActivityCharts> {
         elapsedSecs = _computeElapsedSecondsFromDistancesSpeeds(distances, speedsMs);
       }
 
-      final xForCharts = _showDistance ? distances.map((d) => d / 1000.0).toList() : (elapsedSecs.isNotEmpty ? elapsedSecs : _computeElapsedSecondsFromDistancesSpeeds(distances, []));
+      final distanceUnit = isMetric ? 'km' : 'mi';
+      final xForCharts = _showDistance
+          ? (isMetric ? distances.map((d) => d / 1000.0).toList() : distances.map((d) => d / 1609.34).toList())
+          : (elapsedSecs.isNotEmpty ? elapsedSecs : _computeElapsedSecondsFromDistancesSpeeds(distances, []));
 
-      // Precompute legacy splits (one per completed km) so we can reference
+      // Precompute legacy splits (one per completed unit) so we can reference
       // them from the widget children without executing statements inside
       // the collection literal (which Dart doesn't allow).
       List<double> splitsLegacy = [];
       if (hasSpeed && widget.paceSamples != null && widget.paceSamples!.isNotEmpty) {
-        final speedsMs = widget.paceSamples!.map((v) => v / 3.6)
-      .toList();
-        final splitsAllLegacy = _calculateSplitsTimePerKm(distances, speedsMs);
-        final totalKmLegacy = distances.isNotEmpty ? (distances.last ~/ 1000) : 0;
-        splitsLegacy = totalKmLegacy > 0 ? splitsAllLegacy.take(totalKmLegacy).toList() : <double>[];
+        final speedsKmh = widget.paceSamples!; // assumed km/h
+        final splitsAllLegacy = isMetric
+            ? _calculateSplitsTimePerKm(distances, speedsKmh)
+            : _calculateSplitsTimePerMile(distances, speedsKmh);
+        final totalUnitsLegacy = distances.isNotEmpty
+            ? (isMetric
+                ? (distances.last ~/ 1000)
+                : (distances.last ~/ 1609.34))
+            : 0;
+        splitsLegacy = totalUnitsLegacy > 0 ? splitsAllLegacy.take(totalUnitsLegacy).toList() : <double>[];
       }
 
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -190,9 +207,14 @@ class _ActivityChartsState extends State<ActivityCharts> {
                 children: [Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Distance')), Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text('Time'))],
               ),
             ),
-          if (hasElevation) _buildLineChartDistance(context, xForCharts, widget.elevationSamples!, Theme.of(context).colorScheme.secondary, 'Elevation (m)', _showDistance ? 'Distance (km)' : 'Time', 'Elevation (m)', xIsTime: !_showDistance),
-          if (hasSpeed) _buildLineChartDistance(context, xForCharts, widget.paceSamples!, Theme.of(context).colorScheme.primary, 'Speed (km/h)', _showDistance ? 'Distance (km)' : 'Time', 'Speed (km/h)', yMin: 0, xIsTime: !_showDistance),
-          if (splitsLegacy.isNotEmpty) _buildSplitsBarChart(context, splitsLegacy, 'Km', 'Time per km', isTime: true),
+          if (hasElevation) _buildLineChartDistance(context, xForCharts, widget.elevationSamples!, Theme.of(context).colorScheme.secondary, isMetric ? 'Elevation (m)' : 'Elevation (ft)', _showDistance
+    ? 'Distance ($distanceUnit)'
+    : 'Time', isMetric ? 'Elevation (m)' : 'Elevation (ft)', xIsTime: !_showDistance),
+          if (hasSpeed) _buildLineChartDistance(context, xForCharts, widget.paceSamples!, Theme.of(context).colorScheme.primary, 'Speed (${isMetric ? 'km/h' : 'mph'})', _showDistance
+    ? 'Distance ($distanceUnit)'
+    : 'Time', 'Speed (${isMetric ? 'km/h' : 'mph'})', yMin: 0, xIsTime: !_showDistance),
+          if (splitsLegacy.isNotEmpty)
+            _buildSplitsBarChart(context, splitsLegacy, isMetric ? 'km' : 'mi', isMetric ? 'Time per km' : 'Time per mile', isTime: true),
         ]
       ]);
     }
@@ -203,8 +225,9 @@ class _ActivityChartsState extends State<ActivityCharts> {
       AppSpacing.gapSM,
       if (!hasElevation && !hasSpeed) _buildPlaceholder(context, 'No streams available')
       else ...[
-        if (hasElevation) _buildLineChartLegacy(context, widget.elevationSamples!, timestamps, Theme.of(context).colorScheme.secondary, 'Elevation (m)'),
-        if (hasSpeed) _buildLineChartLegacy(context, widget.paceSamples!, timestamps, Theme.of(context).colorScheme.primary, 'Speed (km/h)'),
+        if (hasElevation) _buildLineChartLegacy(context, widget.elevationSamples!, timestamps, Theme.of(context).colorScheme.secondary, isMetric ? 'Elevation (m)' : 'Elevation (ft)'
+),
+        if (hasSpeed) _buildLineChartLegacy(context, widget.paceSamples!, timestamps, Theme.of(context).colorScheme.primary, 'Speed (${isMetric ? 'km/h' : 'mph'})'),
         if (hasSpeed) _buildSplitsBarChartLegacy(context, widget.paceSamples, timestamps),
       ]
     ]);
@@ -281,7 +304,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Splits (km)', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.tertiary)),
+        Text('Splits ($xLabel)', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.tertiary)),
         AppSpacing.gapXS,
         SizedBox(
           height: 80,
@@ -383,7 +406,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Splits (km)', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
+        Text('Splits (${isMetric ? 'km' : 'mi'})', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
         AppSpacing.gapXS,
         SizedBox(
           height: 80,
@@ -392,7 +415,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
               splits: splits,
               textColor: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black,
               textDirection: Directionality.of(context),
-              xLabel: 'Km',
+              xLabel: isMetric ? 'km' : 'mi',
               yLabel: 'Avg Speed (km/h)',
               labelYAxis: false,
             ),
@@ -438,6 +461,65 @@ class _ActivityChartsState extends State<ActivityCharts> {
       ]),
     );
   }
+  List<double> _calculateSplitsTimePerMile(List<double> distances, List<double> speed) {
+    if (distances.isEmpty || speed.isEmpty) return [];
+
+    const mile = 1609.34;
+    final result = <double>[];
+
+    // Start cumulative distance at the current offset within the first mile so
+    // that split boundaries align with the activity's absolute distance values.
+    double cumDist = distances.first % mile;
+    double cumTime = 0.0;
+
+    for (var i = 0; i < distances.length - 1; i++) {
+      final cur = distances[i];
+      final next = distances[i + 1];
+      var delta = next - cur;
+      if (delta <= 0) continue;
+
+      // Pick speed for this segment; if missing, use last known or small epsilon
+      double sp = 0.0;
+      if (i < speed.length) {
+        sp = speed[i];
+      } else if (speed.isNotEmpty) {
+        sp = speed.last;
+      } else {
+        sp = 0.0;
+      }
+      if (sp <= 0.01) {
+        sp = 0.5; // fallback km/h to avoid division by zero
+      }
+
+      double remainingDelta = delta;
+
+      while (remainingDelta > 0) {
+        final need = mile - cumDist;
+
+        if (remainingDelta >= need) {
+          // Completes a mile
+          final timeForNeed = (need / 1000.0) / sp * 3600.0;
+          cumTime += timeForNeed;
+          result.add(cumTime);
+          // Prepare for next mile
+          remainingDelta -= need;
+          cumDist = 0.0;
+          cumTime = 0.0;
+        } else {
+          // Partial segment, accumulate and break
+          cumDist += remainingDelta;
+          cumTime += (remainingDelta / 1000.0) / sp * 3600.0;
+          remainingDelta = 0.0;
+        }
+      }
+    }
+
+    // Ensure the number of splits does not exceed the integer miles in the
+    // activity (defensive - algorithm should naturally produce this count).
+    final totalMiles = (distances.last ~/ mile);
+    if (result.length > totalMiles) return result.sublist(0, totalMiles);
+    return result;
+  }
 
   // distances in meters, speed in m/s -> compute time (seconds) taken for each
   // completed kilometer. Returns one entry per completed km in seconds.
@@ -467,7 +549,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
         sp = 0.0;
       }
       if (sp <= 0.01) {
-        sp = 0.5; // fallback m/s to avoid division by zero
+        sp = 0.5; // fallback km/h to avoid division by zero
       }
 
       // time to traverse whole delta at current speed (not stored separately)
@@ -478,7 +560,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
         final need = 1000.0 - cumDist;
         if (remainingDelta >= need) {
           // completes a km
-          final timeForNeed = need / sp;
+          final timeForNeed = (need / 1000.0) / sp * 3600.0;
           cumTime += timeForNeed;
           result.add(cumTime);
           // prepare for next km
@@ -488,7 +570,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
         } else {
           // partial segment, accumulate and break
           cumDist += remainingDelta;
-          cumTime += remainingDelta / sp;
+          cumTime += (remainingDelta / 1000.0) / sp * 3600.0;
           remainingDelta = 0.0;
         }
       }
@@ -564,11 +646,18 @@ class _ActivityChartsState extends State<ActivityCharts> {
   }
 
   Widget _buildMiniPopup(int idx, List<double>? xvals, List<double>? yvals, bool isTime, String xLabel, String yLabel) {
-    // no-op: chart name derived from _hoverChartId or labels
+    // unit string based on user choice (km vs miles)
+    final String distanceUnit = isMetric ? 'km' : 'mi';
     final lines = <Widget>[];
     // determine chart title and color
     final rawChartId = _hoverChartId ?? '';
-    final chartName = rawChartId.isNotEmpty ? rawChartId.split('(').first.trim() : (_hoverChart == 'splits' ? 'Splits' : xLabel.split('(').first.trim());
+    final chartNameRaw = rawChartId.isNotEmpty
+        ? rawChartId.split('(').first.trim()
+        : (_hoverChart == 'splits' ? 'Splits' : xLabel.split('(').first.trim());
+    // append unit for distance charts so the popup is clear
+    final chartName = chartNameRaw.toLowerCase() == 'distance'
+        ? 'Distance ($distanceUnit)'
+        : chartNameRaw;
     Color chartColor = Colors.black;
     final lc = chartName.toLowerCase();
     if (lc.contains('elev')) {
@@ -597,10 +686,11 @@ class _ActivityChartsState extends State<ActivityCharts> {
     }
 
     if (_hoverChart == 'splits') {
-      lines.add(Text('Km - ${idx + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)));
+      final splitUnitLabel = isMetric ? 'km' : 'mi';
+      lines.add(Text('$splitUnitLabel - ${idx + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)));
       final val = (yvals != null && idx < yvals.length) ? yvals[idx] : double.nan;
       if (isTime && !val.isNaN) {
-        lines.add(Text('Time - ${_formatDurationFromDouble(val)}', style: TextStyle(fontSize: 12)));
+        lines.add(Text('Time - ${formatDuration(val)}', style: TextStyle(fontSize: 12)));
       } else if (!val.isNaN) {
         lines.add(Text('Value - ${val.toStringAsFixed(2)}', style: TextStyle(fontSize: 12)));
       } else {
@@ -619,7 +709,7 @@ class _ActivityChartsState extends State<ActivityCharts> {
       if (xv.isNaN) {
         xText = 'n/a';
       } else {
-        xText = isTime ? _formatDurationFromDouble(xv) : xv.toStringAsFixed(2);
+        xText = isTime ? formatDuration(xv) : xv.toStringAsFixed(2);
       }
       String yText;
       if (yv.isNaN) {
@@ -763,15 +853,15 @@ class _SingleLinePainterDistance extends CustomPainter {
       }
 
       if (xIsTime) {
-        tpX.text = TextSpan(text: _formatDurationFromDouble(startVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
+        tpX.text = TextSpan(text: formatDuration(startVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad, baseY));
 
-        tpX.text = TextSpan(text: _formatDurationFromDouble(midVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
+        tpX.text = TextSpan(text: formatDuration(midVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW / 2 - tpX.width / 2, baseY));
 
-        tpX.text = TextSpan(text: _formatDurationFromDouble(endVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
+        tpX.text = TextSpan(text: formatDuration(endVal), style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11));
         tpX.layout();
         tpX.paint(canvas, Offset(leftPad + chartW - tpX.width, baseY));
       } else {

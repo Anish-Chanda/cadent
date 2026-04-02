@@ -165,6 +165,7 @@ func main() {
 			r.Delete("/activities/plan/{id}", apiHandler.HandleDeletePlannedActivity())
 			r.Patch("/activities/plan", apiHandler.HandleUpdatePlannedActivity())
 			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
+			r.Get("/activities/calendar", apiHandler.HandleGetActivityCalendar())
 
 			// User endpoints
 			r.Get("/user", apiHandler.HandleGetUser())

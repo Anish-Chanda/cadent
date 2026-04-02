@@ -8,6 +8,8 @@ import 'recording_control_panel.dart';
 /// Displays time, distance, speed, and control buttons in a large format.
 class RecordingStatsFull extends StatelessWidget {
   final RecordingSessionModel model;
+  final String formattedDistance;
+  final String formattedSpeed;
   final VoidCallback? onStart;
   final VoidCallback? onPause;
   final VoidCallback? onResume;
@@ -16,6 +18,8 @@ class RecordingStatsFull extends StatelessWidget {
   const RecordingStatsFull({
     super.key,
     required this.model,
+    required this.formattedDistance,
+    required this.formattedSpeed,
     this.onStart,
     this.onPause,
     this.onResume,
@@ -66,7 +70,7 @@ class RecordingStatsFull extends StatelessWidget {
 
         // Distance Display
         Text(
-          model.formattedDistance,
+          formattedDistance,
           style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w400),
         ),
         Text(
@@ -78,7 +82,7 @@ class RecordingStatsFull extends StatelessWidget {
         // Speed Display (only show when recording)
         if (model.isRecording) ...[
           Text(
-            model.formattedSpeed,
+            formattedSpeed,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w400),
           ),
           Text(
