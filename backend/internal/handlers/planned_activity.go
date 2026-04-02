@@ -131,19 +131,6 @@ func (h *Handler) HandleDeletePlannedActivity() http.HandlerFunc {
 	}
 }
 
-type UpdatePlannedActivityRequest struct {
-	ID                               string     `json:"id"`
-	Title                            *string    `json:"title"`
-	Description                      *string    `json:"description"`
-	ActivityType                     *string    `json:"activityType"`
-	StartTime                        *time.Time `json:"startTime"`
-	PlannedDistanceMeter             *float64   `json:"plannedDistanceMeter"`
-	PlannedDurationSecond            *int       `json:"plannedDurationSecond"`
-	PlannedElevationGainMeter        *float64   `json:"plannedElevationGainMeter"`
-	TargetAverageSpeedMeterPerSecond *float64   `json:"targetAverageSpeedMeterPerSecond"`
-	TargetPowerWatt                  *int       `json:"targetPowerWatt"`
-}
-
 func (h *Handler) HandleUpdatePlannedActivity() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -154,62 +141,158 @@ func (h *Handler) HandleUpdatePlannedActivity() http.HandlerFunc {
 			return
 		}
 
-		var req UpdatePlannedActivityRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		// Decode into raw map to distinguish absent fields from explicit null
+		var rawFields map[string]json.RawMessage
+		if err := json.NewDecoder(r.Body).Decode(&rawFields); err != nil {
 			h.log.Error("Failed to decode update request", err)
 			sendError(w, http.StatusBadRequest, "Invalid JSON format")
 			return
 		}
 
-		if strings.TrimSpace(req.ID) == "" {
+		// Extract and validate ID
+		idRaw, hasID := rawFields["id"]
+		if !hasID {
 			sendError(w, http.StatusBadRequest, "Activity ID is required")
 			return
 		}
-		activityID := req.ID
+		var activityID string
+		if err := json.Unmarshal(idRaw, &activityID); err != nil || strings.TrimSpace(activityID) == "" {
+			sendError(w, http.StatusBadRequest, "Activity ID is required")
+			return
+		}
 
-		// Build updates map from non-nil fields
+		// Build updates map: null JSON values set DB column to NULL
 		updates := make(map[string]interface{})
 
-		if req.Title != nil {
-			trimmed := strings.TrimSpace(*req.Title)
+		if raw, ok := rawFields["title"]; ok {
+			if string(raw) == "null" {
+				sendError(w, http.StatusBadRequest, "Title cannot be null")
+				return
+			}
+			var title string
+			if err := json.Unmarshal(raw, &title); err != nil {
+				sendError(w, http.StatusBadRequest, "Invalid title format")
+				return
+			}
+			trimmed := strings.TrimSpace(title)
 			if trimmed == "" {
 				sendError(w, http.StatusBadRequest, "Title cannot be empty")
 				return
 			}
 			updates["title"] = trimmed
 		}
-		if req.Description != nil {
-			updates["description"] = req.Description
+
+		if raw, ok := rawFields["description"]; ok {
+			if string(raw) == "null" {
+				updates["description"] = nil
+			} else {
+				var desc string
+				if err := json.Unmarshal(raw, &desc); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid description format")
+					return
+				}
+				updates["description"] = desc
+			}
 		}
-		if req.ActivityType != nil {
-			at := strings.TrimSpace(*req.ActivityType)
+
+		if raw, ok := rawFields["activityType"]; ok {
+			if string(raw) == "null" {
+				sendError(w, http.StatusBadRequest, "Activity type cannot be null")
+				return
+			}
+			var at string
+			if err := json.Unmarshal(raw, &at); err != nil {
+				sendError(w, http.StatusBadRequest, "Invalid activity type format")
+				return
+			}
+			at = strings.TrimSpace(at)
 			if at != string(models.ActivityTypeRun) && at != string(models.ActivityTypeRoadBike) {
-				sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", at))
+				sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", at))
 				return
 			}
 			updates["type"] = at
 		}
-		if req.StartTime != nil {
-			if req.StartTime.IsZero() {
+
+		if raw, ok := rawFields["startTime"]; ok {
+			if string(raw) == "null" {
+				sendError(w, http.StatusBadRequest, "Start time cannot be null")
+				return
+			}
+			var st time.Time
+			if err := json.Unmarshal(raw, &st); err != nil {
+				sendError(w, http.StatusBadRequest, "Invalid start time format")
+				return
+			}
+			if st.IsZero() {
 				sendError(w, http.StatusBadRequest, "Valid Start Time is required")
 				return
 			}
-			updates["start_time"] = *req.StartTime
+			updates["start_time"] = st
 		}
-		if req.PlannedDistanceMeter != nil {
-			updates["planned_distance_m"] = *req.PlannedDistanceMeter
+
+		if raw, ok := rawFields["plannedDistanceMeter"]; ok {
+			if string(raw) == "null" {
+				updates["planned_distance_m"] = nil
+			} else {
+				var v float64
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid planned distance format")
+					return
+				}
+				updates["planned_distance_m"] = v
+			}
 		}
-		if req.PlannedDurationSecond != nil {
-			updates["planned_duration_s"] = *req.PlannedDurationSecond
+
+		if raw, ok := rawFields["plannedDurationSecond"]; ok {
+			if string(raw) == "null" {
+				updates["planned_duration_s"] = nil
+			} else {
+				var v int
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid planned duration format")
+					return
+				}
+				updates["planned_duration_s"] = v
+			}
 		}
-		if req.PlannedElevationGainMeter != nil {
-			updates["planned_elevation_gain_m"] = *req.PlannedElevationGainMeter
+
+		if raw, ok := rawFields["plannedElevationGainMeter"]; ok {
+			if string(raw) == "null" {
+				updates["planned_elevation_gain_m"] = nil
+			} else {
+				var v float64
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid planned elevation gain format")
+					return
+				}
+				updates["planned_elevation_gain_m"] = v
+			}
 		}
-		if req.TargetAverageSpeedMeterPerSecond != nil {
-			updates["target_avg_speed_mps"] = *req.TargetAverageSpeedMeterPerSecond
+
+		if raw, ok := rawFields["targetAverageSpeedMeterPerSecond"]; ok {
+			if string(raw) == "null" {
+				updates["target_avg_speed_mps"] = nil
+			} else {
+				var v float64
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid target average speed format")
+					return
+				}
+				updates["target_avg_speed_mps"] = v
+			}
 		}
-		if req.TargetPowerWatt != nil {
-			updates["target_power_watt"] = *req.TargetPowerWatt
+
+		if raw, ok := rawFields["targetPowerWatt"]; ok {
+			if string(raw) == "null" {
+				updates["target_power_watt"] = nil
+			} else {
+				var v int
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid target power format")
+					return
+				}
+				updates["target_power_watt"] = v
+			}
 		}
 
 		if len(updates) == 0 {
