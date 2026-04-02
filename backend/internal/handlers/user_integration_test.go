@@ -715,3 +715,11 @@ func TestUserHandlerEdgeCases(t *testing.T) {
 		}
 	})
 }
+
+// Mocks for GetTrainingPlans and GetTrainingPlanWorkouts
+func (m *IntegrationUserMockDB) GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *IntegrationUserMockDB) GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error) {
+	return nil, nil
+}

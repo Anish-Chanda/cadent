@@ -14,6 +14,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedTrainingPlansRouteImport } from './routes/_authenticated/training/plans'
+import { Route as AuthenticatedDashboardTrainingIndexRouteImport } from './routes/_authenticated/dashboard/training/index'
+import { Route as AuthenticatedDashboardTrainingCalendarRouteImport } from './routes/_authenticated/dashboard/training/calendar'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -40,18 +43,42 @@ const AuthenticatedDashboardIndexRoute =
     path: '/dashboard/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedTrainingPlansRoute =
+  AuthenticatedTrainingPlansRouteImport.update({
+    id: '/training/plans',
+    path: '/training/plans',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedDashboardTrainingIndexRoute =
+  AuthenticatedDashboardTrainingIndexRouteImport.update({
+    id: '/dashboard/training/',
+    path: '/dashboard/training/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedDashboardTrainingCalendarRoute =
+  AuthenticatedDashboardTrainingCalendarRouteImport.update({
+    id: '/dashboard/training/calendar',
+    path: '/dashboard/training/calendar',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/training/plans': typeof AuthenticatedTrainingPlansRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/training/calendar': typeof AuthenticatedDashboardTrainingCalendarRoute
+  '/dashboard/training/': typeof AuthenticatedDashboardTrainingIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/training/plans': typeof AuthenticatedTrainingPlansRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/training/calendar': typeof AuthenticatedDashboardTrainingCalendarRoute
+  '/dashboard/training': typeof AuthenticatedDashboardTrainingIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,20 +86,40 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/training/plans': typeof AuthenticatedTrainingPlansRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/dashboard/training/calendar': typeof AuthenticatedDashboardTrainingCalendarRoute
+  '/_authenticated/dashboard/training/': typeof AuthenticatedDashboardTrainingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/signup' | '/dashboard/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/training/plans'
+    | '/dashboard/'
+    | '/dashboard/training/calendar'
+    | '/dashboard/training/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/signup' | '/dashboard'
+  to:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/training/plans'
+    | '/dashboard'
+    | '/dashboard/training/calendar'
+    | '/dashboard/training'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
     | '/signup'
+    | '/_authenticated/training/plans'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/dashboard/training/calendar'
+    | '/_authenticated/dashboard/training/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,15 +166,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/training/plans': {
+      id: '/_authenticated/training/plans'
+      path: '/training/plans'
+      fullPath: '/training/plans'
+      preLoaderRoute: typeof AuthenticatedTrainingPlansRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard/training/': {
+      id: '/_authenticated/dashboard/training/'
+      path: '/dashboard/training'
+      fullPath: '/dashboard/training/'
+      preLoaderRoute: typeof AuthenticatedDashboardTrainingIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard/training/calendar': {
+      id: '/_authenticated/dashboard/training/calendar'
+      path: '/dashboard/training/calendar'
+      fullPath: '/dashboard/training/calendar'
+      preLoaderRoute: typeof AuthenticatedDashboardTrainingCalendarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedTrainingPlansRoute: typeof AuthenticatedTrainingPlansRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardTrainingCalendarRoute: typeof AuthenticatedDashboardTrainingCalendarRoute
+  AuthenticatedDashboardTrainingIndexRoute: typeof AuthenticatedDashboardTrainingIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedTrainingPlansRoute: AuthenticatedTrainingPlansRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedDashboardTrainingCalendarRoute:
+    AuthenticatedDashboardTrainingCalendarRoute,
+  AuthenticatedDashboardTrainingIndexRoute:
+    AuthenticatedDashboardTrainingIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

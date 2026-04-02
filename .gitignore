@@ -45,6 +45,7 @@ Thumbs.db
 data/
 
 .github/*.md
+.github/prompts/
 
 # Go embedded web build artifacts (populated by `make build-web`)
 backend/web/dist/*

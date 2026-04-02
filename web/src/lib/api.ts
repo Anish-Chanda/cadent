@@ -153,3 +153,105 @@ export function getActivities(): Promise<GetActivitiesResponse> {
 }
 
 export { ApiError };
+
+// ---- Training Plans ----
+export interface TrainingPlan {
+	id: string;
+	created_by_user_id?: string;
+	title: string;
+	description: string | null;
+	primary_sport: string | null;
+	difficulty: string;
+	duration_weeks: number;
+	recommended_workouts_per_week: number;
+	is_system: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface TrainingPlanWorkout {
+	id: string;
+	training_plan_id: string;
+	sequence_index: number;
+	template_day_offset: number;
+	type: string;
+	title: string;
+	description: string | null;
+	planned_distance_m: number | null;
+	planned_duration_s: number | null;
+	planned_elevation_gain_m: number | null;
+	target_avg_speed_mps: number | null;
+	target_power_watt: number | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export function getTrainingPlans(
+	q?: string,
+	sport?: string,
+): Promise<TrainingPlan[]> {
+	const params = new URLSearchParams();
+	if (q) params.set("q", q);
+	if (sport && sport !== "all") params.set("sport", sport);
+	return request<TrainingPlan[]>(`/v1/training-plans?${params.toString()}`);
+}
+
+export function getTrainingPlanWorkouts(
+	id: string,
+): Promise<TrainingPlanWorkout[]> {
+	return request<TrainingPlanWorkout[]>(`/v1/training-plans/${id}/workouts`);
+}
+
+export interface PlannedActivity {
+	id: string;
+	title: string;
+	description: string;
+	type: string;
+	start_time: string;
+	planned_distance: number | null;
+	planned_duration: number | null;
+	planned_elevation_gain: number | null;
+	target_avg_speed: number | null;
+	target_power: number | null;
+	matched_activity_id?: string;
+	user_training_plan_id?: string;
+	plan_sequence_index?: number;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreatePlannedActivityRequest {
+	title: string;
+	description?: string;
+	activityType: string;
+	startTime: string;
+	plannedDistanceMeter?: number;
+	plannedDurationSecond?: number;
+	plannedElevationGainMeter?: number;
+	targetAverageSpeedMeterPerSecond?: number;
+	targetPowerWatt?: number;
+}
+
+export interface CreatePlannedActivityResponse {
+	id: string;
+}
+
+export interface GetCalendarResponse {
+	activities: Activity[];
+	planned_activities: PlannedActivity[];
+}
+
+export const getCalendar = async (startDate?: string, endDate?: string) => {
+	const searchParams = new URLSearchParams();
+	if (startDate) searchParams.append("startDate", startDate);
+	if (endDate) searchParams.append("endDate", endDate);
+
+	return request<GetCalendarResponse>(`/v1/calendar?${searchParams.toString()}`);
+};
+
+export const createPlannedActivity = async (data: CreatePlannedActivityRequest) => {
+	return request<CreatePlannedActivityResponse>("/v1/activities/plan", {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+};
