@@ -7,6 +7,7 @@ interface MonthDateHeaderProps {
   drilldownView: string | null
   isOffRange: boolean
   onDrillDown: (e: React.MouseEvent) => void
+  onAddActivity: (date: Date) => void
 }
 
 /**
@@ -22,13 +23,13 @@ export function MonthDateHeader({
   drilldownView,
   isOffRange,
   onDrillDown,
+  onAddActivity,
 }: MonthDateHeaderProps) {
   const isToday = isSameDay(date, new Date())
 
   const handleAddActivity = (e: React.MouseEvent) => {
     e.stopPropagation()
-    // TODO: Launch add planned activity form/modal
-    console.log("Add activity for date:", date)
+    onAddActivity(date)
   }
 
   return (

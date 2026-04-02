@@ -809,6 +809,9 @@ func (h *Handler) HandleGetActivityCalendar() http.HandlerFunc {
 			return
 		}
 
+		// Interpret endDate as inclusive through the end of the selected day.
+		endDate = endDate.Add(24*time.Hour - time.Nanosecond)
+
 		// Get user's activities from database
 		activities, plannedActivities, err := h.database.GetActivitiesByUserIDAndDate(ctx, userID, startDate, endDate)
 		if err != nil {

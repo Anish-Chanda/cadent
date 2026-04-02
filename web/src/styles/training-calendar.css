@@ -54,7 +54,7 @@
 
 /* Today's cell background (applied by library to .rbc-day-bg) */
 .rbc-today {
-  background-color: rgb(89 196 247 / 0.1) !important;
+  background-color: hsl(var(--primary) / 0.08) !important;
 }
 
 /* Override library default bold for .rbc-now (today's date cell) */
@@ -130,13 +130,13 @@
 
 /* Today's date badge — solid blue pill */
 .rbc-date-today {
-  background-color: #59c4f7 !important;
-  color: white !important;
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
   font-weight: 600 !important;
 }
 
 .rbc-date-today:hover {
-  background-color: #3db5f5 !important;
+  background-color: hsl(var(--primary) / 0.9) !important;
 }
 
 /* Off-range dates */
@@ -173,46 +173,50 @@
 
 /* ---- Event styles ---- */
 .rbc-event {
-  background-color: #59c4f7;
-  color: white;
+  background-color: transparent;
+  color: inherit;
   border: none;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 0.8125rem;
-  font-weight: 500;
+  border-radius: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease;
+  box-shadow: none;
 }
 
 .rbc-event:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
 }
 
 .rbc-event.rbc-selected {
-  background-color: #3db5f5;
+  background-color: transparent;
 }
 
 .rbc-event-label {
-  font-size: 0.75rem;
-  font-weight: 500;
+  display: none;
 }
 
 .rbc-event-content {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+  height: 100%;
 }
 
 .rbc-event + .rbc-event {
   margin-top: 2px;
 }
 
+.rbc-event.cadent-event-planned,
+.rbc-event.cadent-event-completed {
+  background-color: transparent;
+}
+
 /* ---- Show More link ---- */
 .rbc-show-more {
   background-color: transparent;
-  color: #59c4f7;
+  color: hsl(var(--primary));
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 4px 8px;
@@ -254,16 +258,16 @@
 /* ---- Dark mode adjustments ---- */
 @media (prefers-color-scheme: dark) {
   .rbc-today {
-    background-color: rgb(89 196 247 / 0.12) !important;
+    background-color: hsl(var(--primary) / 0.12) !important;
   }
 
   .rbc-date-today {
-    background-color: #59c4f7 !important;
-    color: white !important;
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
   }
 
   .rbc-date-today:hover {
-    background-color: #6ccef9 !important;
+    background-color: hsl(var(--primary) / 0.85) !important;
   }
 
   .rbc-add-activity-btn {
@@ -271,7 +275,7 @@
   }
 
   .rbc-event {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: none;
   }
 
   .rbc-off-range-bg {

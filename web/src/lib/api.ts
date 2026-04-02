@@ -201,3 +201,57 @@ export function getTrainingPlanWorkouts(
 ): Promise<TrainingPlanWorkout[]> {
 	return request<TrainingPlanWorkout[]>(`/v1/training-plans/${id}/workouts`);
 }
+
+export interface PlannedActivity {
+	id: string;
+	title: string;
+	description: string;
+	type: string;
+	start_time: string;
+	planned_distance: number | null;
+	planned_duration: number | null;
+	planned_elevation_gain: number | null;
+	target_avg_speed: number | null;
+	target_power: number | null;
+	matched_activity_id?: string;
+	user_training_plan_id?: string;
+	plan_sequence_index?: number;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreatePlannedActivityRequest {
+	title: string;
+	description?: string;
+	activityType: string;
+	startTime: string;
+	plannedDistanceMeter?: number;
+	plannedDurationSecond?: number;
+	plannedElevationGainMeter?: number;
+	targetAverageSpeedMeterPerSecond?: number;
+	targetPowerWatt?: number;
+}
+
+export interface CreatePlannedActivityResponse {
+	id: string;
+}
+
+export interface GetCalendarResponse {
+	activities: Activity[];
+	planned_activities: PlannedActivity[];
+}
+
+export const getCalendar = async (startDate?: string, endDate?: string) => {
+	const searchParams = new URLSearchParams();
+	if (startDate) searchParams.append("startDate", startDate);
+	if (endDate) searchParams.append("endDate", endDate);
+
+	return request<GetCalendarResponse>(`/v1/calendar?${searchParams.toString()}`);
+};
+
+export const createPlannedActivity = async (data: CreatePlannedActivityRequest) => {
+	return request<CreatePlannedActivityResponse>("/v1/activities/plan", {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+};

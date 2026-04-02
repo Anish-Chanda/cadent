@@ -13,8 +13,8 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedTrainingPlansRouteImport } from './routes/_authenticated/training-plans'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedTrainingPlansRouteImport } from './routes/_authenticated/training/plans'
 import { Route as AuthenticatedDashboardTrainingIndexRouteImport } from './routes/_authenticated/dashboard/training/index'
 import { Route as AuthenticatedDashboardTrainingCalendarRouteImport } from './routes/_authenticated/dashboard/training/calendar'
 
@@ -37,16 +37,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTrainingPlansRoute =
-  AuthenticatedTrainingPlansRouteImport.update({
-    id: '/training-plans',
-    path: '/training-plans',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/dashboard/',
     path: '/dashboard/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedTrainingPlansRoute =
+  AuthenticatedTrainingPlansRouteImport.update({
+    id: '/training/plans',
+    path: '/training/plans',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedDashboardTrainingIndexRoute =
@@ -66,7 +66,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/training-plans': typeof AuthenticatedTrainingPlansRoute
+  '/training/plans': typeof AuthenticatedTrainingPlansRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/training/calendar': typeof AuthenticatedDashboardTrainingCalendarRoute
   '/dashboard/training/': typeof AuthenticatedDashboardTrainingIndexRoute
@@ -75,7 +75,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/training-plans': typeof AuthenticatedTrainingPlansRoute
+  '/training/plans': typeof AuthenticatedTrainingPlansRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/training/calendar': typeof AuthenticatedDashboardTrainingCalendarRoute
   '/dashboard/training': typeof AuthenticatedDashboardTrainingIndexRoute
@@ -86,7 +86,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/_authenticated/training-plans': typeof AuthenticatedTrainingPlansRoute
+  '/_authenticated/training/plans': typeof AuthenticatedTrainingPlansRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/training/calendar': typeof AuthenticatedDashboardTrainingCalendarRoute
   '/_authenticated/dashboard/training/': typeof AuthenticatedDashboardTrainingIndexRoute
@@ -97,7 +97,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
-    | '/training-plans'
+    | '/training/plans'
     | '/dashboard/'
     | '/dashboard/training/calendar'
     | '/dashboard/training/'
@@ -106,7 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
-    | '/training-plans'
+    | '/training/plans'
     | '/dashboard'
     | '/dashboard/training/calendar'
     | '/dashboard/training'
@@ -116,7 +116,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/signup'
-    | '/_authenticated/training-plans'
+    | '/_authenticated/training/plans'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/training/calendar'
     | '/_authenticated/dashboard/training/'
@@ -159,18 +159,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/training-plans': {
-      id: '/_authenticated/training-plans'
-      path: '/training-plans'
-      fullPath: '/training-plans'
-      preLoaderRoute: typeof AuthenticatedTrainingPlansRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/dashboard'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/training/plans': {
+      id: '/_authenticated/training/plans'
+      path: '/training/plans'
+      fullPath: '/training/plans'
+      preLoaderRoute: typeof AuthenticatedTrainingPlansRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard/training/': {

@@ -16,7 +16,7 @@ import { getTrainingPlans, getTrainingPlanWorkouts } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "use-debounce";
 
-export const Route = createFileRoute("/_authenticated/training-plans")({
+export const Route = createFileRoute("/_authenticated/training/plans")({
 	component: TrainingPlansPage,
 });
 
