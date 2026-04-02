@@ -187,7 +187,11 @@ jsonpath "$.error" == "Planned activity not found"
 
 # --- DELETE: Successfully delete the activity ---
 
-DELETE http://localhost:8080/api/v1/activities/plan/{{activity_id}}
+DELETE http://localhost:8080/api/v1/activities/plan
+Content-Type: application/json
+{
+  "id": "{{activity_id}}"
+}
 HTTP 204
 
 # --- Verify activity is gone via calendar ---
@@ -199,14 +203,22 @@ jsonpath "$.planned_activities" count == 0
 
 # --- DELETE: Deleting again returns 404 ---
 
-DELETE http://localhost:8080/api/v1/activities/plan/{{activity_id}}
+DELETE http://localhost:8080/api/v1/activities/plan
+Content-Type: application/json
+{
+  "id": "{{activity_id}}"
+}
 HTTP 404
 [Asserts]
 jsonpath "$.error" == "Planned activity not found"
 
 # --- DELETE: Non-existent activity returns 404 ---
 
-DELETE http://localhost:8080/api/v1/activities/plan/00000000-0000-0000-0000-000000000000
+DELETE http://localhost:8080/api/v1/activities/plan
+Content-Type: application/json
+{
+  "id": "00000000-0000-0000-0000-000000000000"
+}
 HTTP 404
 [Asserts]
 jsonpath "$.error" == "Planned activity not found"

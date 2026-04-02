@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/models"
-	"github.com/go-chi/chi/v5"
 )
 
 type CreatePlannedActivityRequest struct {
@@ -102,7 +101,16 @@ func (h *Handler) HandleDeletePlannedActivity() http.HandlerFunc {
 			return
 		}
 
-		activityID := chi.URLParam(r, "id")
+		var req struct {
+			ID string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			h.log.Error("Failed to decode delete request", err)
+			sendError(w, http.StatusBadRequest, "Invalid JSON format")
+			return
+		}
+
+		activityID := strings.TrimSpace(req.ID)
 		if activityID == "" {
 			sendError(w, http.StatusBadRequest, "Activity ID is required")
 			return
