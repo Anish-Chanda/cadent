@@ -5,6 +5,7 @@ import {
 	LogOut,
 	Activity,
 	CalendarDays,
+	ClipboardList,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/auth-context";
@@ -115,6 +116,9 @@ export function TopBar() {
 					<NavDropdown label="Training">
 						<DropdownLink to="/dashboard" icon={CalendarDays}>
 							Training Calendar
+						</DropdownLink>
+						<DropdownLink to="/training-plans" icon={ClipboardList}>
+							Training Plans
 						</DropdownLink>
 					</NavDropdown>
 				</nav>

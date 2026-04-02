@@ -153,3 +153,51 @@ export function getActivities(): Promise<GetActivitiesResponse> {
 }
 
 export { ApiError };
+
+// ---- Training Plans ----
+export interface TrainingPlan {
+	id: string;
+	created_by_user_id?: string;
+	title: string;
+	description: string | null;
+	primary_sport: string | null;
+	difficulty: string;
+	duration_weeks: number;
+	recommended_workouts_per_week: number;
+	is_system: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface TrainingPlanWorkout {
+	id: string;
+	training_plan_id: string;
+	sequence_index: number;
+	template_day_offset: number;
+	type: string;
+	title: string;
+	description: string | null;
+	planned_distance_m: number | null;
+	planned_duration_s: number | null;
+	planned_elevation_gain_m: number | null;
+	target_avg_speed_mps: number | null;
+	target_power_watt: number | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export function getTrainingPlans(
+	q?: string,
+	sport?: string,
+): Promise<TrainingPlan[]> {
+	const params = new URLSearchParams();
+	if (q) params.set("q", q);
+	if (sport && sport !== "all") params.set("sport", sport);
+	return request<TrainingPlan[]>(`/v1/training-plans?${params.toString()}`);
+}
+
+export function getTrainingPlanWorkouts(
+	id: string,
+): Promise<TrainingPlanWorkout[]> {
+	return request<TrainingPlanWorkout[]>(`/v1/training-plans/${id}/workouts`);
+}
