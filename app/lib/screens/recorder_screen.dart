@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:provider/provider.dart';
 
 import '../controllers/recording_controller.dart';
 import '../models/recording_session_model.dart';
@@ -15,6 +16,7 @@ import '../widgets/recorder/recording_stats_compact.dart';
 import '../widgets/recorder/recording_stats_full.dart';
 import '../widgets/recorder/activity_type_selector.dart';
 import 'finish_activity_screen.dart';
+import '../providers/app_settings_provider.dart';
 
 class RecorderScreen extends StatefulWidget {
   const RecorderScreen({super.key});
@@ -28,6 +30,20 @@ class _RecorderScreenState extends State<RecorderScreen> {
   MapLibreMapController? _mapController;
   bool _isMapExpanded = false;
   Line? _routeLine;
+  late bool _isMetric;
+  bool get isMetric => _isMetric;
+
+  String getFormattedDistance() {
+    final distance = isMetric ? _controller.model.totalDistanceMeters / 1000 : _controller.model.totalDistanceMiles;
+    final unit = isMetric ? 'km' : 'mi';
+    return '${distance.toStringAsFixed(2)} $unit';
+  }
+
+  String getFormattedSpeed() {
+    final speed = isMetric ? _controller.model.currentSpeedMs * 3.6 : _controller.model.currentSpeedMph;
+    final unit = isMetric ? 'kph' : 'mph';
+    return '${speed.toStringAsFixed(1)} $unit';
+  }
 
   @override
   void initState() {
@@ -173,7 +189,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
         MaterialPageRoute(
           builder: (context) => FinishActivityScreen(
             formattedTime: _controller.model.formattedTime,
-            formattedDistance: _controller.model.formattedDistance,
+            formattedDistance: getFormattedDistance(),
             activityName: _controller.model.activityType.displayName,
           ),
         ),
@@ -228,7 +244,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
     // Log activity details including GPS point count before resetting
     final model = _controller.model;
     log('Saving activity with details: title="$title", description="$description", effort="$perceivedEffort"');
-    log('Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.formattedDistance} - GPS points: ${model.positions.length}');
+    log('Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.totalDistanceMeters.toStringAsFixed(0)}m - GPS points: ${model.positions.length}');
     
     // Save complete activity data to backend with title and description
     final activityData = _controller.getActivityData();
@@ -325,6 +341,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _isMetric = context.select<AppSettingsProvider, bool>((p) => p.isMetric);
     final model = _controller.model;
     
     return Scaffold(
@@ -376,6 +393,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
                       Expanded(
                         child: RecordingStatsFull(
                           model: model,
+                          formattedDistance: getFormattedDistance(),
+                          formattedSpeed: getFormattedSpeed(),
                           onStart: _startRecording,
                           onPause: _pauseRecording,
                           onResume: _resumeRecording,
@@ -404,6 +423,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
               onTap: _toggleMapView,
               child: RecordingStatsCompact(
                 model: model,
+                formattedDistance: getFormattedDistance(),
+                formattedSpeed: getFormattedSpeed(),
                 onActivityTypeSelect: _showActivityTypeSelector,
                 onStart: _startRecording,
                 onPause: _pauseRecording,

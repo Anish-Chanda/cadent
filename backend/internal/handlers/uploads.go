@@ -139,7 +139,7 @@ func (h *Handler) HandleActivityUpload() http.HandlerFunc {
 		// Validate activity type
 		if metadata.ActivityType != models.ActivityTypeRun && metadata.ActivityType != models.ActivityTypeRoadBike {
 			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", metadata.ActivityType))
-			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", metadata.ActivityType), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", metadata.ActivityType), http.StatusBadRequest)
 			return
 		}
 

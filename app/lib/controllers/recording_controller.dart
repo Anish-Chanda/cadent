@@ -85,7 +85,7 @@ class RecordingController extends ChangeNotifier {
     // Move to completed state for final review
     _updateModelState(RecordingState.completed);
     
-    log('Recording finished: ${_model.activityType.displayName} - ${_model.formattedTime} - ${_model.formattedDistance} - ${_model.positions.length} GPS points');
+    log('Recording finished: ${_model.activityType.displayName} - ${_model.formattedTime} - ${_model.totalDistanceMeters.toStringAsFixed(0)}m - ${_model.positions.length} GPS points');
   }
 
   /// Gets the activity data for saving (only available in completed state)

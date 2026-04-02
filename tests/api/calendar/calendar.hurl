@@ -58,7 +58,7 @@ Content-Type: application/json
 {
     "title": "Planned Tempo Ride",
     "description": "Steady tempo effort",
-    "activityType": "road_bike",
+    "activityType": "road_biking",
     "startTime": "2026-03-10T07:30:00Z",
     "plannedDistanceMeter": 25000,
     "plannedDurationSecond": 3600,
@@ -79,7 +79,7 @@ Content-Type: application/json
 {
     "title": "Planned Progression Run",
     "description": "Easy to moderate progression",
-    "activityType": "run",
+    "activityType": "running",
     "startTime": "2026-03-12T18:15:00Z",
     "plannedDistanceMeter": 10000,
     "plannedDurationSecond": 3000,
@@ -104,8 +104,8 @@ jsonpath "$.activities[*].id" contains "{{mcfarland_activity_id}}"
 jsonpath "$.activities[*].id" contains "{{morning_run_activity_id}}"
 jsonpath "$.activities[*].title" contains "Bike ride to McFarland"
 jsonpath "$.activities[*].title" contains "Calendar Morning Run"
-jsonpath "$.activities[*].type" contains "road_bike"
-jsonpath "$.activities[*].type" contains "run"
+jsonpath "$.activities[*].type" contains "road_biking"
+jsonpath "$.activities[*].type" contains "running"
 jsonpath "$.activities[*].stats.distance_m" count == 2
 jsonpath "$.activities[*].stats.elapsed_seconds" count == 2
 
@@ -115,8 +115,8 @@ jsonpath "$.planned_activities[*].id" contains "{{plan_ride_id}}"
 jsonpath "$.planned_activities[*].id" contains "{{plan_run_id}}"
 jsonpath "$.planned_activities[*].title" contains "Planned Tempo Ride"
 jsonpath "$.planned_activities[*].title" contains "Planned Progression Run"
-jsonpath "$.planned_activities[*].type" contains "road_bike"
-jsonpath "$.planned_activities[*].type" contains "run"
+jsonpath "$.planned_activities[*].type" contains "road_biking"
+jsonpath "$.planned_activities[*].type" contains "running"
 jsonpath "$.planned_activities[*].planned_distance" contains 25000
 jsonpath "$.planned_activities[*].planned_distance" contains 10000
 jsonpath "$.planned_activities[*].planned_duration" contains 3600
