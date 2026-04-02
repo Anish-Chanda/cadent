@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,12 +17,11 @@ type CreatePlannedActivityRequest struct {
 	ActivityType string    `json:"activityType"`
 	StartTime    time.Time `json:"startTime"`
 
-	PlannedDistanceMeter             *float64        `json:"plannedDistanceMeter"`
-	PlannedDurationSecond            *int            `json:"plannedDurationSecond"`
-	PlannedElevationGainMeter        *float64        `json:"plannedElevationGainMeter"`
-	TargetAverageSpeedMeterPerSecond *float64        `json:"targetAverageSpeedMeterPerSecond"`
-	TargetPowerWatt                  *int            `json:"targetPowerWatt"`
-	Steps                            json.RawMessage `json:"steps"`
+	PlannedDistanceMeter             *float64 `json:"plannedDistanceMeter"`
+	PlannedDurationSecond            *int     `json:"plannedDurationSecond"`
+	PlannedElevationGainMeter        *float64 `json:"plannedElevationGainMeter"`
+	TargetAverageSpeedMeterPerSecond *float64 `json:"targetAverageSpeedMeterPerSecond"`
+	TargetPowerWatt                  *int     `json:"targetPowerWatt"`
 }
 
 func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
@@ -54,26 +52,6 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			sendError(w, http.StatusBadRequest, "Valid Start Time is required")
 			return
 		}
-
-		stepsPayload := bytes.TrimSpace(req.Steps)
-		if len(stepsPayload) == 0 || bytes.Equal(stepsPayload, []byte("null")) {
-			req.Steps = json.RawMessage("[]")
-		} else {
-			var steps []models.ActivityStep
-			if err := json.Unmarshal(stepsPayload, &steps); err != nil {
-				sendError(w, http.StatusBadRequest, "Invalid steps format. Expected an array of step objects")
-				return
-			}
-
-			normalizedSteps, err := json.Marshal(steps)
-			if err != nil {
-				h.log.Error("Failed to normalize steps payload", err)
-				sendError(w, http.StatusInternalServerError, "Failed to process steps payload")
-				return
-			}
-			req.Steps = normalizedSteps
-		}
-
 		// Validate activity_type enum database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
 			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
@@ -93,7 +71,6 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			PlannedElevationGainM: req.PlannedElevationGainMeter,
 			TargetAvgSpeedMps:     req.TargetAverageSpeedMeterPerSecond,
 			TargetPowerWatt:       req.TargetPowerWatt,
-			Steps:                 req.Steps,
 		}
 
 		saved, err := h.database.CreatePlannedActivity(ctx, plan)

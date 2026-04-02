@@ -115,10 +115,6 @@ func TestGetMigrationsFS(t *testing.T) {
 						"0002_activities_table.down.sql",
 						"0003_activity_effort.up.sql",
 						"0003_activity_effort.down.sql",
-						"0004_planned_activities_table.up.sql",
-						"0004_planned_activities_table.down.sql",
-						"0005_training_plan_and_planned_activity_steps.up.sql",
-						"0005_training_plan_and_planned_activity_steps.down.sql",
 					}
 
 					foundFiles := make(map[string]bool)
@@ -161,10 +157,6 @@ func TestPostgresMigrationsEmbedded(t *testing.T) {
 		"postgresql/0002_activities_table.down.sql",
 		"postgresql/0003_activity_effort.up.sql",
 		"postgresql/0003_activity_effort.down.sql",
-		"postgresql/0004_planned_activities_table.up.sql",
-		"postgresql/0004_planned_activities_table.down.sql",
-		"postgresql/0005_training_plan_and_planned_activity_steps.up.sql",
-		"postgresql/0005_training_plan_and_planned_activity_steps.down.sql",
 	}
 
 	for _, filename := range migrationFiles {
