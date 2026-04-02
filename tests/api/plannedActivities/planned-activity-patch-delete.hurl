@@ -41,6 +41,22 @@ activity_id: jsonpath "$.id"
 [Asserts]
 jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
+# --- Verify creation via calendar endpoint ---
+
+GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+HTTP 200
+[Asserts]
+jsonpath "$.planned_activities" count == 1
+jsonpath "$.planned_activities[0].id" == "{{activity_id}}"
+jsonpath "$.planned_activities[0].title" == "Morning Hill Climb"
+jsonpath "$.planned_activities[0].description" == "Steady climb with cadence focus."
+jsonpath "$.planned_activities[0].type" == "road_biking"
+jsonpath "$.planned_activities[0].planned_distance" == 30000.0
+jsonpath "$.planned_activities[0].planned_duration" == 5400
+jsonpath "$.planned_activities[0].planned_elevation_gain" == 500.0
+jsonpath "$.planned_activities[0].target_avg_speed" == 5.56
+jsonpath "$.planned_activities[0].target_power" == 200
+
 # --- PATCH: Update title and description ---
 
 PATCH http://localhost:8080/api/v1/activities/plan
@@ -53,6 +69,17 @@ Content-Type: application/json
 HTTP 200
 [Asserts]
 jsonpath "$.message" == "Planned activity updated"
+
+# --- Verify title and description updated via calendar ---
+
+GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+HTTP 200
+[Asserts]
+jsonpath "$.planned_activities[0].title" == "Evening Hill Climb"
+jsonpath "$.planned_activities[0].description" == "Updated to evening session with power intervals."
+jsonpath "$.planned_activities[0].type" == "road_biking"
+jsonpath "$.planned_activities[0].planned_distance" == 30000.0
+jsonpath "$.planned_activities[0].planned_duration" == 5400
 
 # --- PATCH: Update numeric fields ---
 
@@ -70,6 +97,17 @@ HTTP 200
 [Asserts]
 jsonpath "$.message" == "Planned activity updated"
 
+# --- Verify numeric fields updated via calendar ---
+
+GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+HTTP 200
+[Asserts]
+jsonpath "$.planned_activities[0].planned_distance" == 40000.0
+jsonpath "$.planned_activities[0].planned_duration" == 7200
+jsonpath "$.planned_activities[0].planned_elevation_gain" == 750.0
+jsonpath "$.planned_activities[0].target_avg_speed" == 5.0
+jsonpath "$.planned_activities[0].target_power" == 220
+
 # --- PATCH: Update activity type and start time ---
 
 PATCH http://localhost:8080/api/v1/activities/plan
@@ -82,6 +120,14 @@ Content-Type: application/json
 HTTP 200
 [Asserts]
 jsonpath "$.message" == "Planned activity updated"
+
+# --- Verify type and start time updated via calendar (new date range) ---
+
+GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+HTTP 200
+[Asserts]
+jsonpath "$.planned_activities[0].type" == "running"
+jsonpath "$.planned_activities[0].start_time" startsWith "2026-04-20"
 
 # --- PATCH: Missing activity ID returns 400 ---
 
@@ -143,6 +189,13 @@ jsonpath "$.error" == "Planned activity not found"
 
 DELETE http://localhost:8080/api/v1/activities/plan/{{activity_id}}
 HTTP 204
+
+# --- Verify activity is gone via calendar ---
+
+GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+HTTP 200
+[Asserts]
+jsonpath "$.planned_activities" count == 0
 
 # --- DELETE: Deleting again returns 404 ---
 
