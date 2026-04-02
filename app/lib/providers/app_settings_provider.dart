@@ -13,9 +13,7 @@ class AppSettingsProvider extends ChangeNotifier {
   
   // Convenience getters using model features
   bool get isMetric => _settings.isMetric;
-  bool get isImperial => _settings.isImperial;
   bool get isDarkMode => _settings.isDarkMode;
-  bool get isLightMode => _settings.isLightMode;
   String get metricUnitDisplayName => _settings.metricUnitDisplayName;
   String get themeModeDisplayName => _settings.themeModeDisplayName;
 

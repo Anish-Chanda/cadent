@@ -102,6 +102,26 @@ type ActivityResult struct {
 	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
+type PlannedActivityResult struct {
+	ID                      string        `json:"id"`
+	Title                   string        `json:"title"`
+	Description             string        `json:"description"`
+	Type                    string        `json:"type"`
+	StartTime               time.Time     `json:"start_time"`
+	PlannedDistance         *float64      `json:"planned_distance"`
+	PlannedDuration         *int          `json:"planned_duration"`
+	PlannedElevationGain    *float64      `json:"planned_elevation_gain"`
+	TargetAvgSpeed          *float64      `json:"target_avg_speed"`
+	TargetPower             *int          `json:"target_power"`
+	CreatedAt               time.Time     `json:"created_at"`
+	UpdatedAt               time.Time     `json:"updated_at"`
+}
+
+type GetCalendarResponse struct {
+    Activities          []ActivityResult          `json:"activities"`
+    PlannedActivities   []PlannedActivityResult   `json:"planned_activities"`
+}
+
 type GetActivitiesResponse struct {
 	Activities []ActivityResult `json:"activities"`
 }
@@ -172,7 +192,7 @@ func (h *Handler) HandleCreateActivity() http.HandlerFunc {
 		// Validate activity_type enum before database insertion to return 400
 		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
 			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
-			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: run, road_bike", req.ActivityType), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", req.ActivityType), http.StatusBadRequest)
 			return
 		}
 		// Process GPS data to create polyline and calculate metrics
@@ -681,6 +701,25 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 	}
 }
 
+// createPlannedActivityResult creates an PlannedActivityResult from the PlannedActivity model only
+// This function should be used in both HTTP handlers to reduce duplication
+func createPlannedActivityResult(PlannedActivity *models.PlannedActivity) PlannedActivityResult {
+	return PlannedActivityResult{
+		ID:            PlannedActivity.ID.String(),
+		Title:         PlannedActivity.Title,
+		Description:   stringOrDefault(PlannedActivity.Description, ""),
+		Type:          string(PlannedActivity.Type),
+		StartTime:     PlannedActivity.StartTime,
+		PlannedDistance: PlannedActivity.PlannedDistanceM,
+		PlannedDuration: PlannedActivity.PlannedDurationS,
+		PlannedElevationGain: PlannedActivity.PlannedElevationGainM,
+		TargetAvgSpeed: PlannedActivity.TargetAvgSpeedMps,
+		TargetPower: PlannedActivity.TargetPowerWatt,
+		CreatedAt: PlannedActivity.CreatedAt,
+		UpdatedAt: PlannedActivity.UpdatedAt,
+	}
+}
+
 func (h *Handler) HandleGetActivities() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
@@ -710,6 +749,74 @@ func (h *Handler) HandleGetActivities() http.HandlerFunc {
 
 		response := GetActivitiesResponse{
 			Activities: results,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}
+}
+
+func (h *Handler) HandleGetActivityCalendar() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.Background()
+
+		// Get authenticated user ID using the same helper function
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		startDateStr := r.URL.Query().Get("startDate")
+		endDateStr := r.URL.Query().Get("endDate")
+
+		if startDateStr == "" || endDateStr == "" {
+			http.Error(w, "start and end dates are required", http.StatusBadRequest)
+			return
+		}
+
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			http.Error(w, "invalid start date format (use YYYY-MM-DD)", http.StatusBadRequest)
+			return
+		}
+
+		endDate, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			http.Error(w, "invalid end date format (use YYYY-MM-DD)", http.StatusBadRequest)
+			return
+		}
+
+		if endDate.Before(startDate) {
+			http.Error(w, "invalid date range: endDate must be greater than or equal to startDate", http.StatusBadRequest)
+			return
+		}
+
+		// Get user's activities from database
+		activities, plannedActivities, err := h.database.GetActivitiesByUserIDAndDate(ctx, userID, startDate, endDate)
+		if err != nil {
+			h.log.Error("Failed to get activities from database", err)
+			http.Error(w, "Failed to retrieve activities", http.StatusInternalServerError)
+			return
+		}
+
+		// Transform activities to the response format using the unified helper function
+		// Initialize as empty slice to ensure we always return [] instead of null
+		resultActivities := make([]ActivityResult, 0, len(activities))
+		for _, activity := range activities {
+			result := createActivityResult(&activity)
+			resultActivities = append(resultActivities, result)
+		}
+
+		resultPlannedActivities := make([]PlannedActivityResult, 0, len(plannedActivities))
+		for _, plannedActivity := range plannedActivities {
+			plannedResult := createPlannedActivityResult(&plannedActivity)
+			resultPlannedActivities = append(resultPlannedActivities, plannedResult)
+		}
+
+		response := GetCalendarResponse{
+			Activities: resultActivities,
+			PlannedActivities: resultPlannedActivities,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -842,13 +949,13 @@ func calculateDerivedStats(activityType string, speedMs float64, distanceM float
 
 	if speedMs > 0 {
 		switch activityType {
-		case "road_bike":
+		case "road_biking":
 			// For bike activities, show speed in km/h and mph
 			speedKmh := speedMs * 3.6      // m/s to km/h
 			speedMph := speedMs * 2.236936 // m/s to mph
 			derived.SpeedKmh = &speedKmh
 			derived.SpeedMph = &speedMph
-		case "run":
+		case "running":
 			// For running activities, show pace in seconds per km and per mile
 			paceSPerKm := 1000.0 / speedMs     // seconds per km
 			paceSPerMile := 1609.344 / speedMs // seconds per mile
