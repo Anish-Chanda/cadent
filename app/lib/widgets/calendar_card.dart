@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/activity.dart';
+import '../models/planned_activity.dart';
 import '../providers/activities_provider.dart';
 import '../providers/app_settings_provider.dart';
+import '../providers/calendar_provider.dart';
+import 'global/empty_state_widget.dart';
 
 class CalendarCard extends StatefulWidget {
   const CalendarCard({Key? key}) : super(key: key);
@@ -42,27 +45,24 @@ class _CalendarCardState extends State<CalendarCard> {
     }).toList();
   }
 
-  Widget _buildActivityIndicator(BuildContext context, List<Activity> activities, bool isSelected) {
-    final hasActivity = activities.isNotEmpty;
-    final hasCompletedActivity = activities.any((a) => a.endTime != null);
+  Widget _buildActivityIndicator(BuildContext context, List<Activity> activities, List<PlannedActivity> planned, bool isSelected) {
+    final hasCompleted = activities.any((a) => a.endTime != null);
+    final hasPlanned = planned.isNotEmpty;
+    final hasAny = activities.isNotEmpty || hasPlanned;
 
     Color dotColor;
     Color? fillColor;
 
     if (isSelected) {
-      // Selected day: white dot
       dotColor = Colors.white;
-      fillColor = hasCompletedActivity ? Colors.white : Colors.transparent;
-    } else if (hasCompletedActivity) {
-      // Has completed activity: filled blue dot
+      fillColor = hasCompleted ? Colors.white : Colors.transparent;
+    } else if (hasCompleted) {
       dotColor = Colors.blue;
       fillColor = Colors.blue;
-    } else if (hasActivity) {
-      // Has activity but not completed: blue outline
+    } else if (hasAny) {
       dotColor = Colors.blue;
       fillColor = Colors.transparent;
     } else {
-      // No activity: subtle outline/empty dot
       dotColor = Colors.grey.shade400;
       fillColor = Colors.transparent;
     }
@@ -97,20 +97,23 @@ class _CalendarCardState extends State<CalendarCard> {
     final days = _surroundingDays();
     final today = DateTime.now();
 
-    return Consumer2<ActivitiesProvider, AppSettingsProvider>(
-      builder: (context, activitiesProvider, settingsProvider, child) {
+    return Consumer3<ActivitiesProvider, AppSettingsProvider, CalendarProvider>(
+      builder: (context, activitiesProvider, settingsProvider, calendarProvider, child) {
         final activities = activitiesProvider.activities;
         final isMetric = settingsProvider.isMetric;
         final selectedActivities = _selectedDate != null
             ? _getActivitiesForDate(activities, _selectedDate!)
             : <Activity>[];
+        final selectedPlanned = _selectedDate != null
+            ? calendarProvider.plannedForDate(_selectedDate!)
+            : <PlannedActivity>[];
 
         return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Calendar row with navigation arrows
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
                 child: Row(
                   children: [
                     // Left arrow
@@ -131,6 +134,7 @@ class _CalendarCardState extends State<CalendarCard> {
                           final dayName = DateFormat.E().format(date);
                           final dayNum = DateFormat.d().format(date);
                           final dayActivities = _getActivitiesForDate(activities, date);
+                          final dayPlanned = calendarProvider.plannedForDate(date);
 
                           return GestureDetector(
                             onTap: () {
@@ -190,7 +194,7 @@ class _CalendarCardState extends State<CalendarCard> {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      _buildActivityIndicator(context, dayActivities, isSelected),
+                                      _buildActivityIndicator(context, dayActivities, dayPlanned, isSelected),
                                     ],
                                   ),
                                 ),
@@ -211,82 +215,127 @@ class _CalendarCardState extends State<CalendarCard> {
                   ],
                 ),
               ),
-              // Animated details section only
-              AnimatedSize(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
+              // Details section
+              Container(
+                width: double.infinity,
+                constraints: BoxConstraints(
+                  minHeight: (selectedActivities.isEmpty && selectedPlanned.isEmpty) || _selectedDate == null ? 180 : 0,
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: _selectedDate == null
-                    ? const SizedBox.shrink()
-                    : Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(
-                              color: Theme.of(context).dividerColor,
-                              width: 0.5,
-                            ),
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: selectedActivities.isEmpty
-                            ? Text(
-                                'No activities on ${DateFormat.MMMd().format(_selectedDate!)}',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  fontSize: 13,
-                                ),
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: selectedActivities.map((activity) {
-                                  final distance = isMetric
-                                      ? activity.stats?.derived.distanceKm ?? 0
-                                      : activity.stats?.derived.distanceMiles ?? 0;
-                                  final distanceLabel = isMetric ? 'km' : 'mi';
-                                  final isCompleted = activity.endTime != null;
+                    ? const EmptyStateWidget(
+                        icon: Icons.calendar_today,
+                        title: 'Select a Day',
+                        message: 'Tap a date above to see your activities',
+                        iconSize: 48,
+                      )
+                    : (selectedActivities.isEmpty && selectedPlanned.isEmpty)
+                        ? const EmptyStateWidget(
+                            icon: Icons.directions_run,
+                            title: 'No Activities Today',
+                            iconSize: 48,
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ...selectedActivities.map((activity) {
+                                final distance = isMetric
+                                    ? activity.stats?.derived.distanceKm ?? 0
+                                    : activity.stats?.derived.distanceMiles ?? 0;
+                                final distanceLabel = isMetric ? 'km' : 'mi';
+                                final isCompleted = activity.endTime != null;
 
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          _getActivityIcon(activity.activityType),
-                                          size: 20,
-                                          color: Theme.of(context).colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                activity.title,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 14,
-                                                ),
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getActivityIcon(activity.activityType),
+                                        size: 28,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              activity.title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
                                               ),
+                                            ),
+                                            Text(
+                                              '${distance.toStringAsFixed(2)} $distanceLabel',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        isCompleted ? Icons.check_circle : Icons.schedule,
+                                        size: 22,
+                                        color: isCompleted ? Colors.green : Colors.orange,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                              ...selectedPlanned.map((planned) {
+                                final distanceKm = planned.plannedDistanceMeter != null
+                                    ? planned.plannedDistanceMeter! / 1000
+                                    : null;
+                                final distanceMiles = distanceKm != null ? distanceKm * 0.621371 : null;
+                                final distance = isMetric ? distanceKm : distanceMiles;
+                                final distanceLabel = isMetric ? 'km' : 'mi';
+
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getActivityIcon(planned.activityType),
+                                        size: 28,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              planned.title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            if (distance != null)
                                               Text(
                                                 '${distance.toStringAsFixed(2)} $distanceLabel',
                                                 style: TextStyle(
-                                                  fontSize: 12,
+                                                  fontSize: 14,
                                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                 ),
                                               ),
-                                            ],
-                                          ),
+                                          ],
                                         ),
-                                        Icon(
-                                          isCompleted ? Icons.check_circle : Icons.schedule,
-                                          size: 18,
-                                          color: isCompleted ? Colors.green : Colors.orange,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                      ),
+                                      ),
+                                      const Icon(
+                                        Icons.event,
+                                        size: 22,
+                                        color: Colors.orange,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
               ),
             ],
         );

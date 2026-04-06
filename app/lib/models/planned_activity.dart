@@ -1,4 +1,5 @@
 class PlannedActivity {
+  final String? id;
   final String title;
   final String? description;
   final String activityType;
@@ -10,6 +11,7 @@ class PlannedActivity {
   final int? targetPowerWatt;
 
   const PlannedActivity({
+    this.id,
     required this.title,
     this.description,
     required this.activityType,
@@ -51,5 +53,24 @@ class PlannedActivity {
         targetAverageSpeedMeterPerSecond:
             (json['targetAverageSpeedMeterPerSecond'] as num?)?.toDouble(),
         targetPowerWatt: json['targetPowerWatt'] as int?,
+      );
+
+  /// Parses the snake_case response from the calendar API endpoint.
+  factory PlannedActivity.fromCalendarJson(Map<String, dynamic> json) =>
+      PlannedActivity(
+        id: json['id'] as String?,
+        title: json['title'] as String,
+        description: (json['description'] as String?)?.isEmpty == true
+            ? null
+            : json['description'] as String?,
+        activityType: json['type'] as String,
+        startTime: DateTime.parse(json['start_time'] as String),
+        plannedDistanceMeter: (json['planned_distance'] as num?)?.toDouble(),
+        plannedDurationSecond: json['planned_duration'] as int?,
+        plannedElevationGainMeter:
+            (json['planned_elevation_gain'] as num?)?.toDouble(),
+        targetAverageSpeedMeterPerSecond:
+            (json['target_avg_speed'] as num?)?.toDouble(),
+        targetPowerWatt: json['target_power'] as int?,
       );
 }
