@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/activity.dart';
+<<<<<<< HEAD
 import '../models/planned_activity.dart';
 import '../providers/activities_provider.dart';
 import '../providers/app_settings_provider.dart';
 import '../providers/calendar_provider.dart';
 import 'global/empty_state_widget.dart';
+=======
+import '../providers/activities_provider.dart';
+import '../providers/app_settings_provider.dart';
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
 
 class CalendarCard extends StatefulWidget {
   const CalendarCard({Key? key}) : super(key: key);
@@ -45,15 +50,22 @@ class _CalendarCardState extends State<CalendarCard> {
     }).toList();
   }
 
+<<<<<<< HEAD
   Widget _buildActivityIndicator(BuildContext context, List<Activity> activities, List<PlannedActivity> planned, bool isSelected) {
     final hasCompleted = activities.any((a) => a.endTime != null);
     final hasPlanned = planned.isNotEmpty;
     final hasAny = activities.isNotEmpty || hasPlanned;
+=======
+  Widget _buildActivityIndicator(BuildContext context, List<Activity> activities, bool isSelected) {
+    final hasActivity = activities.isNotEmpty;
+    final hasCompletedActivity = activities.any((a) => a.endTime != null);
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
 
     Color dotColor;
     Color? fillColor;
 
     if (isSelected) {
+<<<<<<< HEAD
       dotColor = Colors.white;
       fillColor = hasCompleted ? Colors.white : Colors.transparent;
     } else if (hasCompleted) {
@@ -63,6 +75,21 @@ class _CalendarCardState extends State<CalendarCard> {
       dotColor = Colors.blue;
       fillColor = Colors.transparent;
     } else {
+=======
+      // Selected day: white dot
+      dotColor = Colors.white;
+      fillColor = hasCompletedActivity ? Colors.white : Colors.transparent;
+    } else if (hasCompletedActivity) {
+      // Has completed activity: filled blue dot
+      dotColor = Colors.blue;
+      fillColor = Colors.blue;
+    } else if (hasActivity) {
+      // Has activity but not completed: blue outline
+      dotColor = Colors.blue;
+      fillColor = Colors.transparent;
+    } else {
+      // No activity: subtle outline/empty dot
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
       dotColor = Colors.grey.shade400;
       fillColor = Colors.transparent;
     }
@@ -85,7 +112,12 @@ class _CalendarCardState extends State<CalendarCard> {
     switch (activityType.toLowerCase()) {
       case 'running':
         return Icons.directions_run;
+<<<<<<< HEAD
       case 'road_biking':
+=======
+      case 'road_bike':
+      case 'road biking':
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
         return Icons.directions_bike;
       default:
         return Icons.fitness_center;
@@ -97,23 +129,35 @@ class _CalendarCardState extends State<CalendarCard> {
     final days = _surroundingDays();
     final today = DateTime.now();
 
+<<<<<<< HEAD
     return Consumer3<ActivitiesProvider, AppSettingsProvider, CalendarProvider>(
       builder: (context, activitiesProvider, settingsProvider, calendarProvider, child) {
+=======
+    return Consumer2<ActivitiesProvider, AppSettingsProvider>(
+      builder: (context, activitiesProvider, settingsProvider, child) {
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
         final activities = activitiesProvider.activities;
         final isMetric = settingsProvider.isMetric;
         final selectedActivities = _selectedDate != null
             ? _getActivitiesForDate(activities, _selectedDate!)
             : <Activity>[];
+<<<<<<< HEAD
         final selectedPlanned = _selectedDate != null
             ? calendarProvider.plannedForDate(_selectedDate!)
             : <PlannedActivity>[];
+=======
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
 
         return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Calendar row with navigation arrows
               Padding(
+<<<<<<< HEAD
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+=======
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
                 child: Row(
                   children: [
                     // Left arrow
@@ -134,7 +178,10 @@ class _CalendarCardState extends State<CalendarCard> {
                           final dayName = DateFormat.E().format(date);
                           final dayNum = DateFormat.d().format(date);
                           final dayActivities = _getActivitiesForDate(activities, date);
+<<<<<<< HEAD
                           final dayPlanned = calendarProvider.plannedForDate(date);
+=======
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
 
                           return GestureDetector(
                             onTap: () {
@@ -194,7 +241,11 @@ class _CalendarCardState extends State<CalendarCard> {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
+<<<<<<< HEAD
                                       _buildActivityIndicator(context, dayActivities, dayPlanned, isSelected),
+=======
+                                      _buildActivityIndicator(context, dayActivities, isSelected),
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
                                     ],
                                   ),
                                 ),
@@ -215,6 +266,7 @@ class _CalendarCardState extends State<CalendarCard> {
                   ],
                 ),
               ),
+<<<<<<< HEAD
               // Details section
               Container(
                 width: double.infinity,
@@ -336,6 +388,84 @@ class _CalendarCardState extends State<CalendarCard> {
                               }),
                             ],
                           ),
+=======
+              // Animated details section only
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                child: _selectedDate == null
+                    ? const SizedBox.shrink()
+                    : Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: Theme.of(context).dividerColor,
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: selectedActivities.isEmpty
+                            ? Text(
+                                'No activities on ${DateFormat.MMMd().format(_selectedDate!)}',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontSize: 13,
+                                ),
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: selectedActivities.map((activity) {
+                                  final distance = isMetric
+                                      ? activity.stats?.derived.distanceKm ?? 0
+                                      : activity.stats?.derived.distanceMiles ?? 0;
+                                  final distanceLabel = isMetric ? 'km' : 'mi';
+                                  final isCompleted = activity.endTime != null;
+
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          _getActivityIcon(activity.activityType),
+                                          size: 20,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                activity.title,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${distance.toStringAsFixed(2)} $distanceLabel',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          isCompleted ? Icons.check_circle : Icons.schedule,
+                                          size: 18,
+                                          color: isCompleted ? Colors.green : Colors.orange,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                      ),
+>>>>>>> b829d675172ae5c8053fde93a9d2ff2953cd9862
               ),
             ],
         );
