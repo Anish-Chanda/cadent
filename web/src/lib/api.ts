@@ -202,6 +202,28 @@ export function getTrainingPlanWorkouts(
 	return request<TrainingPlanWorkout[]>(`/v1/training-plans/${id}/workouts`);
 }
 
+export interface ImportTrainingPlanRequest {
+	startDate: string;
+	selectedWorkoutsPerWeek: number;
+	title: string;
+	description: string | null;
+}
+
+export interface ImportTrainingPlanResponse {
+	userTrainingPlanId: string;
+	plannedActivitiesCreated: number;
+}
+
+export function importTrainingPlan(
+	id: string,
+	data: ImportTrainingPlanRequest,
+): Promise<ImportTrainingPlanResponse> {
+	return request<ImportTrainingPlanResponse>(`/v1/training-plans/${id}/import`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
+
 export interface PlannedActivity {
 	id: string;
 	title: string;

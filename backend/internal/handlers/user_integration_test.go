@@ -720,6 +720,12 @@ func TestUserHandlerEdgeCases(t *testing.T) {
 func (m *IntegrationUserMockDB) GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error) {
 	return nil, nil
 }
+func (m *IntegrationUserMockDB) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {
+	return nil, nil
+}
 func (m *IntegrationUserMockDB) GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error) {
 	return nil, nil
+}
+func (m *IntegrationUserMockDB) CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error {
+	return nil
 }

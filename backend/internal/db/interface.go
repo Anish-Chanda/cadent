@@ -26,7 +26,9 @@ type Database interface {
 
 	// --- Training Plans ---
 	GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error)
+	GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error)
 	GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error)
+	CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error
 
 	// --- User management methods ---
 	GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error)

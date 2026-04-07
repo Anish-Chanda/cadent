@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -301,11 +302,10 @@ export function PlannedActivityModal({
 							<div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
 								<div className="grid gap-2">
 									<Label htmlFor={dateInputId}>Date</Label>
-									<Input
+									<DatePicker
 										id={dateInputId}
-										type="date"
 										value={date}
-										onChange={(e) => setDate(e.target.value)}
+										onChange={setDate}
 									/>
 								</div>
 								<div className="grid gap-2">

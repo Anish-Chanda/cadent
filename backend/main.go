@@ -160,6 +160,7 @@ func main() {
 			// Training Plans
 			r.Get("/training-plans", apiHandler.HandleGetTrainingPlans())
 			r.Get("/training-plans/{id}/workouts", apiHandler.HandleGetTrainingPlanWorkouts())
+			r.Post("/training-plans/{id}/import", apiHandler.HandleImportTrainingPlan())
 
 			// Activity endpoints
 			r.Post("/activities", apiHandler.HandleCreateActivity())

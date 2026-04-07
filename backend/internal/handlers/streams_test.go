@@ -110,6 +110,18 @@ func (m *MockDatabase) CheckIdempotency(ctx context.Context, clientActivityID st
 func (m *MockDatabase) Connect(dsn string) error { return nil }
 func (m *MockDatabase) Close() error             { return nil }
 func (m *MockDatabase) Migrate() error           { return nil }
+func (m *MockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *MockDatabase) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *MockDatabase) GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error) {
+	return nil, nil
+}
+func (m *MockDatabase) CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error {
+	return nil
+}
 
 // Test helper functions
 func createTestActivity(activityID, userID string) *models.Activity {
@@ -938,12 +950,4 @@ func TestHandleGetActivityStreams(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Mocks for GetTrainingPlans and GetTrainingPlanWorkouts
-func (m *MockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error) {
-	return nil, nil
-}
-func (m *MockDatabase) GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error) {
-	return nil, nil
 }

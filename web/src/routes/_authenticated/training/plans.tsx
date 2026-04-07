@@ -10,6 +10,7 @@ import {
 	Clock,
 	CalendarDays,
 } from "lucide-react";
+import { TrainingPlanImportModal } from "@/components/training/training-plan-import-modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getTrainingPlans, getTrainingPlanWorkouts } from "@/lib/api";
@@ -25,6 +26,7 @@ function TrainingPlansPage() {
 	const [debouncedSearch] = useDebounce(search, 300);
 	const [sport, setSport] = useState("all");
 	const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+	const [isImportModalOpen, setImportModalOpen] = useState(false);
 
 	const { data: plans, isLoading: isPlansLoading } = useQuery({
 		queryKey: ["training-plans", debouncedSearch, sport],
@@ -183,7 +185,7 @@ function TrainingPlansPage() {
 								<Button
 									className="rounded-full px-6 gap-2 shadow-sm font-semibold"
 									variant="default"
-									onClick={() => {}}
+									onClick={() => setImportModalOpen(true)}
 								>
 									<ArrowDownToLine className="h-4 w-4" />
 									Import Plan
@@ -269,7 +271,7 @@ function TrainingPlansPage() {
 																{workout.planned_distance_m != null && (
 																	<div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground bg-muted/40 px-2 py-1 rounded-md">
 																		<RouteIcon className="h-3.5 w-3.5 text-muted-foreground" />
-																		{(workout.target_distance / 1000).toFixed(
+																		{(workout.planned_distance_m / 1000).toFixed(
 																			1,
 																		)}
 																		km
@@ -292,6 +294,11 @@ function TrainingPlansPage() {
 						</div>
 					</>
 				)}
+				<TrainingPlanImportModal
+					isOpen={isImportModalOpen}
+					onClose={() => setImportModalOpen(false)}
+					plan={selectedPlan}
+				/>
 			</div>
 		</div>
 	);

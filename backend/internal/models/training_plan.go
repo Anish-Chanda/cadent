@@ -1,17 +1,17 @@
 package models
 
 import (
-"time"
+	"time"
 
-"github.com/google/uuid"
+	"github.com/google/uuid"
 )
 
 type TrainingPlanDifficulty string
 
 const (
-TrainingPlanDifficultyBeginner     TrainingPlanDifficulty = "beginner"
-TrainingPlanDifficultyIntermediate TrainingPlanDifficulty = "intermediate"
-TrainingPlanDifficultyAdvanced     TrainingPlanDifficulty = "advanced"
+	TrainingPlanDifficultyBeginner     TrainingPlanDifficulty = "beginner"
+	TrainingPlanDifficultyIntermediate TrainingPlanDifficulty = "intermediate"
+	TrainingPlanDifficultyAdvanced     TrainingPlanDifficulty = "advanced"
 )
 
 type TrainingPlan struct {
@@ -43,4 +43,16 @@ type TrainingPlanWorkout struct {
 	TargetPowerWatt       *int                `json:"target_power_watt" db:"target_power_watt"`
 	CreatedAt             time.Time           `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time           `json:"updated_at" db:"updated_at"`
+}
+
+type UserTrainingPlan struct {
+	ID                      uuid.UUID `json:"id" db:"id"`
+	UserID                  string    `json:"user_id" db:"user_id"`
+	TrainingPlanID          uuid.UUID `json:"training_plan_id" db:"training_plan_id"`
+	Title                   string    `json:"title" db:"title"`
+	Description             *string   `json:"description" db:"description"`
+	StartDate               time.Time `json:"start_date" db:"start_date"`
+	SelectedWorkoutsPerWeek int       `json:"selected_workouts_per_week" db:"selected_workouts_per_week"`
+	CreatedAt               time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at" db:"updated_at"`
 }
