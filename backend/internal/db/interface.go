@@ -29,6 +29,10 @@ type Database interface {
 	GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error)
 	GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error)
 	CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error
+  
+	// --- Planned Activities ---
+	DeletePlannedActivity(ctx context.Context, activityID string, userID string) error
+	UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error
 
 	// --- User management methods ---
 	GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error)
