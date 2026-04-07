@@ -43,7 +43,7 @@ jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
 
 # --- Verify creation via calendar endpoint ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities" count == 1
@@ -72,7 +72,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify title and description updated via calendar ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].title" == "Evening Hill Climb"
@@ -99,7 +99,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify numeric fields updated via calendar ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].planned_distance" == 40000.0
@@ -123,7 +123,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify type and start time updated via calendar (new date range) ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].type" == "running"
@@ -196,7 +196,7 @@ HTTP 204
 
 # --- Verify activity is gone via calendar ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities" count == 0

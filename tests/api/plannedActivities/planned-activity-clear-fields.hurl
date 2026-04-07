@@ -42,7 +42,7 @@ activity_id: jsonpath "$.id"
 
 # --- Verify all fields are populated ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].description" == "A ride with every field filled in."
@@ -70,7 +70,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify description is null ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].description" == ""
@@ -93,7 +93,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify numeric fields are null ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].planned_distance" == null
@@ -104,7 +104,7 @@ jsonpath "$.planned_activities[0].target_power" == null
 
 # --- Verify required fields are unchanged after null clears ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].title" == "Full Detail Ride"
@@ -134,7 +134,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify all fields are repopulated ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].description" == "Repopulated description for zero test."
@@ -158,7 +158,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify description is empty string ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].description" == ""
@@ -181,7 +181,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify numeric fields are 0 (not null) ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].planned_distance" == 0.0
@@ -192,7 +192,7 @@ jsonpath "$.planned_activities[0].target_power" == 0
 
 # --- Verify required fields are still unchanged ---
 
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2026-04-01&endDate=2026-04-30
+GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
 jsonpath "$.planned_activities[0].title" == "Full Detail Ride"
