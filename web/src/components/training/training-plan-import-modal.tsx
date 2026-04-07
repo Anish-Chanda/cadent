@@ -254,6 +254,10 @@ export function TrainingPlanImportModal({
 										<Plus className="h-4 w-4" />
 									</Button>
 								</div>
+								<p className="text-xs text-muted-foreground">
+									Original recommended load: {plan.recommended_workouts_per_week} workout
+									{plan.recommended_workouts_per_week === 1 ? "" : "s"} per week.
+								</p>
 							</div>
 
 							<div className="grid gap-2">

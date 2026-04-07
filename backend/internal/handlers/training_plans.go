@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/anish-chanda/cadent/backend/internal/models"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 )
 
 type ImportTrainingPlanRequest struct {
@@ -75,14 +77,32 @@ func (h *Handler) HandleGetTrainingPlanWorkouts() http.HandlerFunc {
 			return
 		}
 
-		planID := chi.URLParam(r, "id")
+		planID := strings.TrimSpace(chi.URLParam(r, "id"))
 		if planID == "" {
 			sendError(w, http.StatusBadRequest, "Missing plan ID")
 			return
 		}
 
+		plan, err := h.database.GetTrainingPlanByID(ctx, planID)
+		if err != nil {
+			h.log.Error("Database failed to get training plan", err)
+			sendError(w, http.StatusInternalServerError, "Failed to retrieve training plan")
+			return
+		}
+		if plan == nil {
+			sendError(w, http.StatusBadRequest, "Invalid training plan ID: no training plan exists for the provided ID")
+			return
+		}
+
 		workouts, err := h.database.GetTrainingPlanWorkouts(ctx, planID)
 		if err != nil {
+			// A valid plan is guarenteed to have workouts, system generated ones are
+			// in the migration files, and user generate ones, the handler for that when implemented
+			// will validate.
+			if errors.Is(err, pgx.ErrNoRows) {
+				sendError(w, http.StatusBadRequest, "Invalid training plan ID: no training plan exists for the provided ID")
+				return
+			}
 			h.log.Error("Database failed to get training plan workouts", err)
 			sendError(w, http.StatusInternalServerError, "Failed to retrieve workouts")
 			return
