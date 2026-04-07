@@ -113,6 +113,7 @@ type PlannedActivityResult struct {
 	PlannedElevationGain *float64  `json:"planned_elevation_gain"`
 	TargetAvgSpeed       *float64  `json:"target_avg_speed"`
 	TargetPower          *int      `json:"target_power"`
+	IsDryRun             bool      `json:"is_dry_run,omitempty"`
 	MatchedActivityID    *string   `json:"matched_activity_id,omitempty"`
 	UserTrainingPlanID   *string   `json:"user_training_plan_id,omitempty"`
 	PlanSequenceIndex    *int      `json:"plan_sequence_index,omitempty"`

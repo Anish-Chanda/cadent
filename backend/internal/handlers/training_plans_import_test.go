@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"testing"
+	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/models"
 	"github.com/google/uuid"
@@ -63,5 +64,34 @@ func TestScheduleTemplateWorkouts_ReflowHigherWorkoutsPerWeek(t *testing.T) {
 		if scheduled[i].targetDayOffset != expectedOffsets[i] {
 			t.Fatalf("expected day offset %d at index %d, got %d", expectedOffsets[i], i, scheduled[i].targetDayOffset)
 		}
+	}
+}
+
+func TestCalculateImportDryRunWindow_UsesMonthBoundaries(t *testing.T) {
+	startDate := time.Date(2026, time.April, 10, 9, 0, 0, 0, time.UTC)
+	windowStart, windowEnd := calculateImportDryRunWindow(startDate, nil)
+
+	if got, want := windowStart.Format("2006-01-02"), "2026-04-01"; got != want {
+		t.Fatalf("expected start %s, got %s", want, got)
+	}
+	if got, want := windowEnd.Format("2006-01-02"), "2026-04-30"; got != want {
+		t.Fatalf("expected end %s, got %s", want, got)
+	}
+}
+
+func TestCalculateImportDryRunWindow_ExtendsToLastPlannedMonth(t *testing.T) {
+	startDate := time.Date(2026, time.April, 10, 9, 0, 0, 0, time.UTC)
+	dryRunActivities := []models.PlannedActivity{
+		{StartTime: time.Date(2026, time.April, 11, 9, 0, 0, 0, time.UTC)},
+		{StartTime: time.Date(2026, time.June, 3, 9, 0, 0, 0, time.UTC)},
+	}
+
+	windowStart, windowEnd := calculateImportDryRunWindow(startDate, dryRunActivities)
+
+	if got, want := windowStart.Format("2006-01-02"), "2026-04-01"; got != want {
+		t.Fatalf("expected start %s, got %s", want, got)
+	}
+	if got, want := windowEnd.Format("2006-01-02"), "2026-06-30"; got != want {
+		t.Fatalf("expected end %s, got %s", want, got)
 	}
 }

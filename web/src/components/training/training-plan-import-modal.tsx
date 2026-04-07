@@ -1,14 +1,17 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Minus, Plus } from "lucide-react";
 import * as React from "react";
+import { useDebounce } from "use-debounce";
 
+import { TrainingPlanImportCalendarPreview } from "@/components/training/training-plan-import-calendar-preview";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
 	type ImportTrainingPlanRequest,
+	importTrainingPlanDryRun,
 	importTrainingPlan,
 	type TrainingPlan,
 } from "@/lib/api";
@@ -21,6 +24,19 @@ interface TrainingPlanImportModalProps {
 
 function clampWorkoutsPerWeek(value: number) {
 	return Math.max(1, Math.min(7, value));
+}
+
+function toStartDateISO(value: string): string | null {
+	if (!value) {
+		return null;
+	}
+
+	const parsed = new Date(`${value}T09:00:00`);
+	if (Number.isNaN(parsed.getTime())) {
+		return null;
+	}
+
+	return parsed.toISOString();
 }
 
 export function TrainingPlanImportModal({
@@ -72,14 +88,51 @@ export function TrainingPlanImportModal({
 		},
 	});
 
-	if (!isOpen || !plan) {
-		return null;
-	}
-
 	const parsedWorkouts = Number.parseInt(workoutsPerWeekInput, 10);
 	const resolvedWorkoutsPerWeek = Number.isNaN(parsedWorkouts)
 		? 1
 		: clampWorkoutsPerWeek(parsedWorkouts);
+	const [debouncedStartDate] = useDebounce(startDate, 250);
+	const [debouncedWorkoutsPerWeek] = useDebounce(resolvedWorkoutsPerWeek, 250);
+	const [debouncedTitle] = useDebounce(title, 250);
+	const [debouncedDescription] = useDebounce(description, 250);
+	const debouncedStartDateIso = React.useMemo(
+		() => toStartDateISO(debouncedStartDate),
+		[debouncedStartDate],
+	);
+
+	const dryRunQuery = useQuery({
+		queryKey: [
+			"training-plan-import-dry-run",
+			plan?.id,
+			debouncedStartDateIso,
+			debouncedWorkoutsPerWeek,
+			debouncedTitle,
+			debouncedDescription,
+		],
+		queryFn: async () => {
+			if (!plan || !debouncedStartDateIso) {
+				throw new Error("Missing dry-run import inputs");
+			}
+
+			return importTrainingPlanDryRun(plan.id, {
+				startDate: debouncedStartDateIso,
+				selectedWorkoutsPerWeek: debouncedWorkoutsPerWeek,
+				title: debouncedTitle.trim() || null,
+				description: debouncedDescription.trim() || null,
+			});
+		},
+		enabled:
+			isOpen &&
+			!!plan &&
+			!!debouncedStartDateIso &&
+			debouncedWorkoutsPerWeek >= 1 &&
+			debouncedWorkoutsPerWeek <= 7,
+	});
+
+	if (!isOpen || !plan) {
+		return null;
+	}
 
 	const handleDecrement = () => {
 		setWorkoutsPerWeekInput(String(clampWorkoutsPerWeek(resolvedWorkoutsPerWeek - 1)));
@@ -116,15 +169,15 @@ export function TrainingPlanImportModal({
 			return;
 		}
 
-		const startDateTime = new Date(`${startDate}T09:00:00`);
-		if (Number.isNaN(startDateTime.getTime())) {
+		const startDateIso = toStartDateISO(startDate);
+		if (!startDateIso) {
 			setError("Please provide a valid start date");
 			return;
 		}
 
 		setError("");
 		mutation.mutate({
-			startDate: startDateTime.toISOString(),
+			startDate: startDateIso,
 			selectedWorkoutsPerWeek: normalizedWorkouts,
 			title: title.trim(),
 			description: description.trim() || null,
@@ -137,7 +190,7 @@ export function TrainingPlanImportModal({
 			onClick={onClose}
 		>
 			<div
-				className="bg-card h-[88vh] w-[95vw] max-w-[1320px] rounded-xl border shadow-lg"
+				className="bg-card h-[88vh] w-[95vw] max-w-330 rounded-xl border shadow-lg"
 				onClick={(event) => event.stopPropagation()}
 			>
 				<form onSubmit={handleSubmit} className="flex h-full flex-col overflow-hidden">
@@ -226,9 +279,16 @@ export function TrainingPlanImportModal({
 							</div>
 						</div>
 
-						<div className="rounded-xl border bg-muted/20 p-5">
-							<p className="text-sm leading-relaxed text-muted-foreground">TODO</p>
-						</div>
+						<TrainingPlanImportCalendarPreview
+							data={dryRunQuery.data}
+							isLoading={dryRunQuery.isLoading || dryRunQuery.isFetching}
+							errorMessage={
+								dryRunQuery.error instanceof Error
+									? dryRunQuery.error.message
+									: undefined
+							}
+							focusDate={startDate}
+						/>
 					</div>
 
 					{error && (

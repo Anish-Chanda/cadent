@@ -214,11 +214,28 @@ export interface ImportTrainingPlanResponse {
 	plannedActivitiesCreated: number;
 }
 
+export interface ImportTrainingPlanDryRunRequest {
+	startDate: string;
+	selectedWorkoutsPerWeek: number;
+	title?: string | null;
+	description?: string | null;
+}
+
 export function importTrainingPlan(
 	id: string,
 	data: ImportTrainingPlanRequest,
 ): Promise<ImportTrainingPlanResponse> {
 	return request<ImportTrainingPlanResponse>(`/v1/training-plans/${id}/import`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
+
+export function importTrainingPlanDryRun(
+	id: string,
+	data: ImportTrainingPlanDryRunRequest,
+): Promise<GetCalendarResponse> {
+	return request<GetCalendarResponse>(`/v1/training-plans/${id}/import/dry-run`, {
 		method: "POST",
 		body: JSON.stringify(data),
 	});
@@ -235,6 +252,8 @@ export interface PlannedActivity {
 	planned_elevation_gain: number | null;
 	target_avg_speed: number | null;
 	target_power: number | null;
+	// is dry run is used to visually differentiate with real planned activties (mostly used in the import panel by dry-run)
+	is_dry_run?: boolean;
 	matched_activity_id?: string;
 	user_training_plan_id?: string;
 	plan_sequence_index?: number;

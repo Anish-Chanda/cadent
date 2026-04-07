@@ -24,6 +24,13 @@ type ImportTrainingPlanResponse struct {
 	PlannedActivitiesCreated int    `json:"plannedActivitiesCreated"`
 }
 
+type ImportTrainingPlanDryRunRequest struct {
+	StartDate               time.Time `json:"startDate"`
+	SelectedWorkoutsPerWeek int       `json:"selectedWorkoutsPerWeek"`
+	Title                   *string   `json:"title,omitempty"`
+	Description             *string   `json:"description,omitempty"`
+}
+
 type scheduledTrainingPlanWorkout struct {
 	workout         models.TrainingPlanWorkout
 	planSequence    int
@@ -170,6 +177,99 @@ func (h *Handler) HandleImportTrainingPlan() http.HandlerFunc {
 	}
 }
 
+func (h *Handler) HandleImportTrainingPlanDryRun() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			h.log.Error("Failed to get authenticated user for training plan import dry-run", err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		var req ImportTrainingPlanDryRunRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			h.log.Error("Failed to decode training plan import dry-run request", err)
+			sendError(w, http.StatusBadRequest, "Invalid JSON format")
+			return
+		}
+
+		planID := strings.TrimSpace(chi.URLParam(r, "id"))
+		if planID == "" {
+			sendError(w, http.StatusBadRequest, "Missing training plan ID")
+			return
+		}
+		if req.StartDate.IsZero() {
+			sendError(w, http.StatusBadRequest, "Valid startDate is required")
+			return
+		}
+		if req.SelectedWorkoutsPerWeek < 1 || req.SelectedWorkoutsPerWeek > 7 {
+			sendError(w, http.StatusBadRequest, "selectedWorkoutsPerWeek must be between 1 and 7")
+			return
+		}
+
+		plan, err := h.database.GetTrainingPlanByID(ctx, planID)
+		if err != nil {
+			h.log.Error("Database failed to fetch training plan for dry-run", err)
+			sendError(w, http.StatusInternalServerError, "Failed to retrieve training plan")
+			return
+		}
+		if plan == nil {
+			sendError(w, http.StatusNotFound, "Training plan not found")
+			return
+		}
+
+		workouts, err := h.database.GetTrainingPlanWorkouts(ctx, planID)
+		if err != nil {
+			h.log.Error("Database failed to fetch training plan workouts for dry-run", err)
+			sendError(w, http.StatusInternalServerError, "Failed to retrieve training plan workouts")
+			return
+		}
+
+		scheduledWorkouts := scheduleTemplateWorkouts(workouts, req.SelectedWorkoutsPerWeek)
+		dryRunPlannedActivities := buildPlannedActivitiesFromScheduledWorkouts(userID, req.StartDate, scheduledWorkouts)
+
+		rangeStart, rangeEnd := calculateImportDryRunWindow(req.StartDate, dryRunPlannedActivities)
+		activities, plannedActivities, err := h.database.GetActivitiesByUserIDAndDate(ctx, userID, rangeStart, rangeEnd)
+		if err != nil {
+			h.log.Error("Database failed to fetch calendar data for import dry-run", err)
+			sendError(w, http.StatusInternalServerError, "Failed to build import preview")
+			return
+		}
+
+		resultActivities := make([]ActivityResult, 0, len(activities))
+		for _, activity := range activities {
+			resultActivities = append(resultActivities, createActivityResult(&activity))
+		}
+
+		resultPlannedActivities := make([]PlannedActivityResult, 0, len(plannedActivities)+len(dryRunPlannedActivities))
+		for _, plannedActivity := range plannedActivities {
+			resultPlannedActivities = append(resultPlannedActivities, createPlannedActivityResult(&plannedActivity))
+		}
+
+		now := time.Now().UTC()
+		for i := range dryRunPlannedActivities {
+			plannedResult := createPlannedActivityResult(&dryRunPlannedActivities[i])
+			plannedResult.ID = fmt.Sprintf("dry-run-%d", i+1)
+			plannedResult.MatchedActivityID = nil
+			plannedResult.UserTrainingPlanID = nil
+			plannedResult.CreatedAt = now
+			plannedResult.UpdatedAt = now
+			plannedResult.IsDryRun = true
+			resultPlannedActivities = append(resultPlannedActivities, plannedResult)
+		}
+
+		response := GetCalendarResponse{
+			Activities:        resultActivities,
+			PlannedActivities: resultPlannedActivities,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}
+}
+
 func normalizeOptionalString(input *string) *string {
 	if input == nil {
 		return nil
@@ -271,4 +371,27 @@ func buildPlannedActivitiesFromScheduledWorkouts(userID string, startDate time.T
 	}
 
 	return plannedActivities
+}
+
+func calculateImportDryRunWindow(startDate time.Time, dryRunPlannedActivities []models.PlannedActivity) (time.Time, time.Time) {
+	baseDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
+	lastDate := baseDate
+
+	for i := range dryRunPlannedActivities {
+		activityDate := time.Date(
+			dryRunPlannedActivities[i].StartTime.Year(),
+			dryRunPlannedActivities[i].StartTime.Month(),
+			dryRunPlannedActivities[i].StartTime.Day(),
+			0, 0, 0, 0,
+			dryRunPlannedActivities[i].StartTime.Location(),
+		)
+		if activityDate.After(lastDate) {
+			lastDate = activityDate
+		}
+	}
+
+	windowStart := time.Date(baseDate.Year(), baseDate.Month(), 1, 0, 0, 0, 0, baseDate.Location())
+	windowEnd := time.Date(lastDate.Year(), lastDate.Month()+1, 1, 0, 0, 0, 0, lastDate.Location()).Add(-time.Nanosecond)
+
+	return windowStart, windowEnd
 }
