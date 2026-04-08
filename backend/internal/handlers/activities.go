@@ -103,23 +103,27 @@ type ActivityResult struct {
 }
 
 type PlannedActivityResult struct {
-	ID                      string        `json:"id"`
-	Title                   string        `json:"title"`
-	Description             string        `json:"description"`
-	Type                    string        `json:"type"`
-	StartTime               time.Time     `json:"start_time"`
-	PlannedDistance         *float64      `json:"planned_distance"`
-	PlannedDuration         *int          `json:"planned_duration"`
-	PlannedElevationGain    *float64      `json:"planned_elevation_gain"`
-	TargetAvgSpeed          *float64      `json:"target_avg_speed"`
-	TargetPower             *int          `json:"target_power"`
-	CreatedAt               time.Time     `json:"created_at"`
-	UpdatedAt               time.Time     `json:"updated_at"`
+	ID                   string    `json:"id"`
+	Title                string    `json:"title"`
+	Description          string    `json:"description"`
+	Type                 string    `json:"type"`
+	StartTime            time.Time `json:"start_time"`
+	PlannedDistanceM      *float64 `json:"planned_distance_m"`
+	PlannedDurationS      *int     `json:"planned_duration_s"`
+	PlannedElevationGainM *float64 `json:"planned_elevation_gain_m"`
+	TargetAvgSpeedMps     *float64 `json:"target_avg_speed_mps"`
+	TargetPowerWatt       *int     `json:"target_power_watt"`
+	IsDryRun             bool      `json:"is_dry_run,omitempty"`
+	MatchedActivityID    *string   `json:"matched_activity_id,omitempty"`
+	UserTrainingPlanID   *string   `json:"user_training_plan_id,omitempty"`
+	PlanSequenceIndex    *int      `json:"plan_sequence_index,omitempty"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
 }
 
 type GetCalendarResponse struct {
-    Activities          []ActivityResult          `json:"activities"`
-    PlannedActivities   []PlannedActivityResult   `json:"planned_activities"`
+	Activities        []ActivityResult        `json:"activities"`
+	PlannedActivities []PlannedActivityResult `json:"planned_activities"`
 }
 
 type GetActivitiesResponse struct {
@@ -704,19 +708,33 @@ func createActivityResult(activity *models.Activity) ActivityResult {
 // createPlannedActivityResult creates an PlannedActivityResult from the PlannedActivity model only
 // This function should be used in both HTTP handlers to reduce duplication
 func createPlannedActivityResult(PlannedActivity *models.PlannedActivity) PlannedActivityResult {
+	var matchedActivityId *string
+	if PlannedActivity.MatchedActivityID != nil {
+		s := PlannedActivity.MatchedActivityID.String()
+		matchedActivityId = &s
+	}
+	var userTrainingPlanId *string
+	if PlannedActivity.UserTrainingPlanID != nil {
+		s := PlannedActivity.UserTrainingPlanID.String()
+		userTrainingPlanId = &s
+	}
+
 	return PlannedActivityResult{
-		ID:            PlannedActivity.ID.String(),
-		Title:         PlannedActivity.Title,
-		Description:   stringOrDefault(PlannedActivity.Description, ""),
-		Type:          string(PlannedActivity.Type),
-		StartTime:     PlannedActivity.StartTime,
-		PlannedDistance: PlannedActivity.PlannedDistanceM,
-		PlannedDuration: PlannedActivity.PlannedDurationS,
-		PlannedElevationGain: PlannedActivity.PlannedElevationGainM,
-		TargetAvgSpeed: PlannedActivity.TargetAvgSpeedMps,
-		TargetPower: PlannedActivity.TargetPowerWatt,
-		CreatedAt: PlannedActivity.CreatedAt,
-		UpdatedAt: PlannedActivity.UpdatedAt,
+		ID:                   PlannedActivity.ID.String(),
+		Title:                PlannedActivity.Title,
+		Description:          stringOrDefault(PlannedActivity.Description, ""),
+		Type:                 string(PlannedActivity.Type),
+		StartTime:            PlannedActivity.StartTime.UTC(),
+		PlannedDistanceM:      PlannedActivity.PlannedDistanceM,
+		PlannedDurationS:      PlannedActivity.PlannedDurationS,
+		PlannedElevationGainM: PlannedActivity.PlannedElevationGainM,
+		TargetAvgSpeedMps:     PlannedActivity.TargetAvgSpeedMps,
+		TargetPowerWatt:       PlannedActivity.TargetPowerWatt,
+		MatchedActivityID:    matchedActivityId,
+		UserTrainingPlanID:   userTrainingPlanId,
+		PlanSequenceIndex:    PlannedActivity.PlanSequenceIndex,
+		CreatedAt:            PlannedActivity.CreatedAt,
+		UpdatedAt:            PlannedActivity.UpdatedAt,
 	}
 }
 
@@ -792,6 +810,9 @@ func (h *Handler) HandleGetActivityCalendar() http.HandlerFunc {
 			return
 		}
 
+		// Interpret endDate as inclusive through the end of the selected day.
+		endDate = endDate.Add(24*time.Hour - time.Nanosecond)
+
 		// Get user's activities from database
 		activities, plannedActivities, err := h.database.GetActivitiesByUserIDAndDate(ctx, userID, startDate, endDate)
 		if err != nil {
@@ -815,7 +836,7 @@ func (h *Handler) HandleGetActivityCalendar() http.HandlerFunc {
 		}
 
 		response := GetCalendarResponse{
-			Activities: resultActivities,
+			Activities:        resultActivities,
 			PlannedActivities: resultPlannedActivities,
 		}
 

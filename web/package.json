@@ -23,15 +23,19 @@
     "@tanstack/react-router-devtools": "^1.166.11",
     "@tanstack/router-plugin": "^1.167.12",
     "@types/mapbox__polyline": "^1.0.5",
+    "@types/react-big-calendar": "^1.16.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.545.0",
     "maplibre-gl": "^5.22.0",
     "radix-ui": "^1.4.3",
+    "react-big-calendar": "^1.19.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "use-debounce": "^10.1.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",

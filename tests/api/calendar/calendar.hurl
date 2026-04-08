@@ -1,5 +1,5 @@
 # Activity Calendar E2E Tests
-# Tests GET /api/v1/activities/calendar endpoint with uploads + planned activities
+# Tests GET /api/v1/calendar endpoint with uploads + planned activities
 
 ### Setup: Create isolated user
 POST http://localhost:8080/api/signup
@@ -13,7 +13,7 @@ Content-Type: application/json
 HTTP 201
 
 ### Authentication required for calendar endpoint
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2000-01-01&endDate=2100-01-01
+GET http://localhost:8080/api/v1/calendar?startDate=2000-01-01&endDate=2100-01-01
 
 HTTP 401
 
@@ -94,7 +94,7 @@ plan_run_id: jsonpath "$.id"
 jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 ### Get calendar and verify returned content (not only counts)
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2000-01-01&endDate=2100-01-01
+GET http://localhost:8080/api/v1/calendar?startDate=2000-01-01&endDate=2100-01-01
 
 HTTP 200
 [Asserts]
@@ -117,15 +117,15 @@ jsonpath "$.planned_activities[*].title" contains "Planned Tempo Ride"
 jsonpath "$.planned_activities[*].title" contains "Planned Progression Run"
 jsonpath "$.planned_activities[*].type" contains "road_biking"
 jsonpath "$.planned_activities[*].type" contains "running"
-jsonpath "$.planned_activities[*].planned_distance" contains 25000
-jsonpath "$.planned_activities[*].planned_distance" contains 10000
-jsonpath "$.planned_activities[*].planned_duration" contains 3600
-jsonpath "$.planned_activities[*].planned_duration" contains 3000
+jsonpath "$.planned_activities[*].planned_distance_m" contains 25000
+jsonpath "$.planned_activities[*].planned_distance_m" contains 10000
+jsonpath "$.planned_activities[*].planned_duration_s" contains 3600
+jsonpath "$.planned_activities[*].planned_duration_s" contains 3000
 jsonpath "$.planned_activities[*].start_time" contains "2026-03-10T07:30:00Z"
 jsonpath "$.planned_activities[*].start_time" contains "2026-03-12T18:15:00Z"
 
 ### Date range with no matching planned activities
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2013-06-12&endDate=2013-06-12
+GET http://localhost:8080/api/v1/calendar?startDate=2013-06-12&endDate=2013-06-12
 
 HTTP 200
 [Asserts]
@@ -133,26 +133,26 @@ jsonpath "$.activities" count == 0
 jsonpath "$.planned_activities" count == 0
 
 ### Invalid start date format
-GET http://localhost:8080/api/v1/activities/calendar?startDate=12-06-2013&endDate=2013-06-12
+GET http://localhost:8080/api/v1/calendar?startDate=12-06-2013&endDate=2013-06-12
 
 HTTP 400
 
 ### Invalid end date format
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2013-06-12&endDate=12-06-2013
+GET http://localhost:8080/api/v1/calendar?startDate=2013-06-12&endDate=12-06-2013
 
 HTTP 400
 
 ### Missing start date
-GET http://localhost:8080/api/v1/activities/calendar?endDate=2013-06-12
+GET http://localhost:8080/api/v1/calendar?endDate=2013-06-12
 
 HTTP 400
 
 ### Missing end date
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2013-06-12
+GET http://localhost:8080/api/v1/calendar?startDate=2013-06-12
 
 HTTP 400
 
 ### End date before start date
-GET http://localhost:8080/api/v1/activities/calendar?startDate=2013-06-12&endDate=2012-06-12
+GET http://localhost:8080/api/v1/calendar?startDate=2013-06-12&endDate=2012-06-12
 
 HTTP 400

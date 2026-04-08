@@ -11,8 +11,6 @@ type Database interface {
 	// --- AUTH ---
 	GetUserByEmail(ctx context.Context, email string) (*models.UserRecord, error)
 	CreateUser(ctx context.Context, user *models.UserRecord) error
-	// UpdateUser(ctx context.Context, user *UserRecord) error
-	// DeleteUser(ctx context.Context, id string) error
 
 	// --- Activities stuff ----
 	CreateActivity(ctx context.Context, activity *models.Activity) error
@@ -26,13 +24,17 @@ type Database interface {
 	GetActivityStreams(ctx context.Context, activityID string, lod models.StreamLOD) ([]models.ActivityStream, error)
 	CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error
 
+	// --- Training Plans ---
+	GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error)
+	GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error)
+	GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error)
+	CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error
+  
 	// --- Planned Activities ---
 	DeletePlannedActivity(ctx context.Context, activityID string, userID string) error
 	UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error
 
-	// --- Other stuff ---
-
-	// User management methods
+	// --- User management methods ---
 	GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error)
 	UpdateUser(ctx context.Context, userID string, updates map[string]interface{}) error
 

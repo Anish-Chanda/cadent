@@ -61,7 +61,7 @@ func (m *mockDatabase) CreateActivity(ctx context.Context, activity *models.Acti
 func (m *mockDatabase) GetActivitiesByUserID(ctx context.Context, userID string) ([]models.Activity, error) {
 	return nil, nil
 }
-func (m *mockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity,[]models.PlannedActivity, error) {
+func (m *mockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID string, start_date time.Time, end_date time.Time) ([]models.Activity, []models.PlannedActivity, error) {
 	return nil, nil, nil
 }
 func (m *mockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
@@ -836,4 +836,18 @@ func TestSignupHandler(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Mocks for GetTrainingPlans and GetTrainingPlanWorkouts
+func (m *mockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *mockDatabase) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *mockDatabase) GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error) {
+	return nil, nil
+}
+func (m *mockDatabase) CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error {
+	return nil
 }

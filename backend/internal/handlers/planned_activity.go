@@ -24,18 +24,29 @@ type CreatePlannedActivityRequest struct {
 	TargetPowerWatt                  *int     `json:"targetPowerWatt"`
 }
 
+func isValidPlannedActivityType(actType string) bool {
+	switch models.PlannedActivityType(actType) {
+	case models.PlannedActivityTypeRunning,
+		models.PlannedActivityTypeRoadBiking,
+		models.PlannedActivityTypeResting,
+		models.PlannedActivityTypeCrossTraining,
+		models.PlannedActivityTypeStrengthTraining,
+		models.PlannedActivityTypeMobilityTraining:
+		return true
+	}
+	return false
+}
+
 func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// 1. Auth Check
 		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		// 2. Decode the JSON Body
 		var req CreatePlannedActivityRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			h.log.Error("Failed to decode plan request", err)
@@ -43,7 +54,6 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			return
 		}
 
-		// Validation
 		if strings.TrimSpace(req.Title) == "" || strings.TrimSpace(req.ActivityType) == "" {
 			sendError(w, http.StatusBadRequest, "Title and Activity Type are required")
 			return
@@ -52,19 +62,18 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			sendError(w, http.StatusBadRequest, "Valid Start Time is required")
 			return
 		}
-		// Validate activity_type enum database insertion to return 400
-		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
+
+		if !isValidPlannedActivityType(req.ActivityType) {
 			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
-			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", req.ActivityType))
+			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s", req.ActivityType))
 			return
 		}
 
-		// 3. Save to Database
 		plan := &models.PlannedActivity{
 			UserID:                userID,
 			Title:                 req.Title,
 			Description:           req.Description,
-			Type:                  models.ActivityType(req.ActivityType),
+			Type:                  models.PlannedActivityType(req.ActivityType),
 			StartTime:             req.StartTime,
 			PlannedDistanceM:      req.PlannedDistanceMeter,
 			PlannedDurationS:      req.PlannedDurationSecond,
@@ -80,7 +89,6 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			return
 		}
 
-		// 4. Build Success Response
 		response := map[string]interface{}{
 			"id": saved.ID.String(),
 		}

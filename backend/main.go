@@ -157,6 +157,12 @@ func main() {
 			authMiddleware := authService.Middleware()
 			r.Use(authMiddleware.Auth)
 
+			// Training Plans
+			r.Get("/training-plans", apiHandler.HandleGetTrainingPlans())
+			r.Get("/training-plans/{id}/workouts", apiHandler.HandleGetTrainingPlanWorkouts())
+			r.Post("/training-plans/{id}/import/dry-run", apiHandler.HandleImportTrainingPlanDryRun())
+			r.Post("/training-plans/{id}/import", apiHandler.HandleImportTrainingPlan())
+
 			// Activity endpoints
 			r.Post("/activities", apiHandler.HandleCreateActivity())
 			r.Get("/activities", apiHandler.HandleGetActivities())
@@ -165,7 +171,9 @@ func main() {
 			r.Delete("/activities/plan", apiHandler.HandleDeletePlannedActivity())
 			r.Patch("/activities/plan", apiHandler.HandleUpdatePlannedActivity())
 			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
-			r.Get("/activities/calendar", apiHandler.HandleGetActivityCalendar())
+
+			// Calendar endpoints
+			r.Get("/calendar", apiHandler.HandleGetActivityCalendar())
 
 			// User endpoints
 			r.Get("/user", apiHandler.HandleGetUser())

@@ -368,6 +368,7 @@ func (s *PostgresDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID st
             id, user_id, title, description, type,
             start_time, planned_distance_m, planned_duration_s,
             planned_elevation_gain_m, target_avg_speed_mps, target_power_watt,
+            matched_activity_id, user_training_plan_id, plan_sequence_index,
             created_at, updated_at
         FROM planned_activities
         WHERE user_id = $1 AND start_time >= $2 AND start_time <= $3
@@ -396,6 +397,9 @@ func (s *PostgresDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID st
             &plannedActivity.PlannedElevationGainM,
             &plannedActivity.TargetAvgSpeedMps,
             &plannedActivity.TargetPowerWatt,
+            &plannedActivity.MatchedActivityID,
+            &plannedActivity.UserTrainingPlanID,
+            &plannedActivity.PlanSequenceIndex,
             &plannedActivity.CreatedAt,
             &plannedActivity.UpdatedAt,
         )
