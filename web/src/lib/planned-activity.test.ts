@@ -52,7 +52,7 @@ describe("unit conversions", () => {
 	});
 
 	it("converts speed to m/s", () => {
-		expect(speedToMetersPerSecond(36, "kmh")).toBeCloseTo(10, 4);
+		expect(speedToMetersPerSecond(36, "kph")).toBeCloseTo(10, 4);
 		expect(speedToMetersPerSecond(10, "mph")).toBeCloseTo(4.4704, 4);
 	});
 
@@ -66,16 +66,24 @@ describe("unit conversions", () => {
 
 describe("supportsPlannedMetricField", () => {
 	it("hides all metric fields for rest day", () => {
-		expect(supportsPlannedMetricField("rest", "duration")).toBe(false);
-		expect(supportsPlannedMetricField("rest", "distance")).toBe(false);
-		expect(supportsPlannedMetricField("rest", "power")).toBe(false);
+		expect(supportsPlannedMetricField("resting", "duration")).toBe(false);
+		expect(supportsPlannedMetricField("resting", "distance")).toBe(false);
+		expect(supportsPlannedMetricField("resting", "power")).toBe(false);
 	});
 
 	it("allows only duration for mobility and strength", () => {
-		expect(supportsPlannedMetricField("mobility", "duration")).toBe(true);
-		expect(supportsPlannedMetricField("mobility", "distance")).toBe(false);
-		expect(supportsPlannedMetricField("strength", "duration")).toBe(true);
-		expect(supportsPlannedMetricField("strength", "avg_speed")).toBe(false);
+		expect(supportsPlannedMetricField("mobility_training", "duration")).toBe(
+			true,
+		);
+		expect(supportsPlannedMetricField("mobility_training", "distance")).toBe(
+			false,
+		);
+		expect(supportsPlannedMetricField("strength_training", "duration")).toBe(
+			true,
+		);
+		expect(
+			supportsPlannedMetricField("strength_training", "avg_speed"),
+		).toBe(false);
 	});
 
 	it("uses pace instead of speed for running", () => {

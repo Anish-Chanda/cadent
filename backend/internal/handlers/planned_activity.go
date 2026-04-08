@@ -28,10 +28,10 @@ func isValidPlannedActivityType(actType string) bool {
 	switch models.PlannedActivityType(actType) {
 	case models.PlannedActivityTypeRunning,
 		models.PlannedActivityTypeRoadBiking,
-		models.PlannedActivityTypeRest,
+		models.PlannedActivityTypeResting,
 		models.PlannedActivityTypeCrossTraining,
-		models.PlannedActivityTypeStrength,
-		models.PlannedActivityTypeMobility:
+		models.PlannedActivityTypeStrengthTraining,
+		models.PlannedActivityTypeMobilityTraining:
 		return true
 	}
 	return false

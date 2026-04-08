@@ -11,8 +11,8 @@ CREATE TABLE training_plans (
     title text NOT NULL,
     description text,
 
-    -- Main sport for browsing/filtering. Uses the real activity enum on purpose.
-    primary_sport activity_type,
+    -- Main activity type for browsing/filtering. Uses the real activity enum on purpose.
+    primary_activity_type activity_type,
 
     difficulty training_plan_difficulty NOT NULL,
     duration_weeks smallint NOT NULL,

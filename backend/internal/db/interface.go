@@ -25,7 +25,7 @@ type Database interface {
 	CreateActivityStreams(ctx context.Context, streams []models.ActivityStream) error
 
 	// --- Training Plans ---
-	GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error)
+	GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error)
 	GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error)
 	GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error)
 	CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error

@@ -49,14 +49,21 @@ func (h *Handler) HandleGetTrainingPlans() http.HandlerFunc {
 		}
 
 		searchQuery := r.URL.Query().Get("q")
-		sport := r.URL.Query().Get("sport")
+		activityType := r.URL.Query().Get("activity_type")
+		var activityTypeFilter *models.ActivityType
 
-		if sport != "" && sport != string(models.ActivityTypeRun) && sport != string(models.ActivityTypeRoadBike) {
-			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid sport filter: %s", sport))
-			return
+		if activityType != "" {
+			parsedActivityType := models.ActivityType(activityType)
+			switch parsedActivityType {
+			case models.ActivityTypeRun, models.ActivityTypeRoadBike:
+				activityTypeFilter = &parsedActivityType
+			default:
+				sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type filter: %s", activityType))
+				return
+			}
 		}
 
-		plans, err := h.database.GetTrainingPlans(ctx, searchQuery, sport)
+		plans, err := h.database.GetTrainingPlans(ctx, searchQuery, activityTypeFilter)
 		if err != nil {
 			h.log.Error("Database failed to get training plans", err)
 			sendError(w, http.StatusInternalServerError, "Failed to retrieve training plans")

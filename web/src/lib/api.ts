@@ -148,6 +148,8 @@ export interface GetActivitiesResponse {
 	activities: Activity[];
 }
 
+export type ActivityType = "running" | "road_biking";
+
 export function getActivities(): Promise<GetActivitiesResponse> {
 	return request<GetActivitiesResponse>("/v1/activities");
 }
@@ -160,7 +162,7 @@ export interface TrainingPlan {
 	created_by_user_id?: string;
 	title: string;
 	description: string | null;
-	primary_sport: string | null;
+	primary_activity_type: ActivityType | null;
 	difficulty: string;
 	duration_weeks: number;
 	recommended_workouts_per_week: number;
@@ -168,6 +170,9 @@ export interface TrainingPlan {
 	created_at: string;
 	updated_at: string;
 }
+
+// "all" is a UI-only filter value and is not part of the backend activity_type enum.
+export type TrainingPlanActivityTypeFilter = ActivityType | "all";
 
 export interface TrainingPlanWorkout {
 	id: string;
@@ -188,11 +193,13 @@ export interface TrainingPlanWorkout {
 
 export function getTrainingPlans(
 	q?: string,
-	sport?: string,
+	activityType?: TrainingPlanActivityTypeFilter,
 ): Promise<TrainingPlan[]> {
 	const params = new URLSearchParams();
 	if (q) params.set("q", q);
-	if (sport && sport !== "all") params.set("sport", sport);
+	if (activityType && activityType !== "all") {
+		params.set("activity_type", activityType);
+	}
 	return request<TrainingPlan[]>(`/v1/training-plans?${params.toString()}`);
 }
 
@@ -247,11 +254,11 @@ export interface PlannedActivity {
 	description: string;
 	type: string;
 	start_time: string;
-	planned_distance: number | null;
-	planned_duration: number | null;
-	planned_elevation_gain: number | null;
-	target_avg_speed: number | null;
-	target_power: number | null;
+	planned_distance_m: number | null;
+	planned_duration_s: number | null;
+	planned_elevation_gain_m: number | null;
+	target_avg_speed_mps: number | null;
+	target_power_watt: number | null;
 	// is dry run is used to visually differentiate with real planned activties (mostly used in the import panel by dry-run)
 	is_dry_run?: boolean;
 	matched_activity_id?: string;

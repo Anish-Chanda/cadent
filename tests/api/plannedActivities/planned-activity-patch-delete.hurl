@@ -51,11 +51,11 @@ jsonpath "$.planned_activities[0].id" == "{{activity_id}}"
 jsonpath "$.planned_activities[0].title" == "Morning Hill Climb"
 jsonpath "$.planned_activities[0].description" == "Steady climb with cadence focus."
 jsonpath "$.planned_activities[0].type" == "road_biking"
-jsonpath "$.planned_activities[0].planned_distance" == 30000.0
-jsonpath "$.planned_activities[0].planned_duration" == 5400
-jsonpath "$.planned_activities[0].planned_elevation_gain" == 500.0
-jsonpath "$.planned_activities[0].target_avg_speed" == 5.56
-jsonpath "$.planned_activities[0].target_power" == 200
+jsonpath "$.planned_activities[0].planned_distance_m" == 30000.0
+jsonpath "$.planned_activities[0].planned_duration_s" == 5400
+jsonpath "$.planned_activities[0].planned_elevation_gain_m" == 500.0
+jsonpath "$.planned_activities[0].target_avg_speed_mps" == 5.56
+jsonpath "$.planned_activities[0].target_power_watt" == 200
 
 # --- PATCH: Update title and description ---
 
@@ -78,8 +78,8 @@ HTTP 200
 jsonpath "$.planned_activities[0].title" == "Evening Hill Climb"
 jsonpath "$.planned_activities[0].description" == "Updated to evening session with power intervals."
 jsonpath "$.planned_activities[0].type" == "road_biking"
-jsonpath "$.planned_activities[0].planned_distance" == 30000.0
-jsonpath "$.planned_activities[0].planned_duration" == 5400
+jsonpath "$.planned_activities[0].planned_distance_m" == 30000.0
+jsonpath "$.planned_activities[0].planned_duration_s" == 5400
 
 # --- PATCH: Update numeric fields ---
 
@@ -102,11 +102,11 @@ jsonpath "$.message" == "Planned activity updated"
 GET http://localhost:8080/api/v1/calendar?startDate=2026-04-01&endDate=2026-04-30
 HTTP 200
 [Asserts]
-jsonpath "$.planned_activities[0].planned_distance" == 40000.0
-jsonpath "$.planned_activities[0].planned_duration" == 7200
-jsonpath "$.planned_activities[0].planned_elevation_gain" == 750.0
-jsonpath "$.planned_activities[0].target_avg_speed" == 5.0
-jsonpath "$.planned_activities[0].target_power" == 220
+jsonpath "$.planned_activities[0].planned_distance_m" == 40000.0
+jsonpath "$.planned_activities[0].planned_duration_s" == 7200
+jsonpath "$.planned_activities[0].planned_elevation_gain_m" == 750.0
+jsonpath "$.planned_activities[0].target_avg_speed_mps" == 5.0
+jsonpath "$.planned_activities[0].target_power_watt" == 220
 
 # --- PATCH: Update activity type and start time ---
 

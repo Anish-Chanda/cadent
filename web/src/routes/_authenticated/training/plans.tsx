@@ -13,7 +13,11 @@ import {
 import { TrainingPlanImportModal } from "@/components/training/training-plan-import-modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getTrainingPlans, getTrainingPlanWorkouts } from "@/lib/api";
+import {
+	getTrainingPlans,
+	getTrainingPlanWorkouts,
+	type TrainingPlanActivityTypeFilter,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "use-debounce";
 
@@ -24,13 +28,14 @@ export const Route = createFileRoute("/_authenticated/training/plans")({
 function TrainingPlansPage() {
 	const [search, setSearch] = useState("");
 	const [debouncedSearch] = useDebounce(search, 300);
-	const [sport, setSport] = useState("all");
+	const [activityType, setActivityType] =
+		useState<TrainingPlanActivityTypeFilter>("all");
 	const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 	const [isImportModalOpen, setImportModalOpen] = useState(false);
 
 	const { data: plans, isLoading: isPlansLoading } = useQuery({
-		queryKey: ["training-plans", debouncedSearch, sport],
-		queryFn: () => getTrainingPlans(debouncedSearch, sport),
+		queryKey: ["training-plans", debouncedSearch, activityType],
+		queryFn: () => getTrainingPlans(debouncedSearch, activityType),
 	});
 
 	const selectedPlan = plans?.find((p) => p.id === selectedPlanId) || null;
@@ -86,10 +91,10 @@ function TrainingPlansPage() {
 							{(["all", "running", "road_biking"] as const).map((s) => (
 								<button
 									key={s}
-									onClick={() => setSport(s)}
+									onClick={() => setActivityType(s)}
 									className={cn(
 										"px-3.5 py-1.5 rounded-full capitalize transition-colors font-medium border text-[13px] whitespace-nowrap",
-										sport === s
+										activityType === s
 											? "bg-primary text-primary-foreground border-primary"
 											: "bg-background text-muted-foreground hover:bg-muted border-border",
 									)}
@@ -123,15 +128,13 @@ function TrainingPlansPage() {
 								)}
 							>
 								<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">
-									{plan.primary_sport === "run" ||
-									plan.primary_sport === "run" ||
-									plan.primary_sport === "running" ? (
+									{plan.primary_activity_type === "running" ? (
 										<RouteIcon className="h-3 w-3" />
 									) : (
 										<Dumbbell className="h-3 w-3" />
 									)}
-									{plan.primary_sport
-										? plan.primary_sport.replace("_", " ")
+									{plan.primary_activity_type
+										? plan.primary_activity_type.replace("_", " ")
 										: ""}
 								</div>
 								<h3 className="font-semibold text-[15px] leading-tight line-clamp-1 text-foreground">
@@ -167,10 +170,8 @@ function TrainingPlansPage() {
 							<div className="pt-1">
 								<div className="flex items-center gap-3 mb-3">
 									<span className="text-[11px] font-bold px-2.5 py-1 rounded-md bg-primary/10 text-primary uppercase tracking-widest">
-										{selectedPlan.primary_sport
-											? selectedPlan.primary_sport
-												? selectedPlan.primary_sport.replace("_", " ")
-												: ""
+										{selectedPlan.primary_activity_type
+											? selectedPlan.primary_activity_type.replace("_", " ")
 											: ""}
 									</span>
 								</div>

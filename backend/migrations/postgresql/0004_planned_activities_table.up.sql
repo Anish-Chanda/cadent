@@ -1,10 +1,10 @@
 CREATE TYPE planned_activity_type AS ENUM (
     'running',
     'road_biking',
-    'rest',
+    'resting',
     'cross_training',
-    'strength',
-    'mobility'
+    'strength_training',
+    'mobility_training'
 );
 
 CREATE TABLE planned_activities (

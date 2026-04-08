@@ -1,14 +1,14 @@
 export type PlannedActivityType =
 	| "running"
 	| "road_biking"
-	| "strength"
-	| "mobility"
+	| "strength_training"
+	| "mobility_training"
 	| "cross_training"
-	| "rest";
+	| "resting";
 
 export type DistanceUnit = "km" | "mi";
 export type ElevationUnit = "m" | "ft";
-export type SpeedUnit = "kmh" | "mph";
+export type SpeedUnit = "kph" | "mph";
 export type PaceUnit = "min_per_km" | "min_per_mile";
 
 export type PlannedMetricField =
@@ -25,10 +25,10 @@ export const PLANNED_ACTIVITY_TYPE_OPTIONS: Array<{
 }> = [
 	{ value: "running", label: "Running" },
 	{ value: "road_biking", label: "Cycling" },
-	{ value: "strength", label: "Strength" },
-	{ value: "mobility", label: "Mobility" },
+	{ value: "strength_training", label: "Strength Training" },
+	{ value: "mobility_training", label: "Mobility Training" },
 	{ value: "cross_training", label: "Cross Training" },
-	{ value: "rest", label: "Rest Day" },
+	{ value: "resting", label: "Rest Day" },
 ];
 
 const METRIC_FIELDS_BY_TYPE: Record<PlannedActivityType, PlannedMetricField[]> =
@@ -36,9 +36,9 @@ const METRIC_FIELDS_BY_TYPE: Record<PlannedActivityType, PlannedMetricField[]> =
 		running: ["duration", "distance", "elevation", "pace"],
 		road_biking: ["duration", "distance", "elevation", "avg_speed", "power"],
 		cross_training: ["duration", "distance", "elevation", "avg_speed", "power"],
-		strength: ["duration"],
-		mobility: ["duration"],
-		rest: [],
+		strength_training: ["duration"],
+		mobility_training: ["duration"],
+		resting: [],
 	};
 
 export function supportsPlannedMetricField(

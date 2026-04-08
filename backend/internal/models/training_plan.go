@@ -19,7 +19,7 @@ type TrainingPlan struct {
 	CreatedByUserID            *string                `json:"created_by_user_id" db:"created_by_user_id"`
 	Title                      string                 `json:"title" db:"title"`
 	Description                *string                `json:"description" db:"description"`
-	PrimarySport               *ActivityType          `json:"primary_sport" db:"primary_sport"`
+	PrimaryActivityType        *ActivityType          `json:"primary_activity_type" db:"primary_activity_type"`
 	Difficulty                 TrainingPlanDifficulty `json:"difficulty" db:"difficulty"`
 	DurationWeeks              int                    `json:"duration_weeks" db:"duration_weeks"`
 	RecommendedWorkoutsPerWeek int                    `json:"recommended_workouts_per_week" db:"recommended_workouts_per_week"`

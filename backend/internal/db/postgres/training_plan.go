@@ -8,9 +8,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *PostgresDB) GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error) {
+func (s *PostgresDB) GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error) {
 	query := `
-		SELECT id, created_by_user_id, title, description, primary_sport, difficulty,
+		SELECT id, created_by_user_id, title, description, primary_activity_type, difficulty,
 			   duration_weeks, recommended_workouts_per_week, is_system, created_at, updated_at
 		FROM training_plans
 		WHERE 1=1
@@ -23,9 +23,9 @@ func (s *PostgresDB) GetTrainingPlans(ctx context.Context, searchQuery string, s
 		args = append(args, "%"+searchQuery+"%")
 		argIdx++
 	}
-	if sport != "" {
-		query += fmt.Sprintf(" AND primary_sport = $%d", argIdx)
-		args = append(args, sport)
+	if activityType != nil {
+		query += fmt.Sprintf(" AND primary_activity_type = $%d", argIdx)
+		args = append(args, *activityType)
 		argIdx++
 	}
 
@@ -41,7 +41,7 @@ func (s *PostgresDB) GetTrainingPlans(ctx context.Context, searchQuery string, s
 	for rows.Next() {
 		var p models.TrainingPlan
 		if err := rows.Scan(
-			&p.ID, &p.CreatedByUserID, &p.Title, &p.Description, &p.PrimarySport, &p.Difficulty,
+			&p.ID, &p.CreatedByUserID, &p.Title, &p.Description, &p.PrimaryActivityType, &p.Difficulty,
 			&p.DurationWeeks, &p.RecommendedWorkoutsPerWeek, &p.IsSystem, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan training plan: %w", err)
@@ -62,7 +62,7 @@ func (s *PostgresDB) GetTrainingPlans(ctx context.Context, searchQuery string, s
 
 func (s *PostgresDB) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {
 	query := `
-		SELECT id, created_by_user_id, title, description, primary_sport, difficulty,
+		SELECT id, created_by_user_id, title, description, primary_activity_type, difficulty,
 			   duration_weeks, recommended_workouts_per_week, is_system, created_at, updated_at
 		FROM training_plans
 		WHERE id = $1
@@ -70,7 +70,7 @@ func (s *PostgresDB) GetTrainingPlanByID(ctx context.Context, planID string) (*m
 
 	var plan models.TrainingPlan
 	err := s.pool.QueryRow(ctx, query, planID).Scan(
-		&plan.ID, &plan.CreatedByUserID, &plan.Title, &plan.Description, &plan.PrimarySport, &plan.Difficulty,
+		&plan.ID, &plan.CreatedByUserID, &plan.Title, &plan.Description, &plan.PrimaryActivityType, &plan.Difficulty,
 		&plan.DurationWeeks, &plan.RecommendedWorkoutsPerWeek, &plan.IsSystem, &plan.CreatedAt, &plan.UpdatedAt,
 	)
 	if err != nil {

@@ -9,12 +9,12 @@ import (
 type PlannedActivityType string
 
 const (
-	PlannedActivityTypeRunning       PlannedActivityType = "running"
-	PlannedActivityTypeRoadBiking    PlannedActivityType = "road_biking"
-	PlannedActivityTypeRest          PlannedActivityType = "rest"
-	PlannedActivityTypeCrossTraining PlannedActivityType = "cross_training"
-	PlannedActivityTypeStrength      PlannedActivityType = "strength"
-	PlannedActivityTypeMobility      PlannedActivityType = "mobility"
+	PlannedActivityTypeRunning          PlannedActivityType = "running"
+	PlannedActivityTypeRoadBiking       PlannedActivityType = "road_biking"
+	PlannedActivityTypeResting          PlannedActivityType = "resting"
+	PlannedActivityTypeCrossTraining    PlannedActivityType = "cross_training"
+	PlannedActivityTypeStrengthTraining PlannedActivityType = "strength_training"
+	PlannedActivityTypeMobilityTraining PlannedActivityType = "mobility_training"
 )
 
 // PlannedActivity represents a scheduled or intended activity in the calendar.

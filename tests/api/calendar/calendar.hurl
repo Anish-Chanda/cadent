@@ -117,10 +117,10 @@ jsonpath "$.planned_activities[*].title" contains "Planned Tempo Ride"
 jsonpath "$.planned_activities[*].title" contains "Planned Progression Run"
 jsonpath "$.planned_activities[*].type" contains "road_biking"
 jsonpath "$.planned_activities[*].type" contains "running"
-jsonpath "$.planned_activities[*].planned_distance" contains 25000
-jsonpath "$.planned_activities[*].planned_distance" contains 10000
-jsonpath "$.planned_activities[*].planned_duration" contains 3600
-jsonpath "$.planned_activities[*].planned_duration" contains 3000
+jsonpath "$.planned_activities[*].planned_distance_m" contains 25000
+jsonpath "$.planned_activities[*].planned_distance_m" contains 10000
+jsonpath "$.planned_activities[*].planned_duration_s" contains 3600
+jsonpath "$.planned_activities[*].planned_duration_s" contains 3000
 jsonpath "$.planned_activities[*].start_time" contains "2026-03-10T07:30:00Z"
 jsonpath "$.planned_activities[*].start_time" contains "2026-03-12T18:15:00Z"
 

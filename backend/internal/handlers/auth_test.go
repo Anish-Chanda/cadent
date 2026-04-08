@@ -839,7 +839,7 @@ func TestSignupHandler(t *testing.T) {
 }
 
 // Mocks for GetTrainingPlans and GetTrainingPlanWorkouts
-func (m *mockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error) {
+func (m *mockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error) {
 	return nil, nil
 }
 func (m *mockDatabase) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {

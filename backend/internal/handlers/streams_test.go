@@ -116,7 +116,7 @@ func (m *MockDatabase) UpdatePlannedActivity(ctx context.Context, activityID str
 func (m *MockDatabase) Connect(dsn string) error { return nil }
 func (m *MockDatabase) Close() error             { return nil }
 func (m *MockDatabase) Migrate() error           { return nil }
-func (m *MockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, sport string) ([]models.TrainingPlan, error) {
+func (m *MockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error) {
 	return nil, nil
 }
 func (m *MockDatabase) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {

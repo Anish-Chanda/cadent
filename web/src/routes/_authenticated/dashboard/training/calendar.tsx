@@ -107,7 +107,7 @@ function TrainingCalendarPage() {
 			const start = parseIsoDate(act.start_time);
 			if (!start) return;
 
-			const duration = act.planned_duration ?? 0;
+			const duration = act.planned_duration_s ?? 0;
 
 			list.push({
 				id: act.id,
@@ -116,11 +116,11 @@ function TrainingCalendarPage() {
 				start,
 				end: new Date(start.getTime() + duration * 1000),
 				isPlanned: true,
-				distance: act.planned_distance ?? undefined,
-				duration: act.planned_duration ?? undefined,
-				elevationGain: act.planned_elevation_gain ?? undefined,
-				avgSpeedMps: act.target_avg_speed ?? undefined,
-				targetPower: act.target_power ?? undefined,
+				distance: act.planned_distance_m ?? undefined,
+				duration: act.planned_duration_s ?? undefined,
+				elevationGain: act.planned_elevation_gain_m ?? undefined,
+				avgSpeedMps: act.target_avg_speed_mps ?? undefined,
+				targetPower: act.target_power_watt ?? undefined,
 			});
 		});
 

@@ -62,7 +62,7 @@ export function PlannedActivityModal({
 	const [paceSeconds, setPaceSeconds] = React.useState("");
 	const [paceUnit, setPaceUnit] = React.useState<PaceUnit>("min_per_km");
 	const [avgSpeed, setAvgSpeed] = React.useState("");
-	const [speedUnit, setSpeedUnit] = React.useState<SpeedUnit>("kmh");
+	const [speedUnit, setSpeedUnit] = React.useState<SpeedUnit>("kph");
 	const [targetPower, setTargetPower] = React.useState("");
 	const [error, setError] = React.useState("");
 
@@ -89,7 +89,7 @@ export function PlannedActivityModal({
 			setPaceSeconds("");
 			setPaceUnit("min_per_km");
 			setAvgSpeed("");
-			setSpeedUnit("kmh");
+			setSpeedUnit("kph");
 			setTargetPower("");
 			setError("");
 			onClose();
@@ -110,14 +110,17 @@ export function PlannedActivityModal({
 	const supportsPower = supportsPlannedMetricField(activityType, "power");
 
 	const typeSpecificHint = React.useMemo(() => {
-		if (activityType === "rest") {
+		if (activityType === "resting") {
 			return "Rest days only need a title and schedule.";
 		}
-		if (activityType === "strength" || activityType === "mobility") {
+		if (
+			activityType === "strength_training" ||
+			activityType === "mobility_training"
+		) {
 			return "For this activity type, only duration targets are shown.";
 		}
 		if (activityType === "running") {
-			return "Use target pace for running. Pace is converted automatically for backend storage.";
+			return "Use target pace for running.";
 		}
 
 		return `${formatPlannedActivityTypeLabel(activityType)} targets are optional. Enter only what matters for this session.`;
@@ -479,7 +482,7 @@ export function PlannedActivityModal({
 													setSpeedUnit(e.target.value as SpeedUnit)
 												}
 											>
-												<option value="kmh">km/h</option>
+												<option value="kph">kph</option>
 												<option value="mph">mph</option>
 											</Select>
 										</div>

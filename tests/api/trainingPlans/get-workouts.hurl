@@ -20,7 +20,7 @@ HTTP 200
 [Asserts]
 cookie "JWT" exists
 
-GET http://localhost:8080/api/v1/training-plans?q=Hal%20Higdon%20Intermediate%2010K&sport=running
+GET http://localhost:8080/api/v1/training-plans?q=Hal%20Higdon%20Intermediate%2010K&activity_type=running
 HTTP 200
 [Captures]
 plan_id: jsonpath "$[0].id"
@@ -43,14 +43,13 @@ jsonpath "$[1].sequence_index" == 2
 jsonpath "$[0].template_day_offset" == 0
 jsonpath "$[1].template_day_offset" == 1
 jsonpath "$[*].type" contains "running"
-jsonpath "$[*].type" contains "rest"
+jsonpath "$[*].type" contains "resting"
 
-### Test 4: Valid but non-existent plan ID returns empty list
+### Test 4: Valid but non-existent plan ID should fail
 GET http://localhost:8080/api/v1/training-plans/00000000-0000-0000-0000-000000000000/workouts
-HTTP 200
+HTTP 400
 [Asserts]
-jsonpath "$" isCollection
-jsonpath "$" count == 0
+jsonpath "$.error" exists
 
 ### Test 5: Invalid UUID should fail cleanly
 GET http://localhost:8080/api/v1/training-plans/invalid-uuid-abc/workouts

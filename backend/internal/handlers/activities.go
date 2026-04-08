@@ -108,11 +108,11 @@ type PlannedActivityResult struct {
 	Description          string    `json:"description"`
 	Type                 string    `json:"type"`
 	StartTime            time.Time `json:"start_time"`
-	PlannedDistance      *float64  `json:"planned_distance"`
-	PlannedDuration      *int      `json:"planned_duration"`
-	PlannedElevationGain *float64  `json:"planned_elevation_gain"`
-	TargetAvgSpeed       *float64  `json:"target_avg_speed"`
-	TargetPower          *int      `json:"target_power"`
+	PlannedDistanceM      *float64 `json:"planned_distance_m"`
+	PlannedDurationS      *int     `json:"planned_duration_s"`
+	PlannedElevationGainM *float64 `json:"planned_elevation_gain_m"`
+	TargetAvgSpeedMps     *float64 `json:"target_avg_speed_mps"`
+	TargetPowerWatt       *int     `json:"target_power_watt"`
 	IsDryRun             bool      `json:"is_dry_run,omitempty"`
 	MatchedActivityID    *string   `json:"matched_activity_id,omitempty"`
 	UserTrainingPlanID   *string   `json:"user_training_plan_id,omitempty"`
@@ -725,11 +725,11 @@ func createPlannedActivityResult(PlannedActivity *models.PlannedActivity) Planne
 		Description:          stringOrDefault(PlannedActivity.Description, ""),
 		Type:                 string(PlannedActivity.Type),
 		StartTime:            PlannedActivity.StartTime.UTC(),
-		PlannedDistance:      PlannedActivity.PlannedDistanceM,
-		PlannedDuration:      PlannedActivity.PlannedDurationS,
-		PlannedElevationGain: PlannedActivity.PlannedElevationGainM,
-		TargetAvgSpeed:       PlannedActivity.TargetAvgSpeedMps,
-		TargetPower:          PlannedActivity.TargetPowerWatt,
+		PlannedDistanceM:      PlannedActivity.PlannedDistanceM,
+		PlannedDurationS:      PlannedActivity.PlannedDurationS,
+		PlannedElevationGainM: PlannedActivity.PlannedElevationGainM,
+		TargetAvgSpeedMps:     PlannedActivity.TargetAvgSpeedMps,
+		TargetPowerWatt:       PlannedActivity.TargetPowerWatt,
 		MatchedActivityID:    matchedActivityId,
 		UserTrainingPlanID:   userTrainingPlanId,
 		PlanSequenceIndex:    PlannedActivity.PlanSequenceIndex,

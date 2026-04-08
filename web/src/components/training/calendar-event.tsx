@@ -32,11 +32,11 @@ function getTypeIcon(type: string) {
 	switch (type) {
 		case "road_biking":
 			return Bike;
-		case "strength":
+		case "strength_training":
 			return Dumbbell;
-		case "mobility":
+		case "mobility_training":
 			return PersonStanding;
-		case "rest":
+		case "resting":
 			return CircleDot;
 		default:
 			return Activity;
