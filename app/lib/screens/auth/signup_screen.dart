@@ -10,6 +10,7 @@ import '../../widgets/global/primary_button.dart';
 import '../../widgets/global/text_link_button.dart';
 import '../../utils/validators.dart';
 import '../../utils/app_spacing.dart';
+import '../../utils/app_colors.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -50,7 +51,7 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Account created successfully! Welcome to Cadent!'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: AppColors.successGreen,
             duration: const Duration(seconds: 2),
           ),
         );

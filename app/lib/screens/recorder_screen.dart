@@ -9,6 +9,7 @@ import '../controllers/recording_controller.dart';
 import '../models/recording_session_model.dart';
 import '../services/activities_service.dart';
 import '../utils/app_spacing.dart';
+import '../utils/app_colors.dart';
 import '../widgets/recorder/recording_map_view.dart';
 import '../widgets/recorder/recording_status_bar.dart';
 import '../widgets/recorder/recording_floating_card.dart';
@@ -267,7 +268,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
               ? 'Activity saved successfully!' 
               : 'Failed to save activity. Please try again.'),
             backgroundColor: success
-                ? Theme.of(context).colorScheme.primary
+                ? AppColors.successGreen
                 : Theme.of(context).colorScheme.error,
           ),
         );
