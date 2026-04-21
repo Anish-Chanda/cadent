@@ -1,4 +1,5 @@
 import 'package:cadent/screens/recorder_screen.dart';
+import 'package:cadent/screens/training_plans_screen.dart';
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
 import '../screens/settings_screen.dart';
@@ -17,6 +18,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   static const List<Widget> _pages = <Widget>[
     HomeScreen(),
+    TrainingPlansScreen(),
     SettingsScreen(),
   ];
 
@@ -46,13 +48,11 @@ class _MainLayoutState extends State<MainLayout> {
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Theme.of(context).colorScheme.onPrimary,
           shape: const CircleBorder(),
-          child: Icon(Icons.fiber_manual_record, size: AppSpacing.iconLG),
+          child: Icon(Icons.add, size: AppSpacing.iconLG),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: AppSpacing.xxs,
         child: SizedBox(
           height: AppSpacing.massive,
           child: Row(
@@ -66,13 +66,20 @@ class _MainLayoutState extends State<MainLayout> {
                   isSelected: _selectedIndex == 0,
                 ),
               ),
-              const SizedBox(width: AppSpacing.massive), // Space for FAB
+              Expanded(
+                child: _buildNavItem(
+                  icon: Icons.event_note,
+                  label: 'Plans',
+                  index: 1,
+                  isSelected: _selectedIndex == 1,
+                ),
+              ),
               Expanded(
                 child: _buildNavItem(
                   icon: Icons.settings,
                   label: 'Settings',
-                  index: 1,
-                  isSelected: _selectedIndex == 1,
+                  index: 2,
+                  isSelected: _selectedIndex == 2,
                 ),
               ),
             ],
@@ -98,7 +105,9 @@ class _MainLayoutState extends State<MainLayout> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outline,
               size: AppSpacing.iconSM,
             ),
             AppSpacing.gapXXS,
@@ -106,8 +115,12 @@ class _MainLayoutState extends State<MainLayout> {
               label,
               style: TextStyle(
                 fontSize: AppTextSize.xs,
-                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
-                fontWeight: isSelected ? AppTextSize.semiBold : AppTextSize.regular,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outline,
+                fontWeight: isSelected
+                    ? AppTextSize.semiBold
+                    : AppTextSize.regular,
               ),
               textAlign: TextAlign.center,
             ),
