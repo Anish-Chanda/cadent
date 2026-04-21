@@ -85,6 +85,12 @@ func (m *mockDatabase) DeletePlannedActivity(ctx context.Context, activityID str
 func (m *mockDatabase) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
 	return nil
 }
+func (m *mockDatabase) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error) {
+	return nil, nil
+}
+func (m *mockDatabase) GetPlannedActivityByID(ctx context.Context, plannedActivityID string, userID string) (*models.PlannedActivity, error) {
+	return nil, nil
+}
 func (m *mockDatabase) Connect(dsn string) error { return nil }
 func (m *mockDatabase) Close() error             { return nil }
 func (m *mockDatabase) Migrate() error           { return nil }
