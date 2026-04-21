@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'app_spacing.dart';
 import 'app_text_size.dart';
@@ -9,12 +8,10 @@ class AppTheme {
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primaryBlue,
       brightness: Brightness.light,
-    ).copyWith(
-      primary: AppColors.primaryBlue,
-    ),
+    ).copyWith(primary: AppColors.primaryBlue),
     primaryColor: AppColors.primaryBlue,
     useMaterial3: true,
-    
+
     // Text field styling
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -49,13 +46,13 @@ class AppTheme {
         fontWeight: AppTextSize.medium,
       ),
     ),
-    
+
     // Elevated button styling
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
-        minimumSize: Size(double.infinity, AppSpacing.huge),
+        minimumSize: const Size(0, AppSpacing.huge),
         padding: AppSpacing.paddingHorizontalXL,
         shape: RoundedRectangleBorder(
           borderRadius: AppSpacing.borderRadiusFull,
@@ -67,7 +64,7 @@ class AppTheme {
         elevation: AppSpacing.elevationXS,
       ),
     ),
-    
+
     // Text button styling
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
@@ -78,12 +75,12 @@ class AppTheme {
         ),
       ),
     ),
-    
+
     // Outlined button styling
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primaryBlue,
-        minimumSize: Size(double.infinity, AppSpacing.huge),
+        minimumSize: const Size(0, AppSpacing.huge),
         padding: AppSpacing.paddingHorizontalXL,
         shape: RoundedRectangleBorder(
           borderRadius: AppSpacing.borderRadiusFull,
@@ -101,12 +98,10 @@ class AppTheme {
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primaryBlue,
       brightness: Brightness.dark,
-    ).copyWith(
-      primary: AppColors.primaryBlue,
-    ),
+    ).copyWith(primary: AppColors.primaryBlue),
     primaryColor: AppColors.primaryBlue,
     useMaterial3: true,
-    
+
     // Text field styling for dark mode
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -141,13 +136,13 @@ class AppTheme {
         fontWeight: AppTextSize.medium,
       ),
     ),
-    
+
     // Elevated button styling for dark mode
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
-        minimumSize: Size(double.infinity, AppSpacing.huge),
+        minimumSize: const Size(0, AppSpacing.huge),
         padding: AppSpacing.paddingHorizontalXL,
         shape: RoundedRectangleBorder(
           borderRadius: AppSpacing.borderRadiusFull,
@@ -159,7 +154,7 @@ class AppTheme {
         elevation: AppSpacing.elevationXS,
       ),
     ),
-    
+
     // Text button styling for dark mode
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
@@ -170,12 +165,12 @@ class AppTheme {
         ),
       ),
     ),
-    
+
     // Outlined button styling for dark mode
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primaryBlue,
-        minimumSize: Size(double.infinity, AppSpacing.huge),
+        minimumSize: const Size(0, AppSpacing.huge),
         padding: AppSpacing.paddingHorizontalXL,
         shape: RoundedRectangleBorder(
           borderRadius: AppSpacing.borderRadiusFull,
@@ -188,7 +183,7 @@ class AppTheme {
       ),
     ),
   );
-  
+
   // Helper to get map style based on theme
   static String getMapStyle(BuildContext context) {
     final brightness = Theme.of(context).brightness;
