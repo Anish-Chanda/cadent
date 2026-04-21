@@ -170,6 +170,8 @@ func main() {
 			r.Post("/activities/plan", apiHandler.HandleCreatePlannedActivity())
 			r.Delete("/activities/plan", apiHandler.HandleDeletePlannedActivity())
 			r.Patch("/activities/plan", apiHandler.HandleUpdatePlannedActivity())
+			r.Get("/activities/plan/today", apiHandler.HandleGetTodayPlannedActivities())
+			r.Get("/activities/plan", apiHandler.HandleGetPlannedActivityByID())
 			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
 
 			// Calendar endpoints
