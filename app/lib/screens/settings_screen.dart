@@ -5,6 +5,7 @@ import '../providers/app_settings_provider.dart';
 import '../models/app_settings.dart';
 import '../utils/app_spacing.dart';
 import '../utils/app_version.dart';
+import '../utils/app_colors.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -85,7 +86,7 @@ class SettingsScreen extends StatelessWidget {
                               SnackBar(
                                 content: Text(success ? 'Name updated successfully' : 'Failed to update name'),
                                 backgroundColor: success 
-                                    ? Theme.of(context).colorScheme.primary 
+                                    ? AppColors.successGreen 
                                     : Theme.of(context).colorScheme.error,
                               ),
                             );
