@@ -1,3 +1,4 @@
+import 'package:cadent/utils/error_toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -45,10 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login failed: \${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+          errorSnackBar(e, 'Login failed', context),
         );
       }
     }
