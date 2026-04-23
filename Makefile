@@ -80,6 +80,9 @@ dev-up: ## Start development docker containers (postgres), Note: it is recomende
 dev-down: ## Stop development docker containers
 	docker compose -f docker-compose.dev.yaml down
 
+dev-down-v: ## stops dev containers and removes volumes (data will be lost)
+	docker compose -f docker-compose.dev.yaml down -v
+
 docker-build-api: ## Build backend API Docker image with version info
 	@echo "Building Docker image with version $(API_VERSION) and build hash $(BUILD_HASH)..."
 	docker build \
