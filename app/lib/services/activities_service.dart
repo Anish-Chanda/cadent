@@ -14,10 +14,10 @@ class ActivitiesService {
   Future<List<Activity>> getActivities() async {
     try {
       final response = await HttpClient.instance.dio.get('/api/v1/activities');
-      
+
       if (response.statusCode == 200) {
         final dynamic responseData = response.data;
-        
+
         if (responseData is Map && responseData.containsKey('activities')) {
           final List<dynamic> data = responseData['activities'];
           return data.map((activity) => Activity.fromJson(activity)).toList();
@@ -28,14 +28,14 @@ class ActivitiesService {
       }
       return [];
     } catch (e) {
-     log('Error fetching activities: $e');
+      log('Error fetching activities: $e');
       return [];
     }
   }
 
-  Future<bool> saveActivity(
-    RecordingSessionModel session,
-    {
+  /// Saves a recorded activity and returns the new activity ID on success, null on failure.
+  Future<String?> saveActivity(
+    RecordingSessionModel session, {
     String? title,
     String? description,
     int? perceivedEffort,
@@ -43,28 +43,39 @@ class ActivitiesService {
     try {
       final uuid = Uuid();
       final clientActivityId = uuid.v4();
-      
+
       // Convert session data to API format
       final activityData = {
         'activity_type': session.activityType.apiName,
         'client_activity_id': clientActivityId,
         'title': title ?? '${session.activityType.displayName} Activity',
-        'description': description ?? 'Recorded on ${DateTime.now().toIso8601String()}',
+        'description':
+            description ?? 'Recorded on ${DateTime.now().toIso8601String()}',
         'perceived_effort': perceivedEffort,
         'start_time': session.startTime?.toIso8601String(),
-        'samples': session.positions.map((position) => {
-          'lon': position.longitude,
-          'lat': position.latitude,
-          't': position.timestamp.millisecondsSinceEpoch,
-        }).toList(),
+        'samples': session.positions
+            .map(
+              (position) => {
+                'lon': position.longitude,
+                'lat': position.latitude,
+                't': position.timestamp.millisecondsSinceEpoch,
+              },
+            )
+            .toList(),
       };
 
-      final response = await HttpClient.instance.dio.post('/api/v1/activities', data: activityData);
-      
-      return response.statusCode == 200 || response.statusCode == 201;
+      final response = await HttpClient.instance.dio.post(
+        '/api/v1/activities',
+        data: activityData,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data['id'] as String?;
+      }
+      return null;
     } catch (e) {
       log('Error saving activity: $e');
-      return false;
+      return null;
     }
   }
 }

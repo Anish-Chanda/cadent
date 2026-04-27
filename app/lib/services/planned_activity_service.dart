@@ -22,7 +22,10 @@ class PlannedActivityService {
     }
   }
 
-  Future<bool> updatePlannedActivity(String id, Map<String, dynamic> updates) async {
+  Future<bool> updatePlannedActivity(
+    String id,
+    Map<String, dynamic> updates,
+  ) async {
     try {
       updates['id'] = id;
       final response = await HttpClient.instance.dio.patch(
@@ -47,6 +50,47 @@ class PlannedActivityService {
       return response.statusCode == 204;
     } catch (e) {
       log('Error deleting planned activity: $e');
+      return false;
+    }
+  }
+
+  /// Returns today's planned activities that have not yet been matched to a completed activity.
+  Future<List<PlannedActivity>> getTodayPlannedActivities() async {
+    try {
+      final response = await HttpClient.instance.dio.get(
+        '/api/v1/activities/plan/today',
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['plannedActivities'] ?? [];
+        return data
+            .map((e) => PlannedActivity.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      log('Error fetching today planned activities: $e');
+      return [];
+    }
+  }
+
+  /// Links a completed activity to a planned activity.
+  Future<bool> matchActivity({
+    required String plannedActivityId,
+    required String completedActivityId,
+  }) async {
+    try {
+      final response = await HttpClient.instance.dio.patch(
+        '/api/v1/activities/plan',
+        data: {
+          'id': plannedActivityId,
+          'matchedActivityId': completedActivityId,
+        },
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      log('Error matching activity to planned activity: $e');
       return false;
     }
   }

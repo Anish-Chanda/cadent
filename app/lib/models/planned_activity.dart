@@ -1,4 +1,5 @@
 class PlannedActivity {
+  final String? id;
   final String title;
   final String? description;
   final String activityType;
@@ -8,8 +9,10 @@ class PlannedActivity {
   final double? plannedElevationGainMeter;
   final double? targetAverageSpeedMeterPerSecond;
   final int? targetPowerWatt;
+  final String? matchedActivityId;
 
   const PlannedActivity({
+    this.id,
     required this.title,
     this.description,
     required this.activityType,
@@ -19,6 +22,7 @@ class PlannedActivity {
     this.plannedElevationGainMeter,
     this.targetAverageSpeedMeterPerSecond,
     this.targetPowerWatt,
+    this.matchedActivityId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -39,6 +43,7 @@ class PlannedActivity {
 
   factory PlannedActivity.fromJson(Map<String, dynamic> json) =>
       PlannedActivity(
+        id: json['id'] as String?,
         title: json['title'] as String,
         description: json['description'] as String?,
         activityType: json['activityType'] as String,
@@ -51,5 +56,6 @@ class PlannedActivity {
         targetAverageSpeedMeterPerSecond:
             (json['targetAverageSpeedMeterPerSecond'] as num?)?.toDouble(),
         targetPowerWatt: json['targetPowerWatt'] as int?,
+        matchedActivityId: json['matchedActivityId'] as String?,
       );
 }
