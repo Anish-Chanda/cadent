@@ -28,15 +28,13 @@ HTTP 200
 cookie "JWT" exists
 
 # --- Step 1: Planned activity exists for today ---
-# NOTE: UPDATE startTime TO TODAY'S DATE FOR TESTING PURPOSES
-
 POST http://localhost:8080/api/v1/activities/plan
 Content-Type: application/json
 {
   "title": "Morning Easy Run",
   "description": "Easy aerobic run to start the day.",
   "activityType": "running",
-  "startTime": "2026-04-21T10:00:00Z",
+  "startTime": "{{day}}",
   "plannedDistanceMeter": 8000,
   "plannedDurationSecond": 2700
 }
