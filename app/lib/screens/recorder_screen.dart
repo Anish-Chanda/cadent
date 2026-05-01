@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../controllers/recording_controller.dart';
 import '../models/recording_session_model.dart';
 import '../services/activities_service.dart';
+import '../services/permissions_handler.dart';
 import '../utils/app_spacing.dart';
 import '../widgets/recorder/recording_map_view.dart';
 import '../widgets/recorder/recording_status_bar.dart';
@@ -34,13 +35,17 @@ class _RecorderScreenState extends State<RecorderScreen> {
   bool get isMetric => _isMetric;
 
   String getFormattedDistance() {
-    final distance = isMetric ? _controller.model.totalDistanceMeters / 1000 : _controller.model.totalDistanceMiles;
+    final distance = isMetric
+        ? _controller.model.totalDistanceMeters / 1000
+        : _controller.model.totalDistanceMiles;
     final unit = isMetric ? 'km' : 'mi';
     return '${distance.toStringAsFixed(2)} $unit';
   }
 
   String getFormattedSpeed() {
-    final speed = isMetric ? _controller.model.currentSpeedMs * 3.6 : _controller.model.currentSpeedMph;
+    final speed = isMetric
+        ? _controller.model.currentSpeedMs * 3.6
+        : _controller.model.currentSpeedMph;
     final unit = isMetric ? 'kph' : 'mph';
     return '${speed.toStringAsFixed(1)} $unit';
   }
@@ -51,32 +56,38 @@ class _RecorderScreenState extends State<RecorderScreen> {
     _controller = RecordingController();
     // Listen to controller changes to update UI
     _controller.addListener(_onControllerUpdate);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.restoreBackgroundTracking();
+      _requestLocationForRecorder();
+    });
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onControllerUpdate);
     _controller.dispose();
-    
+
     // Route line should already be cleaned up before navigation
     // Just clear the reference
     _routeLine = null;
-    
+
     super.dispose();
   }
 
   void _onControllerUpdate() {
+    if (!mounted) return;
+
     // Trigger UI rebuild when controller state changes
     setState(() {});
-      
+
     // Only update map when card is NOT expanded to prevent plugin errors
     if (!_isMapExpanded) {
       // Update map with new GPS points when recording
       _updateMapRoute();
-      
+
       // Update map camera position when we get new locations
       if (_mapController != null && _controller.model.positions.isNotEmpty) {
-        final lastLocation = _controller.model.positions.last;        
+        final lastLocation = _controller.model.positions.last;
         // Always move camera to current location when we get GPS updates
         if (_controller.model.isRecording) {
           _mapController!.moveCamera(
@@ -99,36 +110,43 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   void _updateMapRoute() {
-    if (_mapController == null || !_controller.model.isRecording || _isMapExpanded) return;
-    
+    if (_mapController == null ||
+        !_controller.model.isRecording ||
+        _isMapExpanded) {
+      return;
+    }
+
     final positions = _controller.model.positions;
     if (positions.length < 2) return; // Need at least 2 points to draw a line
-    
+
     try {
       // Convert positions to LatLng list
-      final latLngs = positions.map((pos) => 
-        LatLng(pos.latitude, pos.longitude)
-      ).toList();
-      
+      final latLngs = positions
+          .map((pos) => LatLng(pos.latitude, pos.longitude))
+          .toList();
+
       // Remove existing route line if it exists
       if (_routeLine != null) {
         _mapController!.removeLine(_routeLine!);
       }
-      
+
       // Add new route line
       final theme = Theme.of(context);
-      final lineColor = '#${theme.colorScheme.primary.value.toRadixString(16).padLeft(8, '0').substring(2)}';
-      _mapController!.addLine(
-        LineOptions(
-          geometry: latLngs,
-          lineColor: lineColor,
-          lineWidth: 4.0,
-          lineOpacity: 0.8,
-        ),
-      ).then((line) {
-        _routeLine = line;
-      });
-      
+      final lineColor =
+          '#${theme.colorScheme.primary.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+      _mapController!
+          .addLine(
+            LineOptions(
+              geometry: latLngs,
+              lineColor: lineColor,
+              lineWidth: 4.0,
+              lineOpacity: 0.8,
+            ),
+          )
+          .then((line) {
+            _routeLine = line;
+          });
+
       // Center map on current position
       final lastPosition = positions.last;
       _mapController!.moveCamera(
@@ -141,8 +159,6 @@ class _RecorderScreenState extends State<RecorderScreen> {
     }
   }
 
-
-
   Future<void> _startRecording() async {
     // Clear any existing route line
     if (_routeLine != null && _mapController != null) {
@@ -153,14 +169,70 @@ class _RecorderScreenState extends State<RecorderScreen> {
         log('Failed to clear route line: $e');
       }
     }
-    
-    final success = await _controller.startRecording(context: context);
+
+    if (!mounted) return;
+    final success = await _controller.startRecording(
+      context: context,
+      useMetricUnits: isMetric,
+    );
+    if (!mounted) return;
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to start recording. Please check location permissions.'),
+          content: Text(
+            'Failed to start recording. Please check location permissions.',
+          ),
         ),
       );
+    }
+  }
+
+  Future<void> _requestLocationForRecorder() async {
+    try {
+      final permission = await LocationPermissionService.getPermissionStatus();
+      final isGranted =
+          permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+
+      // If permission not granted, show an explanatory popup before
+      // invoking the system permission dialog.
+      if (!isGranted) {
+        if (!mounted) return;
+        final shouldRequest = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Location Permission'),
+            content: const Text(
+              'Cadent needs location access to record your activity accurately.\n\nWould you like to allow location access now?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Not now'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Allow'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldRequest != true) return;
+      }
+
+      if (!mounted) return;
+      final hasPermission =
+          await LocationPermissionService.requestLocationPermission(
+            context: context,
+            requirePrecise: true,
+          );
+
+      if (!mounted || !hasPermission) return;
+      await _centerMapOnLocation();
+    } catch (e) {
+      log('Error while requesting location for recorder: $e');
     }
   }
 
@@ -181,7 +253,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
     // Move to completed state
     _controller.finishRecording();
-    
+
     // Navigate to finish activity screen
     if (mounted) {
       final result = await Navigator.push<dynamic>(
@@ -194,11 +266,11 @@ class _RecorderScreenState extends State<RecorderScreen> {
           ),
         ),
       );
-      
+
       if (result != null && mounted) {
         if (result is Map<String, dynamic>) {
           final action = result['action'] as String?;
-          
+
           if (action == 'discard') {
             _discardActivity();
             // Navigate back to home screen
@@ -209,6 +281,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
             final description = result['description'] as String?;
             final perceivedEffort = result['perceived_effort'] as int?;
             await _saveActivity(title, description, perceivedEffort);
+            if (!mounted) return;
             // Navigate back to home screen after successful save
             Navigator.pop(context);
           } else if (action == 'resume') {
@@ -220,8 +293,6 @@ class _RecorderScreenState extends State<RecorderScreen> {
       }
     }
   }
-
-
 
   Future<void> _cleanupRouteLine() async {
     if (_routeLine != null && _mapController != null) {
@@ -237,35 +308,45 @@ class _RecorderScreenState extends State<RecorderScreen> {
     }
   }
 
-  Future<void> _saveActivity(String? title, String? description, int? perceivedEffort) async {
+  Future<void> _saveActivity(
+    String? title,
+    String? description,
+    int? perceivedEffort,
+  ) async {
     // Clean up route line before saving and navigating away
     await _cleanupRouteLine();
-    
+
     // Log activity details including GPS point count before resetting
     final model = _controller.model;
-    log('Saving activity with details: title="$title", description="$description", effort="$perceivedEffort"');
-    log('Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.totalDistanceMeters.toStringAsFixed(0)}m - GPS points: ${model.positions.length}');
-    
+    log(
+      'Saving activity with details: title="$title", description="$description", effort="$perceivedEffort"',
+    );
+    log(
+      'Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.totalDistanceMeters.toStringAsFixed(0)}m - GPS points: ${model.positions.length}',
+    );
+
     // Save complete activity data to backend with title and description
     final activityData = _controller.getActivityData();
     if (activityData != null) {
       final model = _controller.model;
-      
+
       // Save activity to backend with custom title and description
       final success = await ActivitiesService.instance.saveActivity(
-        model, 
-        title: title, 
+        model,
+        title: title,
         description: description,
         perceivedEffort: perceivedEffort,
       );
-      
+
       _controller.resetToIdle();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success 
-              ? 'Activity saved successfully!' 
-              : 'Failed to save activity. Please try again.'),
+            content: Text(
+              success
+                  ? 'Activity saved successfully!'
+                  : 'Failed to save activity. Please try again.',
+            ),
             backgroundColor: success
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context).colorScheme.error,
@@ -285,8 +366,6 @@ class _RecorderScreenState extends State<RecorderScreen> {
       _controller.discardRecording();
     }
   }
-
-
 
   Future<bool?> _showDiscardDialog() {
     return showDialog<bool>(
@@ -316,7 +395,9 @@ class _RecorderScreenState extends State<RecorderScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Insufficient Data'),
-        content: const Text('Not enough GPS data collected. Please record for a longer time or distance.'),
+        content: const Text(
+          'Not enough GPS data collected. Please record for a longer time or distance.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -343,7 +424,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
   Widget build(BuildContext context) {
     _isMetric = context.select<AppSettingsProvider, bool>((p) => p.isMetric);
     final model = _controller.model;
-    
+
     return Scaffold(
       body: Stack(
         children: [
@@ -355,7 +436,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
               },
               positions: model.positions,
             ),
-          
+
           // Full Screen Data View when expanded
           if (_isMapExpanded)
             Container(
@@ -375,13 +456,21 @@ class _RecorderScreenState extends State<RecorderScreen> {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceVariant,
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.4)),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outline.withOpacity(0.4),
+                                ),
                               ),
                               child: Icon(
                                 Icons.expand_more,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                                 size: 24,
                               ),
                             ),
@@ -406,17 +495,19 @@ class _RecorderScreenState extends State<RecorderScreen> {
                 ),
               ),
             ),
-          
+
           // Top Status Bar (always on top)
           SafeArea(
             child: RecordingStatusBar(
               model: model,
               onBack: () => Navigator.pop(context),
               onCenterLocation: _centerMapOnLocation,
-              onDiscard: model.isCompleted ? _discardActivity : _discardRecording,
+              onDiscard: model.isCompleted
+                  ? _discardActivity
+                  : _discardRecording,
             ),
           ),
-          
+
           // Bottom Floating Card (only when not expanded)
           if (!_isMapExpanded)
             RecordingFloatingCard(
@@ -437,12 +528,17 @@ class _RecorderScreenState extends State<RecorderScreen> {
     );
   }
 
-
-
   Future<void> _centerMapOnLocation() async {
     if (_mapController == null) return;
-    
+
     try {
+      final hasPermission =
+          await LocationPermissionService.requestLocationPermission(
+            context: context,
+            requirePrecise: true,
+          );
+      if (!hasPermission) return;
+
       log('Attempting to center map on current location...');
       final currentLocation = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -450,20 +546,21 @@ class _RecorderScreenState extends State<RecorderScreen> {
           timeLimit: Duration(seconds: 10),
         ),
       );
-      
-      log('Got current location for centering: ${currentLocation.latitude}, ${currentLocation.longitude}');
-      
+
+      log(
+        'Got current location for centering: ${currentLocation.latitude}, ${currentLocation.longitude}',
+      );
+
       await _mapController!.moveCamera(
         CameraUpdate.newLatLngZoom(
           LatLng(currentLocation.latitude, currentLocation.longitude),
           16.0,
         ),
       );
-      
+
       log('Successfully centered map on current location');
     } catch (e) {
       log('Failed to center map on location: $e');
     }
   }
 }
-

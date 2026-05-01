@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cadent/screens/recorder_screen.dart';
 import 'package:cadent/screens/training_plans_screen.dart';
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
+import '../services/navigation_intent_service.dart';
 import '../screens/settings_screen.dart';
 import '../utils/app_spacing.dart';
 import '../utils/app_text_size.dart';
@@ -15,6 +18,8 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
+  StreamSubscription<String>? _navigationIntentSubscription;
+  bool _recorderOpen = false;
 
   static const List<Widget> _pages = <Widget>[
     HomeScreen(),
@@ -28,12 +33,39 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
-  void _onRecordTapped() {
-    // navigate to recorder screen
-    Navigator.push(
+  @override
+  void initState() {
+    super.initState();
+    _navigationIntentSubscription = NavigationIntentService.targets.listen(
+      _handleNavigationIntent,
+    );
+  }
+
+  @override
+  void dispose() {
+    _navigationIntentSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _handleNavigationIntent(String target) {
+    if (target == 'recorder') {
+      _openRecorder();
+    }
+  }
+
+  Future<void> _openRecorder() async {
+    if (_recorderOpen || !mounted) return;
+
+    _recorderOpen = true;
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const RecorderScreen()),
     );
+    _recorderOpen = false;
+  }
+
+  void _onRecordTapped() {
+    _openRecorder();
   }
 
   @override
