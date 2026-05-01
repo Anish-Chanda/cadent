@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cadent/utils/error_toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -38,10 +39,7 @@ class LocationPermissionService {
         if (context != null && context.mounted) {
           //TODO: create a centralized way to show these messages
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location services are disabled. Please enable them in settings.'),
-              duration: Duration(seconds: 3),
-            ),
+            warningSnackBar('Location services are disabled. Please enable them in settings.', context),
           );
         }
         return false;
@@ -63,10 +61,7 @@ class LocationPermissionService {
         if (permission == LocationPermission.denied) {
           if (context != null && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Location permission is required to track your activity.'),
-                duration: Duration(seconds: 3),
-              ),
+              warningSnackBar('Location permission is required to track your activity.', context),
             );
           }
           return false;
@@ -77,10 +72,7 @@ class LocationPermissionService {
       if (permission == LocationPermission.deniedForever) {
         if (context != null && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location permission permanently denied. Please enable in app settings.'),
-              duration: Duration(seconds: 4),
-            ),
+            warningSnackBar('Location permission permanently denied. Please enable in app settings.', context),
           );
         }
         return false;
@@ -92,10 +84,7 @@ class LocationPermissionService {
     } catch (e) {
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error checking location permissions.'),
-            duration: Duration(seconds: 3),
-          ),
+          errorSnackBar(e, 'Error checking location permissions.', context),
         );
       }
       return false;
