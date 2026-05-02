@@ -26,7 +26,7 @@ class ServerUrlWidget extends StatelessWidget {
               controller: controller,
               decoration: const InputDecoration(
                 labelText: 'Server URL',
-                hintText: 'http://cadent.local',
+                hintText: 'https://api.opencadent.com',
                 border: OutlineInputBorder(),
               ),
               validator: Validators.serverUrl,
