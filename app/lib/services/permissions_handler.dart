@@ -210,6 +210,60 @@ class LocationPermissionService {
     }
   }
 
+  /// Requests an Android battery optimization exemption for reliable long
+  /// activity tracking while the screen is off.
+  static Future<bool> requestTrackingBatteryOptimizationExemption({
+    BuildContext? context,
+  }) async {
+    if (!Platform.isAndroid) return true;
+
+    try {
+      final isAlreadyExempt =
+          await _trackingPermissionsChannel.invokeMethod<bool>(
+            'isIgnoringBatteryOptimizations',
+          ) ??
+          true;
+      if (isAlreadyExempt) return true;
+
+      if (context != null && context.mounted) {
+        final shouldRequest = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Allow Background Tracking'),
+            content: const Text(
+              'To keep recording longer activities after the screen is off, allow Cadent to run without battery optimization.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Not now'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Allow'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldRequest != true) return false;
+      }
+
+      await _trackingPermissionsChannel.invokeMethod<bool>(
+        'requestIgnoreBatteryOptimizations',
+      );
+
+      return await _trackingPermissionsChannel.invokeMethod<bool>(
+            'isIgnoringBatteryOptimizations',
+          ) ??
+          true;
+    } catch (e) {
+      log('Error requesting battery optimization exemption: $e');
+      return false;
+    }
+  }
+
   /// Gets the current location permission status without requesting
   static Future<LocationPermission> getPermissionStatus() async {
     return await GeolocatorPlatform.instance.checkPermission();

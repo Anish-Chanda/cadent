@@ -3,7 +3,9 @@ package com.example.app
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -30,6 +32,8 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "requestPostNotificationsPermission" -> requestPostNotificationsPermission(result)
                 "openNotificationSettings" -> openNotificationSettings(result)
+                "isIgnoringBatteryOptimizations" -> result.success(isIgnoringBatteryOptimizations())
+                "requestIgnoreBatteryOptimizations" -> requestIgnoreBatteryOptimizations(result)
                 else -> result.notImplemented()
             }
         }
@@ -163,6 +167,32 @@ class MainActivity : FlutterActivity() {
                 }
             )
         }
+        result.success(true)
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        return powerManager.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    private fun requestIgnoreBatteryOptimizations(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            result.success(true)
+            return
+        }
+
+        if (isIgnoringBatteryOptimizations()) {
+            result.success(true)
+            return
+        }
+
+        startActivity(
+            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+            }
+        )
         result.success(true)
     }
 

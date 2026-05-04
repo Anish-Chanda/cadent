@@ -61,6 +61,14 @@ class RecordingController extends ChangeNotifier {
             context: context,
           );
       if (!hasNotificationPermission) return false;
+      if (context != null && !context.mounted) return false;
+
+      final hasBatteryOptimizationExemption =
+          await LocationPermissionService.requestTrackingBatteryOptimizationExemption(
+            context: context,
+          );
+      if (!hasBatteryOptimizationExemption) return false;
+
       _useMetricUnits = useMetricUnits;
 
       // Preserve activity type when starting a new recording
