@@ -1,3 +1,4 @@
+import 'package:cadent/utils/error_toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -48,20 +49,13 @@ class _SignupScreenState extends State<SignupScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Account created successfully! Welcome to Cadent!'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            duration: const Duration(seconds: 2),
-          ),
+          successSnackBar('Account created successfully! Welcome to Cadent!', context),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Signup failed: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+          errorSnackBar(e, 'Signup failed', context),
         );
       }
     }

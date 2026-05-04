@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cadent/utils/error_toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -167,11 +168,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
     final success = await _controller.startRecording(context: context);
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to start recording. Please check location permissions.',
-          ),
-        ),
+        errorSnackBar(null, 'Failed to start recording. Please check location permissions.', context),
       );
     }
   }
@@ -302,16 +299,9 @@ class _RecorderScreenState extends State<RecorderScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            activityId != null
-                ? 'Activity saved successfully!'
-                : 'Failed to save activity. Please try again.',
-          ),
-          backgroundColor: activityId != null
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.error,
-        ),
+        activityId != null
+            ? successSnackBar('Activity saved successfully!', context)
+            : errorSnackBar(null, 'Failed to save activity. Please try again.', context),
       );
     }
 
