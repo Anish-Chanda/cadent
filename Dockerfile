@@ -21,6 +21,7 @@ FROM golang:1.25.1-alpine AS builder
 # Version arguments
 ARG API_VERSION=dev
 ARG BUILD_HASH=unknown
+ARG ENABLE_GO_COVERAGE=false
 
 # Set working directory
 WORKDIR /app
@@ -37,12 +38,23 @@ COPY backend/ ./backend/
 # Copy built web files from web-builder stage
 COPY --from=web-builder /app/backend/web/dist ./backend/web/dist
 
-# Build the application with version injection
+# Build the application with version injection.
+# ENABLE_GO_COVERAGE is used by CI E2E tests to collect coverage from the API binary.
 WORKDIR /app/backend
-RUN CGO_ENABLED=0 GOOS=linux go build \
-    -a -installsuffix cgo \
-    -ldflags "-X main.Version=${API_VERSION} -X main.BuildHash=${BUILD_HASH}" \
-    -o ../bin/api .
+RUN set -eux; \
+    if [ "$ENABLE_GO_COVERAGE" = "true" ]; then \
+        COVERPKG="$(go list ./... | tr '\n' ',' | sed 's/,$//')"; \
+        CGO_ENABLED=0 GOOS=linux go build \
+            -cover \
+            -coverpkg="$COVERPKG" \
+            -ldflags "-X main.Version=${API_VERSION} -X main.BuildHash=${BUILD_HASH}" \
+            -o ../bin/api .; \
+    else \
+        CGO_ENABLED=0 GOOS=linux go build \
+            -a -installsuffix cgo \
+            -ldflags "-X main.Version=${API_VERSION} -X main.BuildHash=${BUILD_HASH}" \
+            -o ../bin/api .; \
+    fi
 
 # Final stage
 FROM alpine:latest
@@ -60,8 +72,8 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/bin/api .
 
-# Create avatars directory
-RUN mkdir -p /app/avatars && chown -R appuser:appgroup /app
+# Create runtime directories
+RUN mkdir -p /app/avatars /app/go-cover && chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
