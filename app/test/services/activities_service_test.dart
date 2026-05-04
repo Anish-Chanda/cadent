@@ -177,63 +177,62 @@ void main() {
   });
 
   group('ActivitiesService.saveActivity', () {
-    test('returns true on 201 and maps explicit fields', () async {
-      mocker.reply('POST', '/api/v1/activities', statusCode: 201, data: {'ok': true});
+test('returns true on 201 and maps explicit fields', () async {
+  mocker.reply('POST', '/api/v1/activities', statusCode: 201, data: {'id': 'test-uuid-1234'});
 
-      final ok = await ActivitiesService.instance.saveActivity(
-        // Use an empty session to avoid geolocator Position construction
-        // ignore: invalid_use_of_visible_for_testing_member
-        RecordingSessionModel(),
-        title: 'My Ride',
-        description: 'Fun route',
-        perceivedEffort: 8,
-      );
+  final ok = await ActivitiesService.instance.saveActivity(
+    // Use an empty session to avoid geolocator Position construction
+    // ignore: invalid_use_of_visible_for_testing_member
+    RecordingSessionModel(),
+    title: 'My Ride',
+    description: 'Fun route',
+    perceivedEffort: 8,
+  );
 
-      expect(ok, isTrue);
+  expect(ok, isNotNull);
 
-      // Assert request path and payload basics
-      expect(captor.lastRequest?.path, '/api/v1/activities');
-      final body = (captor.lastData as Map<String, dynamic>);
-      expect(body['title'], 'My Ride');
-      expect(body['description'], 'Fun route');
-      expect(body['activity_type'], isNotEmpty);
-      expect(body['client_activity_id'], isA<String>());
-      expect(body['perceived_effort'], 8);
-      expect(body['samples'], isA<List>());
-    });
+  // Assert request path and payload basics
+  expect(captor.lastRequest?.path, '/api/v1/activities');
+  final body = (captor.lastData as Map<String, dynamic>);
+  expect(body['title'], 'My Ride');
+  expect(body['description'], 'Fun route');
+  expect(body['activity_type'], isNotEmpty);
+  expect(body['client_activity_id'], isA<String>());
+  expect(body['perceived_effort'], 8);
+  expect(body['samples'], isA<List>());
+});
 
-    test('returns true on 200', () async {
-      mocker.reply('POST', '/api/v1/activities', statusCode: 200, data: {'ok': true});
-      final ok = await ActivitiesService.instance.saveActivity(
-        RecordingSessionModel(),
-      );
-      expect(ok, isTrue);
-      final body = (captor.lastData as Map<String, dynamic>);
-      expect(body['perceived_effort'], isNull);
-    });
+test('returns true on 200', () async {
+  mocker.reply('POST', '/api/v1/activities', statusCode: 200, data: {'id': 'test-uuid-1234'});
+  final ok = await ActivitiesService.instance.saveActivity(
+    RecordingSessionModel(),
+  );
+  expect(ok, isNotNull);
+  final body = (captor.lastData as Map<String, dynamic>);
+  expect(body['perceived_effort'], isNull);
+});
+test('returns false on non-200', () async {
+  mocker.reply('POST', '/api/v1/activities', statusCode: 500);
+  final ok = await ActivitiesService.instance.saveActivity(
+    RecordingSessionModel(),
+  );
+  expect(ok, isNull);
+});
 
-    test('returns false on non-200', () async {
-      mocker.reply('POST', '/api/v1/activities', statusCode: 500);
-      final ok = await ActivitiesService.instance.saveActivity(
-        RecordingSessionModel(),
-      );
-      expect(ok, isFalse);
-    });
-
-    test('returns false on exception', () async {
-      mocker.throwError(
-        'POST',
-        '/api/v1/activities',
-        DioException(
-          requestOptions: RequestOptions(path: '/api/v1/activities'),
-          type: DioExceptionType.connectionError,
-          error: 'fail',
-        ),
-      );
-      final ok = await ActivitiesService.instance.saveActivity(
-        RecordingSessionModel(),
-      );
-      expect(ok, isFalse);
-    });
-  });
+test('returns false on exception', () async {
+  mocker.throwError(
+    'POST',
+    '/api/v1/activities',
+    DioException(
+      requestOptions: RequestOptions(path: '/api/v1/activities'),
+      type: DioExceptionType.connectionError,
+      error: 'fail',
+    ),
+  );
+  final ok = await ActivitiesService.instance.saveActivity(
+    RecordingSessionModel(),
+  );
+  expect(ok, isNull);
+});
+});
 }
