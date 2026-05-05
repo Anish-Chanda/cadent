@@ -216,11 +216,14 @@ class _RecorderScreenState extends State<RecorderScreen> {
             final title = result['title'] as String?;
             final description = result['description'] as String?;
             final perceivedEffort = result['perceived_effort'] as int?;
+            final referenceTime = _controller.model.startTime ?? DateTime.now();
 
-            // Fire save and fetch today's planned activities in parallel
+            // Fetch planned activities for the same local day as the completed activity.
             final results = await Future.wait([
               _saveActivity(title, description, perceivedEffort),
-              PlannedActivityService.instance.getTodayPlannedActivities(),
+              PlannedActivityService.instance.getTodayPlannedActivities(
+                referenceTime: referenceTime,
+              ),
             ]);
 
             final activityId = results[0] as String?;

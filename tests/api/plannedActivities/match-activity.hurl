@@ -66,7 +66,7 @@ jsonpath "$.id" matches /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
 # --- Step 3: Frontend calls GET today to discover unmatched planned activities ---
 # Returns the planned activity — frontend uses this ID for the PATCH
 
-GET http://localhost:8080/api/v1/activities/plan/today
+GET http://localhost:8080/api/v1/activities/plan/today?date={{day_date}}&timezoneOffsetMinutes=0
 HTTP 200
 [Captures]
 planned_activity_id: jsonpath "$.plannedActivities[0].id"
@@ -89,11 +89,7 @@ jsonpath "$.message" == "Planned activity updated"
 
 # --- Verify: GET by ID confirms matchedActivityId is set ---
 
-GET http://localhost:8080/api/v1/activities/plan
-Content-Type: application/json
-{
-  "id": "{{planned_activity_id}}"
-}
+GET http://localhost:8080/api/v1/activities/plan?id={{planned_activity_id}}
 HTTP 200
 [Asserts]
 jsonpath "$.id" == "{{planned_activity_id}}"
@@ -101,7 +97,7 @@ jsonpath "$.matchedActivityId" == "{{completed_activity_id}}"
 
 # --- Verify: GET today now returns empty — matched activity is filtered out ---
 
-GET http://localhost:8080/api/v1/activities/plan/today
+GET http://localhost:8080/api/v1/activities/plan/today?date={{day_date}}&timezoneOffsetMinutes=0
 HTTP 200
 [Asserts]
 jsonpath "$.plannedActivities" count == 0

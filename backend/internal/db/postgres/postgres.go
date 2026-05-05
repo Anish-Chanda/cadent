@@ -841,9 +841,7 @@ func (s *PostgresDB) GetPlannedActivityByID(ctx context.Context, plannedActivity
 func (s *PostgresDB) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error) {
 	s.log.Debug(fmt.Sprintf("Fetching unmatched planned activities for user: %s on date: %s", userID, date.Format("2006-01-02")))
 
-	// Match any planned activity whose start_time falls on the same calendar day (user's UTC date)
-	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
-	dayEnd := dayStart.Add(24 * time.Hour)
+	dayStart, dayEnd := plannedActivityDayBounds(date)
 
 	query := `
 		SELECT
@@ -902,6 +900,22 @@ func (s *PostgresDB) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, us
 
 	s.log.Debug(fmt.Sprintf("Found %d unmatched planned activities for user: %s on date: %s", len(plannedActivities), userID, date.Format("2006-01-02")))
 	return plannedActivities, nil
+}
+
+func plannedActivityDayBounds(referenceTime time.Time) (time.Time, time.Time) {
+	location := referenceTime.Location()
+	dayStartLocal := time.Date(
+		referenceTime.Year(),
+		referenceTime.Month(),
+		referenceTime.Day(),
+		0,
+		0,
+		0,
+		0,
+		location,
+	)
+	dayEndLocal := dayStartLocal.Add(24 * time.Hour)
+	return dayStartLocal.UTC(), dayEndLocal.UTC()
 }
 
 // --- Other stuff ---

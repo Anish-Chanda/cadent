@@ -1,5 +1,7 @@
 import 'dart:developer';
 
+import 'package:intl/intl.dart';
+
 import '../services/http_client.dart';
 import 'package:cadent/models/planned_activity.dart';
 
@@ -55,10 +57,17 @@ class PlannedActivityService {
   }
 
   /// Returns today's planned activities that have not yet been matched to a completed activity.
-  Future<List<PlannedActivity>> getTodayPlannedActivities() async {
+  Future<List<PlannedActivity>> getTodayPlannedActivities({
+    required DateTime referenceTime,
+  }) async {
     try {
+      final localReferenceTime = referenceTime.toLocal();
       final response = await HttpClient.instance.dio.get(
         '/api/v1/activities/plan/today',
+        queryParameters: {
+          'date': DateFormat('yyyy-MM-dd').format(localReferenceTime),
+          'timezoneOffsetMinutes': localReferenceTime.timeZoneOffset.inMinutes,
+        },
       );
 
       if (response.statusCode == 200) {

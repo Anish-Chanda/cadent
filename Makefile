@@ -150,4 +150,5 @@ test-e2e-api: ## Run hurl e2e tests
 	@echo "Running hurl e2e tests..."
 	@TEST_RUN=$$(date +%s%N); \
 	DAY=$$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
-	hurl --test --file-root . --variable now=$$TEST_RUN --variable day=$$DAY $(HURL_FLAGS) --glob "tests/api/**/*.hurl"
+	DAY_DATE=$$(date -u +"%Y-%m-%d"); \
+	hurl --test --file-root . --variable now=$$TEST_RUN --variable day=$$DAY --variable day_date=$$DAY_DATE $(HURL_FLAGS) --glob "tests/api/**/*.hurl"
