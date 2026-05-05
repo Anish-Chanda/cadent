@@ -302,7 +302,7 @@ func (s *PostgresDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID st
 			polyline, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
 			start_lat, start_lon, end_lat, end_lon, file_url, created_at, updated_at
 		FROM activities
-		WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
+		WHERE user_id = $1 AND start_time >= $2 AND start_time < $3
 		ORDER BY start_time DESC
 	`
 
@@ -370,7 +370,7 @@ func (s *PostgresDB) GetActivitiesByUserIDAndDate(ctx context.Context, userID st
             planned_elevation_gain_m, target_avg_speed_mps, target_power_watt,
             created_at, updated_at
         FROM planned_activities
-        WHERE user_id = $1 AND start_time >= $2 AND start_time <= $3
+        WHERE user_id = $1 AND start_time >= $2 AND start_time < $3
         ORDER BY start_time DESC
     `
 

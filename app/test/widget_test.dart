@@ -13,6 +13,7 @@ import 'Mocks/mock_auth_provider.dart';
 import 'package:cadent/providers/auth_provider.dart';
 import 'package:cadent/providers/activities_provider.dart';
 import 'package:cadent/providers/app_settings_provider.dart';
+import 'package:cadent/providers/calendar_provider.dart';
 import 'package:cadent/providers/theme_provider.dart';
 import 'package:cadent/utils/app_theme.dart';
 import 'package:cadent/screens/auth/login_screen.dart';
@@ -34,6 +35,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => CalendarProvider()),
           ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
@@ -73,6 +75,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => CalendarProvider()),
           ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),
@@ -120,6 +123,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
+          ChangeNotifierProvider(create: (_) => CalendarProvider()),
           ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
           ChangeNotifierProvider(
             create: (_) => ThemeProvider(AppTheme.lightTheme),

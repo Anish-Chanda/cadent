@@ -64,7 +64,7 @@ class PlannedActivity {
             ? null
             : json['description'] as String?,
         activityType: json['type'] as String,
-        startTime: DateTime.parse(json['start_time'] as String),
+        startTime: DateTime.parse(json['start_time'] as String).toLocal(),
         plannedDistanceMeter: (json['planned_distance'] as num?)?.toDouble(),
         plannedDurationSecond: json['planned_duration'] as int?,
         plannedElevationGainMeter:

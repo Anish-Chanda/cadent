@@ -137,16 +137,16 @@ class Activity {
       description: (json['description'] as String? ?? ''),
       activityType: json['type'] as String,
       perceivedEffort: json['perceived_effort'] as int?,
-      startTime: DateTime.parse(json['start_time'] as String),
-      endTime: json['end_time'] != null ? DateTime.parse(json['end_time'] as String) : null,
+      startTime: DateTime.parse(json['start_time'] as String).toLocal(),
+      endTime: json['end_time'] != null ? DateTime.parse(json['end_time'] as String).toLocal() : null,
       stats: json['stats'] != null ? ActivityStats.fromJson(json['stats'] as Map<String, dynamic>) : null,
       polyline: json['polyline'] as String?,
       bbox: json['bbox'] != null ? BoundingBox.fromJson(json['bbox'] as Map<String, dynamic>) : null,
       start: json['start'] != null ? Coordinate.fromJson(json['start'] as Map<String, dynamic>) : null,
       end: json['end'] != null ? Coordinate.fromJson(json['end'] as Map<String, dynamic>) : null,
       processingVer: json['processing_ver'] as int,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+      updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
   }
 
@@ -191,10 +191,11 @@ class Activity {
     final elapsedTime = stats?.elapsedSeconds.round() ?? 0;
     final hours = elapsedTime ~/ 3600;
     final minutes = (elapsedTime % 3600) ~/ 60;
+    final seconds = elapsedTime % 60;
     if (hours > 0) {
-      return '$hours hr $minutes min';
+      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
-    return '$minutes min';
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   String get formattedSpeed => isMetric

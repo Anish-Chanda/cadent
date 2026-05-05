@@ -64,33 +64,14 @@ class CalendarProvider with ChangeNotifier {
   }
 
   /// Force a refresh of the currently loaded date range.
+  /// Falls back to the current week if no range was previously loaded.
   Future<void> refresh() async {
-    if (_loadedStart == null || _loadedEnd == null) return;
-    final start = _loadedStart!;
-    final end = _loadedEnd!;
+    final now = DateTime.now();
+    final start = _loadedStart ?? DateTime(now.year, now.month, now.day - 2);
+    final end = _loadedEnd ?? DateTime(now.year, now.month, now.day + 3);
     _loadedStart = null;
     _loadedEnd = null;
     await loadCalendar(start, end);
-  }
-
-  /// Injects a mock planned activity for development/UI testing purposes.
-  void injectMockPlannedActivity() {
-    final today = DateTime.now();
-    _plannedActivities = [
-      PlannedActivity(
-        id: 'mock-1',
-        title: 'Morning Run',
-        description: 'Easy 5k recovery run',
-        activityType: 'running',
-        startTime: DateTime(today.year, today.month, today.day, 8, 0),
-        plannedDistanceMeter: 5000.0,
-        plannedDurationSecond: 1800,
-        plannedElevationGainMeter: 50.0,
-        targetAverageSpeedMeterPerSecond: 2.78,
-      ),
-    ];
-    _loadingState = CalendarLoadingState.loaded;
-    notifyListeners();
   }
 
   /// Clear all calendar data (e.g. on logout).

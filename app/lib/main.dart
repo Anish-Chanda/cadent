@@ -20,7 +20,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => ActivitiesProvider()),
-        ChangeNotifierProvider(create: (_) => CalendarProvider()..injectMockPlannedActivity()),
+        ChangeNotifierProvider(create: (_) => CalendarProvider()),
         ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
         ChangeNotifierProvider(
           create: (_) => ThemeProvider(AppTheme.lightTheme),
