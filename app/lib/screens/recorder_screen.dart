@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cadent/utils/error_toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -8,6 +9,8 @@ import 'package:provider/provider.dart';
 import '../controllers/recording_controller.dart';
 import '../models/recording_session_model.dart';
 import '../services/activities_service.dart';
+import '../services/planned_activity_service.dart';
+import '../widgets/planned_activity_match_sheet.dart';
 import '../services/permissions_handler.dart';
 import '../utils/app_spacing.dart';
 import '../widgets/recorder/recording_map_view.dart';
@@ -178,11 +181,7 @@ class _RecorderScreenState extends State<RecorderScreen> {
     if (!mounted) return;
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to start recording. Please check location permissions.',
-          ),
-        ),
+        errorSnackBar(null, 'Failed to start recording. Please check location permissions.', context),
       );
     }
   }
@@ -276,14 +275,39 @@ class _RecorderScreenState extends State<RecorderScreen> {
             // Navigate back to home screen
             Navigator.pop(context);
           } else if (action == 'save') {
-            // Update the model with title and description, then save
             final title = result['title'] as String?;
             final description = result['description'] as String?;
             final perceivedEffort = result['perceived_effort'] as int?;
-            await _saveActivity(title, description, perceivedEffort);
-            if (!mounted) return;
-            // Navigate back to home screen after successful save
-            Navigator.pop(context);
+            final referenceTime = _controller.model.startTime ?? DateTime.now();
+
+            // Fetch planned activities for the same local day as the completed activity.
+            final results = await Future.wait([
+              _saveActivity(title, description, perceivedEffort),
+              PlannedActivityService.instance.getTodayPlannedActivities(
+                referenceTime: referenceTime,
+              ),
+            ]);
+
+            final activityId = results[0] as String?;
+            final plannedActivities = results[1] as List;
+
+            // If activity saved and unmatched planned activities exist, show matching sheet
+            if (mounted && activityId != null && plannedActivities.isNotEmpty) {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (_) => PlannedActivityMatchSheet(
+                  plannedActivities: List.from(plannedActivities),
+                  completedActivityId: activityId,
+                ),
+              );
+            }
+
+            // Navigate back to home screen
+            if (mounted) Navigator.pop(context);
           } else if (action == 'resume') {
             // User wants to go back and continue recording
             // Move back to paused state so they can resume
@@ -308,7 +332,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
     }
   }
 
-  Future<void> _saveActivity(
+  /// Saves the activity and returns the new activity ID on success, null on failure.
+  Future<String?> _saveActivity(
     String? title,
     String? description,
     int? perceivedEffort,
@@ -325,35 +350,27 @@ class _RecorderScreenState extends State<RecorderScreen> {
       'Activity data: ${model.activityType.displayName} (${model.activityType.apiName}) - ${model.formattedTime} - ${model.totalDistanceMeters.toStringAsFixed(0)}m - GPS points: ${model.positions.length}',
     );
 
-    // Save complete activity data to backend with title and description
     final activityData = _controller.getActivityData();
-    if (activityData != null) {
-      final model = _controller.model;
+    if (activityData == null) return null;
 
-      // Save activity to backend with custom title and description
-      final success = await ActivitiesService.instance.saveActivity(
-        model,
-        title: title,
-        description: description,
-        perceivedEffort: perceivedEffort,
+    final activityId = await ActivitiesService.instance.saveActivity(
+      model,
+      title: title,
+      description: description,
+      perceivedEffort: perceivedEffort,
+    );
+
+    _controller.resetToIdle();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        activityId != null
+            ? successSnackBar('Activity saved successfully!', context)
+            : errorSnackBar(null, 'Failed to save activity. Please try again.', context),
       );
-
-      _controller.resetToIdle();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success
-                  ? 'Activity saved successfully!'
-                  : 'Failed to save activity. Please try again.',
-            ),
-            backgroundColor: success
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
     }
+
+    return activityId;
   }
 
   void _discardActivity() {

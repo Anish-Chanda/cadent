@@ -128,6 +128,12 @@ func (m *MockDatabase) GetTrainingPlanWorkouts(ctx context.Context, planID strin
 func (m *MockDatabase) CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error {
 	return nil
 }
+func (m *MockDatabase) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error) {
+	return nil, nil
+}
+func (m *MockDatabase) GetPlannedActivityByID(ctx context.Context, plannedActivityID string, userID string) (*models.PlannedActivity, error) {
+	return nil, nil
+}
 
 // Test helper functions
 func createTestActivity(activityID, userID string) *models.Activity {

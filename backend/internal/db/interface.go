@@ -33,6 +33,8 @@ type Database interface {
 	// --- Planned Activities ---
 	DeletePlannedActivity(ctx context.Context, activityID string, userID string) error
 	UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error
+	GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error)
+	GetPlannedActivityByID(ctx context.Context, plannedActivityID string, userID string) (*models.PlannedActivity, error)
 
 	// --- User management methods ---
 	GetUserByID(ctx context.Context, userID string) (*models.UserRecord, error)

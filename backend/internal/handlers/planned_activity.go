@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -303,6 +304,29 @@ func (h *Handler) HandleUpdatePlannedActivity() http.HandlerFunc {
 			}
 		}
 
+		if raw, ok := rawFields["matchedActivityId"]; ok {
+			if string(raw) == "null" {
+				updates["matched_activity_id"] = nil
+			} else {
+				var actID string
+				if err := json.Unmarshal(raw, &actID); err != nil || strings.TrimSpace(actID) == "" {
+					sendError(w, http.StatusBadRequest, "Invalid matched activity ID format")
+					return
+				}
+				// Validate the activity exists and belongs to the user
+				activity, err := h.database.GetActivityByID(ctx, actID)
+				if err != nil || activity == nil {
+					sendError(w, http.StatusNotFound, "Activity not found")
+					return
+				}
+				if activity.UserID != userID {
+					sendError(w, http.StatusForbidden, "Activity does not belong to user")
+					return
+				}
+				updates["matched_activity_id"] = actID
+			}
+		}
+
 		if len(updates) == 0 {
 			sendError(w, http.StatusBadRequest, "No updates provided")
 			return
@@ -323,6 +347,109 @@ func (h *Handler) HandleUpdatePlannedActivity() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Planned activity updated"})
 	}
+}
+
+func (h *Handler) HandleGetPlannedActivityByID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		plannedActivityID := strings.TrimSpace(r.URL.Query().Get("id"))
+		if plannedActivityID == "" {
+			sendError(w, http.StatusBadRequest, "Planned activity ID is required")
+			return
+		}
+
+		pa, err := h.database.GetPlannedActivityByID(ctx, plannedActivityID, userID)
+		if err != nil {
+			if err.Error() == "planned activity not found" {
+				sendError(w, http.StatusNotFound, "Planned activity not found")
+				return
+			}
+			h.log.Error("Failed to fetch planned activity", err)
+			sendError(w, http.StatusInternalServerError, "Failed to fetch planned activity")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(pa)
+	}
+}
+
+func (h *Handler) HandleGetTodayPlannedActivities() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		referenceDate, err := plannedActivityReferenceDateFromRequest(r)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		plannedActivities, err := h.database.GetUnmatchedPlannedActivitiesByDate(ctx, userID, referenceDate)
+		if err != nil {
+			h.log.Error("Failed to fetch today's unmatched planned activities", err)
+			sendError(w, http.StatusInternalServerError, "Failed to fetch planned activities")
+			return
+		}
+
+		// Return empty array instead of null
+		if plannedActivities == nil {
+			plannedActivities = []models.PlannedActivity{}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"plannedActivities": plannedActivities,
+		})
+	}
+}
+
+func plannedActivityReferenceDateFromRequest(r *http.Request) (time.Time, error) {
+	dateValue := strings.TrimSpace(r.URL.Query().Get("date"))
+	if dateValue == "" {
+		return time.Time{}, fmt.Errorf("date query parameter is required")
+	}
+
+	offsetValue := strings.TrimSpace(r.URL.Query().Get("timezoneOffsetMinutes"))
+	if offsetValue == "" {
+		return time.Time{}, fmt.Errorf("timezoneOffsetMinutes query parameter is required")
+	}
+
+	offsetMinutes, err := strconv.Atoi(offsetValue)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("timezoneOffsetMinutes must be a valid integer")
+	}
+
+	localDate, err := time.Parse("2006-01-02", dateValue)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("date must use YYYY-MM-DD format")
+	}
+
+	location := time.FixedZone("client", offsetMinutes*60)
+	return time.Date(
+		localDate.Year(),
+		localDate.Month(),
+		localDate.Day(),
+		12,
+		0,
+		0,
+		0,
+		location,
+	), nil
 }
 
 func sendError(w http.ResponseWriter, code int, message string) {

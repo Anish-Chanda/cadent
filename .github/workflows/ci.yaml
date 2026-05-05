@@ -121,17 +121,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
       
       - name: Install hurl
         run: |
           curl -LO https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb
           sudo dpkg -i hurl_7.1.0_amd64.deb
+
+      - name: Prepare E2E coverage directory
+        run: |
+          rm -rf backend/e2e-coverdata
+          mkdir -p backend/e2e-coverdata
       
       - name: Build API Docker image
         run: |
           docker build \
             --build-arg API_VERSION=ci-test \
             --build-arg BUILD_HASH=${{ github.sha }} \
+            --build-arg ENABLE_GO_COVERAGE=true \
             -t cadent-api:test \
             .
       
@@ -149,6 +160,7 @@ jobs:
             -e AVATAR_PATH="$AVATAR_PATH" \
             -e BASE_URL="$BASE_URL" \
             -e STORAGE_DSN="$STORAGE_DSN" \
+            -e GOCOVERDIR="/app/go-cover" \
             cadent-api:test
           # Wait for API to be ready
           timeout 30 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done' || exit 1
@@ -162,7 +174,29 @@ jobs:
       
       - name: Stop backend API container
         if: always()
-        run: docker rm -f cadent-api || true
+        run: |
+          docker stop --timeout 30 cadent-api || true
+          docker cp cadent-api:/app/go-cover/. backend/e2e-coverdata || true
+          docker rm cadent-api || true
+
+      - name: Convert E2E API coverage
+        if: always()
+        run: |
+          if ! find backend/e2e-coverdata -type f -name 'cov*' | grep -q .; then
+            echo "No Go E2E coverage data was emitted"
+            exit 1
+          fi
+          go tool covdata textfmt -i=backend/e2e-coverdata -o=backend/e2e-coverage.out
+          go tool cover -func=backend/e2e-coverage.out | tail -n 1
+
+      - name: Upload E2E API coverage artifact
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-api-coverage-data
+          path: backend/e2e-coverage.out
+          if-no-files-found: error
+          retention-days: 1
   
   # Run SonarQube analysis only on pushes to main branch (skip when running locally with act)
   sonar-analysis:
@@ -205,6 +239,13 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: go-test-data
+          path: backend
+
+      - name: Download E2E API coverage artifact
+        if: ${{ !env.ACT }}
+        uses: actions/download-artifact@v6
+        with:
+          name: e2e-api-coverage-data
           path: backend
       
       - name: Prepare Flutter pubspec for Sonar

@@ -149,4 +149,6 @@ test-e2e-api: ## Run hurl e2e tests
 	sed "s/\"client_activity_id\":\"[^\"]*\"/\"client_activity_id\":\"$$NEW_UUID\"/" tests/afternoon_run.json > tests/afternoon_run.test.json
 	@echo "Running hurl e2e tests..."
 	@TEST_RUN=$$(date +%s%N); \
-	hurl --test --file-root . --variable now=$$TEST_RUN $(HURL_FLAGS) --glob "tests/api/**/*.hurl"
+	DAY=$$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
+	DAY_DATE=$$(date -u +"%Y-%m-%d"); \
+	hurl --test --file-root . --variable now=$$TEST_RUN --variable day=$$DAY --variable day_date=$$DAY_DATE $(HURL_FLAGS) --glob "tests/api/**/*.hurl"

@@ -110,6 +110,12 @@ func (m *IntegrationUserMockDB) DeletePlannedActivity(ctx context.Context, activ
 func (m *IntegrationUserMockDB) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
 	return nil
 }
+func (m *IntegrationUserMockDB) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error) {
+	return nil, nil
+}
+func (m *IntegrationUserMockDB) GetPlannedActivityByID(ctx context.Context, plannedActivityID string, userID string) (*models.PlannedActivity, error) {
+	return nil, nil
+}
 func (m *IntegrationUserMockDB) Connect(dsn string) error { return nil }
 func (m *IntegrationUserMockDB) Close() error             { return nil }
 func (m *IntegrationUserMockDB) Migrate() error           { return nil }

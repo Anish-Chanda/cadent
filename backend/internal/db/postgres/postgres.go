@@ -752,7 +752,7 @@ func (s *PostgresDB) UpdatePlannedActivity(ctx context.Context, activityID strin
 		switch field {
 		case "title", "description", "type", "start_time",
 			"planned_distance_m", "planned_duration_s", "planned_elevation_gain_m",
-			"target_avg_speed_mps", "target_power_watt":
+			"target_avg_speed_mps", "target_power_watt", "matched_activity_id":
 			setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argIndex))
 			args = append(args, value)
 			argIndex++
@@ -788,6 +788,134 @@ func (s *PostgresDB) UpdatePlannedActivity(ctx context.Context, activityID strin
 
 	s.log.Debug(fmt.Sprintf("Successfully updated planned activity: %s", activityID))
 	return nil
+}
+
+// GetPlannedActivityByID returns a single planned activity by ID, scoped to the owning user.
+func (s *PostgresDB) GetPlannedActivityByID(ctx context.Context, plannedActivityID string, userID string) (*models.PlannedActivity, error) {
+	s.log.Debug(fmt.Sprintf("Fetching planned activity ID: %s for user: %s", plannedActivityID, userID))
+
+	query := `
+		SELECT
+			id, user_id, title, description, type,
+			start_time, planned_distance_m, planned_duration_s,
+			planned_elevation_gain_m, target_avg_speed_mps, target_power_watt,
+			matched_activity_id, user_training_plan_id, plan_sequence_index,
+			created_at, updated_at
+		FROM planned_activities
+		WHERE id = $1 AND user_id = $2
+	`
+
+	var pa models.PlannedActivity
+	err := s.pool.QueryRow(ctx, query, plannedActivityID, userID).Scan(
+		&pa.ID,
+		&pa.UserID,
+		&pa.Title,
+		&pa.Description,
+		&pa.Type,
+		&pa.StartTime,
+		&pa.PlannedDistanceM,
+		&pa.PlannedDurationS,
+		&pa.PlannedElevationGainM,
+		&pa.TargetAvgSpeedMps,
+		&pa.TargetPowerWatt,
+		&pa.MatchedActivityID,
+		&pa.UserTrainingPlanID,
+		&pa.PlanSequenceIndex,
+		&pa.CreatedAt,
+		&pa.UpdatedAt,
+	)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, fmt.Errorf("planned activity not found")
+		}
+		s.log.Error(fmt.Sprintf("Database error fetching planned activity ID: %s", plannedActivityID), err)
+		return nil, fmt.Errorf("failed to get planned activity: %w", err)
+	}
+
+	s.log.Debug(fmt.Sprintf("Successfully fetched planned activity: %s", plannedActivityID))
+	return &pa, nil
+}
+
+// GetUnmatchedPlannedActivitiesByDate returns planned activities for a user on a given date
+// that have not yet been matched to a completed activity.
+func (s *PostgresDB) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error) {
+	s.log.Debug(fmt.Sprintf("Fetching unmatched planned activities for user: %s on date: %s", userID, date.Format("2006-01-02")))
+
+	dayStart, dayEnd := plannedActivityDayBounds(date)
+
+	query := `
+		SELECT
+			id, user_id, title, description, type,
+			start_time, planned_distance_m, planned_duration_s,
+			planned_elevation_gain_m, target_avg_speed_mps, target_power_watt,
+			matched_activity_id, user_training_plan_id, plan_sequence_index,
+			created_at, updated_at
+		FROM planned_activities
+		WHERE user_id = $1
+		  AND start_time >= $2
+		  AND start_time < $3
+		  AND matched_activity_id IS NULL
+		ORDER BY start_time ASC
+	`
+
+	rows, err := s.pool.Query(ctx, query, userID, dayStart, dayEnd)
+	if err != nil {
+		s.log.Error(fmt.Sprintf("Database error fetching unmatched planned activities for user: %s", userID), err)
+		return nil, fmt.Errorf("failed to get unmatched planned activities: %w", err)
+	}
+	defer rows.Close()
+
+	var plannedActivities []models.PlannedActivity
+	for rows.Next() {
+		var pa models.PlannedActivity
+		err := rows.Scan(
+			&pa.ID,
+			&pa.UserID,
+			&pa.Title,
+			&pa.Description,
+			&pa.Type,
+			&pa.StartTime,
+			&pa.PlannedDistanceM,
+			&pa.PlannedDurationS,
+			&pa.PlannedElevationGainM,
+			&pa.TargetAvgSpeedMps,
+			&pa.TargetPowerWatt,
+			&pa.MatchedActivityID,
+			&pa.UserTrainingPlanID,
+			&pa.PlanSequenceIndex,
+			&pa.CreatedAt,
+			&pa.UpdatedAt,
+		)
+		if err != nil {
+			s.log.Error(fmt.Sprintf("Error scanning unmatched planned activity row for user: %s", userID), err)
+			return nil, fmt.Errorf("failed to scan planned activity: %w", err)
+		}
+		plannedActivities = append(plannedActivities, pa)
+	}
+
+	if err = rows.Err(); err != nil {
+		s.log.Error(fmt.Sprintf("Row iteration error for user: %s", userID), err)
+		return nil, fmt.Errorf("failed to iterate planned activities: %w", err)
+	}
+
+	s.log.Debug(fmt.Sprintf("Found %d unmatched planned activities for user: %s on date: %s", len(plannedActivities), userID, date.Format("2006-01-02")))
+	return plannedActivities, nil
+}
+
+func plannedActivityDayBounds(referenceTime time.Time) (time.Time, time.Time) {
+	location := referenceTime.Location()
+	dayStartLocal := time.Date(
+		referenceTime.Year(),
+		referenceTime.Month(),
+		referenceTime.Day(),
+		0,
+		0,
+		0,
+		0,
+		location,
+	)
+	dayEndLocal := dayStartLocal.Add(24 * time.Hour)
+	return dayStartLocal.UTC(), dayEndLocal.UTC()
 }
 
 // --- Other stuff ---
