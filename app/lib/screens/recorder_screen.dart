@@ -11,6 +11,7 @@ import '../models/recording_session_model.dart';
 import '../services/activities_service.dart';
 import '../services/planned_activity_service.dart';
 import '../widgets/planned_activity_match_sheet.dart';
+import '../services/permissions_handler.dart';
 import '../utils/app_spacing.dart';
 import '../widgets/recorder/recording_map_view.dart';
 import '../widgets/recorder/recording_status_bar.dart';
@@ -58,6 +59,10 @@ class _RecorderScreenState extends State<RecorderScreen> {
     _controller = RecordingController();
     // Listen to controller changes to update UI
     _controller.addListener(_onControllerUpdate);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.restoreBackgroundTracking();
+      _requestLocationForRecorder();
+    });
   }
 
   @override
@@ -73,6 +78,8 @@ class _RecorderScreenState extends State<RecorderScreen> {
   }
 
   void _onControllerUpdate() {
+    if (!mounted) return;
+
     // Trigger UI rebuild when controller state changes
     setState(() {});
 
@@ -108,8 +115,9 @@ class _RecorderScreenState extends State<RecorderScreen> {
   void _updateMapRoute() {
     if (_mapController == null ||
         !_controller.model.isRecording ||
-        _isMapExpanded)
+        _isMapExpanded) {
       return;
+    }
 
     final positions = _controller.model.positions;
     if (positions.length < 2) return; // Need at least 2 points to draw a line
@@ -165,11 +173,65 @@ class _RecorderScreenState extends State<RecorderScreen> {
       }
     }
 
-    final success = await _controller.startRecording(context: context);
+    if (!mounted) return;
+    final success = await _controller.startRecording(
+      context: context,
+      useMetricUnits: isMetric,
+    );
+    if (!mounted) return;
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         errorSnackBar(null, 'Failed to start recording. Please check location permissions.', context),
       );
+    }
+  }
+
+  Future<void> _requestLocationForRecorder() async {
+    try {
+      final permission = await LocationPermissionService.getPermissionStatus();
+      final isGranted =
+          permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+
+      // If permission not granted, show an explanatory popup before
+      // invoking the system permission dialog.
+      if (!isGranted) {
+        if (!mounted) return;
+        final shouldRequest = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Location Permission'),
+            content: const Text(
+              'Cadent needs location access to record your activity accurately.\n\nWould you like to allow location access now?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Not now'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Allow'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldRequest != true) return;
+      }
+
+      if (!mounted) return;
+      final hasPermission =
+          await LocationPermissionService.requestLocationPermission(
+            context: context,
+            requirePrecise: true,
+          );
+
+      if (!mounted || !hasPermission) return;
+      await _centerMapOnLocation();
+    } catch (e) {
+      log('Error while requesting location for recorder: $e');
     }
   }
 
@@ -487,6 +549,13 @@ class _RecorderScreenState extends State<RecorderScreen> {
     if (_mapController == null) return;
 
     try {
+      final hasPermission =
+          await LocationPermissionService.requestLocationPermission(
+            context: context,
+            requirePrecise: true,
+          );
+      if (!hasPermission) return;
+
       log('Attempting to center map on current location...');
       final currentLocation = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(

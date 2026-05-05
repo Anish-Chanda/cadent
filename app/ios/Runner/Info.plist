@@ -27,14 +27,14 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Your app requires background location access.</string>
+	<string>Cadent uses location in the background to keep recording your activity after you lock your phone or switch apps.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
-		<key>YourPurposeKey</key>
-		<string>The example App requires temporary access to the device's precise location.</string>
+		<key>ActivityRecordingPreciseLocation</key>
+		<string>Cadent needs precise location to map your route and calculate activity distance accurately.</string>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open.</string>
+	<string>Cadent uses your location to show where you are on the recording map and track your activity route.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
