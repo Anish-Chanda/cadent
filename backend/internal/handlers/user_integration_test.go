@@ -104,6 +104,18 @@ func (m *IntegrationUserMockDB) CreateActivityStreams(ctx context.Context, strea
 func (m *IntegrationUserMockDB) CreatePlannedActivity(ctx context.Context, plan *models.PlannedActivity) (*models.PlannedActivity, error) {
 	return &models.PlannedActivity{}, nil
 }
+func (m *IntegrationUserMockDB) DeletePlannedActivity(ctx context.Context, activityID string, userID string) error {
+	return nil
+}
+func (m *IntegrationUserMockDB) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
+	return nil
+}
+func (m *IntegrationUserMockDB) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error) {
+	return nil, nil
+}
+func (m *IntegrationUserMockDB) GetPlannedActivityByID(ctx context.Context, plannedActivityID string, userID string) (*models.PlannedActivity, error) {
+	return nil, nil
+}
 func (m *IntegrationUserMockDB) Connect(dsn string) error { return nil }
 func (m *IntegrationUserMockDB) Close() error             { return nil }
 func (m *IntegrationUserMockDB) Migrate() error           { return nil }
@@ -714,4 +726,18 @@ func TestUserHandlerEdgeCases(t *testing.T) {
 			t.Errorf("Concurrent updates not handled correctly: name=%s, email=%s", response.Name, response.Email)
 		}
 	})
+}
+
+// Mocks for GetTrainingPlans and GetTrainingPlanWorkouts
+func (m *IntegrationUserMockDB) GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *IntegrationUserMockDB) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *IntegrationUserMockDB) GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error) {
+	return nil, nil
+}
+func (m *IntegrationUserMockDB) CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error {
+	return nil
 }

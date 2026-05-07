@@ -34,13 +34,21 @@ class CalendarService {
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
 
+        final rawPlanned = data['planned_activities'] as List<dynamic>;
+        log('Calendar API: ${(data['activities'] as List).length} activities, ${rawPlanned.length} planned');
+
         final activities = (data['activities'] as List<dynamic>)
             .map((a) => Activity.fromJson(a as Map<String, dynamic>))
             .toList();
 
-        final plannedActivities = (data['planned_activities'] as List<dynamic>)
-            .map((p) => PlannedActivity.fromCalendarJson(p as Map<String, dynamic>))
-            .toList();
+        final plannedActivities = <PlannedActivity>[];
+        for (final p in rawPlanned) {
+          try {
+            plannedActivities.add(PlannedActivity.fromCalendarJson(p as Map<String, dynamic>));
+          } catch (e) {
+            log('Failed to parse planned activity: $e\nRaw: $p');
+          }
+        }
 
         return CalendarData(
           activities: activities,

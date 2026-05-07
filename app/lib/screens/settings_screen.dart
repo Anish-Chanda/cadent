@@ -1,3 +1,4 @@
+import 'package:cadent/utils/error_toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -82,12 +83,8 @@ class SettingsScreen extends StatelessWidget {
                           final success = await auth.updateName(trimmedName);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(success ? 'Name updated successfully' : 'Failed to update name'),
-                                backgroundColor: success 
-                                    ? Theme.of(context).colorScheme.primary 
-                                    : Theme.of(context).colorScheme.error,
-                              ),
+                              success ? successSnackBar('Name updated successfully', context) :
+                              errorSnackBar(null, 'Failed to update name', context),
                             );
                           }
                         }
@@ -185,7 +182,7 @@ class SettingsScreen extends StatelessWidget {
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error signing out: $e')),
+                              errorSnackBar(e, "Error signing out", context),
                             );
                           }
                         }

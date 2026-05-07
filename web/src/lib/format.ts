@@ -3,7 +3,7 @@
 
 /**
  * Formats a distance in kilometres for display.
- * e.g. 10.057 → "10.06 km"
+ * e.g. 10.057 -> "10.06 km"
  */
 export function formatDistance(km: number): string {
 	return `${km.toFixed(2)} km`;
@@ -11,7 +11,7 @@ export function formatDistance(km: number): string {
 
 /**
  * Formats a running pace given in seconds-per-km.
- * e.g. 298 → "4:58 /km"
+ * e.g. 298 -> "4:58 /km"
  * Returns "—" when pace is unavailable.
  */
 export function formatPace(secPerKm: number | undefined): string {
@@ -22,13 +22,13 @@ export function formatPace(secPerKm: number | undefined): string {
 }
 
 /**
- * Formats a cycling average speed given in km/h.
- * e.g. 28.5 → "28.5 km/h"
+ * Formats a cycling average speed given in kph.
+ * e.g. 28.5 -> "28.5 kph"
  * Returns "—" when speed is unavailable.
  */
 export function formatSpeed(kmh: number | undefined): string {
 	if (kmh == null) return "—";
-	return `${kmh.toFixed(1)} km/h`;
+	return `${kmh.toFixed(1)} kph`;
 }
 
 /**

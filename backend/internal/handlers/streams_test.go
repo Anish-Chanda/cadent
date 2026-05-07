@@ -107,9 +107,33 @@ func (m *MockDatabase) GetActivitiesByUserIDAndDate(ctx context.Context, userID 
 func (m *MockDatabase) CheckIdempotency(ctx context.Context, clientActivityID string) (bool, error) {
 	return false, nil
 }
+func (m *MockDatabase) DeletePlannedActivity(ctx context.Context, activityID string, userID string) error {
+	return nil
+}
+func (m *MockDatabase) UpdatePlannedActivity(ctx context.Context, activityID string, userID string, updates map[string]interface{}) error {
+	return nil
+}
 func (m *MockDatabase) Connect(dsn string) error { return nil }
 func (m *MockDatabase) Close() error             { return nil }
 func (m *MockDatabase) Migrate() error           { return nil }
+func (m *MockDatabase) GetTrainingPlans(ctx context.Context, searchQuery string, activityType *models.ActivityType) ([]models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *MockDatabase) GetTrainingPlanByID(ctx context.Context, planID string) (*models.TrainingPlan, error) {
+	return nil, nil
+}
+func (m *MockDatabase) GetTrainingPlanWorkouts(ctx context.Context, planID string) ([]models.TrainingPlanWorkout, error) {
+	return nil, nil
+}
+func (m *MockDatabase) CreateUserTrainingPlanWithPlannedActivities(ctx context.Context, userPlan *models.UserTrainingPlan, plannedActivities []models.PlannedActivity) error {
+	return nil
+}
+func (m *MockDatabase) GetUnmatchedPlannedActivitiesByDate(ctx context.Context, userID string, date time.Time) ([]models.PlannedActivity, error) {
+	return nil, nil
+}
+func (m *MockDatabase) GetPlannedActivityByID(ctx context.Context, plannedActivityID string, userID string) (*models.PlannedActivity, error) {
+	return nil, nil
+}
 
 // Test helper functions
 func createTestActivity(activityID, userID string) *models.Activity {

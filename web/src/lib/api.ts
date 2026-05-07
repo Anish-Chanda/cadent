@@ -148,8 +148,158 @@ export interface GetActivitiesResponse {
 	activities: Activity[];
 }
 
+export type ActivityType = "running" | "road_biking";
+
 export function getActivities(): Promise<GetActivitiesResponse> {
 	return request<GetActivitiesResponse>("/v1/activities");
 }
 
 export { ApiError };
+
+// ---- Training Plans ----
+export interface TrainingPlan {
+	id: string;
+	created_by_user_id?: string;
+	title: string;
+	description: string | null;
+	primary_activity_type: ActivityType | null;
+	difficulty: string;
+	duration_weeks: number;
+	recommended_workouts_per_week: number;
+	is_system: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// "all" is a UI-only filter value and is not part of the backend activity_type enum.
+export type TrainingPlanActivityTypeFilter = ActivityType | "all";
+
+export interface TrainingPlanWorkout {
+	id: string;
+	training_plan_id: string;
+	sequence_index: number;
+	template_day_offset: number;
+	type: string;
+	title: string;
+	description: string | null;
+	planned_distance_m: number | null;
+	planned_duration_s: number | null;
+	planned_elevation_gain_m: number | null;
+	target_avg_speed_mps: number | null;
+	target_power_watt: number | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export function getTrainingPlans(
+	q?: string,
+	activityType?: TrainingPlanActivityTypeFilter,
+): Promise<TrainingPlan[]> {
+	const params = new URLSearchParams();
+	if (q) params.set("q", q);
+	if (activityType && activityType !== "all") {
+		params.set("activity_type", activityType);
+	}
+	return request<TrainingPlan[]>(`/v1/training-plans?${params.toString()}`);
+}
+
+export function getTrainingPlanWorkouts(
+	id: string,
+): Promise<TrainingPlanWorkout[]> {
+	return request<TrainingPlanWorkout[]>(`/v1/training-plans/${id}/workouts`);
+}
+
+export interface ImportTrainingPlanRequest {
+	startDate: string;
+	selectedWorkoutsPerWeek: number;
+	title: string;
+	description: string | null;
+}
+
+export interface ImportTrainingPlanResponse {
+	userTrainingPlanId: string;
+	plannedActivitiesCreated: number;
+}
+
+export interface ImportTrainingPlanDryRunRequest {
+	startDate: string;
+	selectedWorkoutsPerWeek: number;
+	title?: string | null;
+	description?: string | null;
+}
+
+export function importTrainingPlan(
+	id: string,
+	data: ImportTrainingPlanRequest,
+): Promise<ImportTrainingPlanResponse> {
+	return request<ImportTrainingPlanResponse>(`/v1/training-plans/${id}/import`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
+
+export function importTrainingPlanDryRun(
+	id: string,
+	data: ImportTrainingPlanDryRunRequest,
+): Promise<GetCalendarResponse> {
+	return request<GetCalendarResponse>(`/v1/training-plans/${id}/import/dry-run`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
+
+export interface PlannedActivity {
+	id: string;
+	title: string;
+	description: string;
+	type: string;
+	start_time: string;
+	planned_distance_m: number | null;
+	planned_duration_s: number | null;
+	planned_elevation_gain_m: number | null;
+	target_avg_speed_mps: number | null;
+	target_power_watt: number | null;
+	// is dry run is used to visually differentiate with real planned activties (mostly used in the import panel by dry-run)
+	is_dry_run?: boolean;
+	matched_activity_id?: string;
+	user_training_plan_id?: string;
+	plan_sequence_index?: number;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreatePlannedActivityRequest {
+	title: string;
+	description?: string;
+	activityType: string;
+	startTime: string;
+	plannedDistanceMeter?: number;
+	plannedDurationSecond?: number;
+	plannedElevationGainMeter?: number;
+	targetAverageSpeedMeterPerSecond?: number;
+	targetPowerWatt?: number;
+}
+
+export interface CreatePlannedActivityResponse {
+	id: string;
+}
+
+export interface GetCalendarResponse {
+	activities: Activity[];
+	planned_activities: PlannedActivity[];
+}
+
+export const getCalendar = async (startDate?: string, endDate?: string) => {
+	const searchParams = new URLSearchParams();
+	if (startDate) searchParams.append("startDate", startDate);
+	if (endDate) searchParams.append("endDate", endDate);
+
+	return request<GetCalendarResponse>(`/v1/calendar?${searchParams.toString()}`);
+};
+
+export const createPlannedActivity = async (data: CreatePlannedActivityRequest) => {
+	return request<CreatePlannedActivityResponse>("/v1/activities/plan", {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+};

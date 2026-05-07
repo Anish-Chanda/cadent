@@ -64,17 +64,17 @@ describe("formatSpeed", () => {
 	});
 
 	it("formats to 1 decimal place", () => {
-		expect(formatSpeed(28.5)).toBe("28.5 km/h");
-		expect(formatSpeed(28)).toBe("28.0 km/h");
+		expect(formatSpeed(28.5)).toBe("28.5 kph");
+		expect(formatSpeed(28)).toBe("28.0 kph");
 	});
 
 	it("rounds to 1 decimal place", () => {
-		expect(formatSpeed(28.55)).toBe("28.6 km/h");
-		expect(formatSpeed(28.54)).toBe("28.5 km/h");
+		expect(formatSpeed(28.55)).toBe("28.6 kph");
+		expect(formatSpeed(28.54)).toBe("28.5 kph");
 	});
 
 	it("handles zero", () => {
-		expect(formatSpeed(0)).toBe("0.0 km/h");
+		expect(formatSpeed(0)).toBe("0.0 kph");
 	});
 });
 

@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/anish-chanda/cadent/backend/internal/db"
@@ -157,12 +162,24 @@ func main() {
 			authMiddleware := authService.Middleware()
 			r.Use(authMiddleware.Auth)
 
+			// Training Plans
+			r.Get("/training-plans", apiHandler.HandleGetTrainingPlans())
+			r.Get("/training-plans/{id}/workouts", apiHandler.HandleGetTrainingPlanWorkouts())
+			r.Post("/training-plans/{id}/import/dry-run", apiHandler.HandleImportTrainingPlanDryRun())
+			r.Post("/training-plans/{id}/import", apiHandler.HandleImportTrainingPlan())
+
 			// Activity endpoints
 			r.Post("/activities", apiHandler.HandleCreateActivity())
 			r.Get("/activities", apiHandler.HandleGetActivities())
 			r.Get("/activities/{id}/streams", apiHandler.HandleGetActivityStreams())
 			r.Post("/activities/plan", apiHandler.HandleCreatePlannedActivity())
+			r.Delete("/activities/plan", apiHandler.HandleDeletePlannedActivity())
+			r.Patch("/activities/plan", apiHandler.HandleUpdatePlannedActivity())
+			r.Get("/activities/plan/today", apiHandler.HandleGetTodayPlannedActivities())
+			r.Get("/activities/plan", apiHandler.HandleGetPlannedActivityByID())
 			r.Post("/activities/upload", apiHandler.HandleActivityUpload())
+
+			// Calendar endpoints
 			r.Get("/activities/calendar", apiHandler.HandleGetActivityCalendar())
 
 			// User endpoints
@@ -176,8 +193,40 @@ func main() {
 
 	// Start listening
 	log.Info(fmt.Sprintf("Starting server on port %d", cfg.Port))
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), router); err != nil {
-		log.Error("Server failed to start", err)
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.Port),
+		Handler: router,
+	}
+
+	serverErrors := make(chan error, 1)
+	go func() {
+		serverErrors <- server.ListenAndServe()
+	}()
+
+	shutdownSignals, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	select {
+	case err := <-serverErrors:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("Server failed to start", err)
+		}
+	case <-shutdownSignals.Done():
+		log.Info("Shutdown signal received")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Error("Server shutdown failed", err)
+			if closeErr := server.Close(); closeErr != nil {
+				log.Error("Server forced close failed", closeErr)
+			}
+		}
+
+		if err := <-serverErrors; err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("Server failed during shutdown", err)
+		}
 	}
 }
 

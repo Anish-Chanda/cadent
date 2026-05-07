@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,18 +25,29 @@ type CreatePlannedActivityRequest struct {
 	TargetPowerWatt                  *int     `json:"targetPowerWatt"`
 }
 
+func isValidPlannedActivityType(actType string) bool {
+	switch models.PlannedActivityType(actType) {
+	case models.PlannedActivityTypeRunning,
+		models.PlannedActivityTypeRoadBiking,
+		models.PlannedActivityTypeResting,
+		models.PlannedActivityTypeCrossTraining,
+		models.PlannedActivityTypeStrengthTraining,
+		models.PlannedActivityTypeMobilityTraining:
+		return true
+	}
+	return false
+}
+
 func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// 1. Auth Check
 		userID, err := h.getAuthenticatedUserID(ctx, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		// 2. Decode the JSON Body
 		var req CreatePlannedActivityRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			h.log.Error("Failed to decode plan request", err)
@@ -43,7 +55,6 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			return
 		}
 
-		// Validation
 		if strings.TrimSpace(req.Title) == "" || strings.TrimSpace(req.ActivityType) == "" {
 			sendError(w, http.StatusBadRequest, "Title and Activity Type are required")
 			return
@@ -52,19 +63,18 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			sendError(w, http.StatusBadRequest, "Valid Start Time is required")
 			return
 		}
-		// Validate activity_type enum database insertion to return 400
-		if req.ActivityType != string(models.ActivityTypeRun) && req.ActivityType != string(models.ActivityTypeRoadBike) {
+
+		if !isValidPlannedActivityType(req.ActivityType) {
 			h.log.Error("Invalid activity type", fmt.Errorf("unsupported activity_type: %s", req.ActivityType))
-			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", req.ActivityType))
+			sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s", req.ActivityType))
 			return
 		}
 
-		// 3. Save to Database
 		plan := &models.PlannedActivity{
 			UserID:                userID,
 			Title:                 req.Title,
 			Description:           req.Description,
-			Type:                  models.ActivityType(req.ActivityType),
+			Type:                  models.PlannedActivityType(req.ActivityType),
 			StartTime:             req.StartTime,
 			PlannedDistanceM:      req.PlannedDistanceMeter,
 			PlannedDurationS:      req.PlannedDurationSecond,
@@ -80,7 +90,6 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 			return
 		}
 
-		// 4. Build Success Response
 		response := map[string]interface{}{
 			"id": saved.ID.String(),
 		}
@@ -89,6 +98,358 @@ func (h *Handler) HandleCreatePlannedActivity() http.HandlerFunc {
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(response)
 	}
+}
+
+func (h *Handler) HandleDeletePlannedActivity() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		var req struct {
+			ID string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			h.log.Error("Failed to decode delete request", err)
+			sendError(w, http.StatusBadRequest, "Invalid JSON format")
+			return
+		}
+
+		activityID := strings.TrimSpace(req.ID)
+		if activityID == "" {
+			sendError(w, http.StatusBadRequest, "Activity ID is required")
+			return
+		}
+
+		err = h.database.DeletePlannedActivity(ctx, activityID, userID)
+		if err != nil {
+			if err.Error() == "planned activity not found" {
+				sendError(w, http.StatusNotFound, "Planned activity not found")
+				return
+			}
+			h.log.Error("Failed to delete planned activity", err)
+			sendError(w, http.StatusInternalServerError, "Failed to delete planned activity")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (h *Handler) HandleUpdatePlannedActivity() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		// Decode into raw map to distinguish absent fields from explicit null
+		var rawFields map[string]json.RawMessage
+		if err := json.NewDecoder(r.Body).Decode(&rawFields); err != nil {
+			h.log.Error("Failed to decode update request", err)
+			sendError(w, http.StatusBadRequest, "Invalid JSON format")
+			return
+		}
+
+		// Extract and validate ID
+		idRaw, hasID := rawFields["id"]
+		if !hasID {
+			sendError(w, http.StatusBadRequest, "Activity ID is required")
+			return
+		}
+		var activityID string
+		if err := json.Unmarshal(idRaw, &activityID); err != nil || strings.TrimSpace(activityID) == "" {
+			sendError(w, http.StatusBadRequest, "Activity ID is required")
+			return
+		}
+
+		// Build updates map: null JSON values set DB column to NULL
+		updates := make(map[string]interface{})
+
+		if raw, ok := rawFields["title"]; ok {
+			if string(raw) == "null" {
+				sendError(w, http.StatusBadRequest, "Title cannot be null")
+				return
+			}
+			var title string
+			if err := json.Unmarshal(raw, &title); err != nil {
+				sendError(w, http.StatusBadRequest, "Invalid title format")
+				return
+			}
+			trimmed := strings.TrimSpace(title)
+			if trimmed == "" {
+				sendError(w, http.StatusBadRequest, "Title cannot be empty")
+				return
+			}
+			updates["title"] = trimmed
+		}
+
+		if raw, ok := rawFields["description"]; ok {
+			if string(raw) == "null" {
+				updates["description"] = nil
+			} else {
+				var desc string
+				if err := json.Unmarshal(raw, &desc); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid description format")
+					return
+				}
+				updates["description"] = desc
+			}
+		}
+
+		if raw, ok := rawFields["activityType"]; ok {
+			if string(raw) == "null" {
+				sendError(w, http.StatusBadRequest, "Activity type cannot be null")
+				return
+			}
+			var at string
+			if err := json.Unmarshal(raw, &at); err != nil {
+				sendError(w, http.StatusBadRequest, "Invalid activity type format")
+				return
+			}
+			at = strings.TrimSpace(at)
+			if at != string(models.ActivityTypeRun) && at != string(models.ActivityTypeRoadBike) {
+				sendError(w, http.StatusBadRequest, fmt.Sprintf("Invalid activity_type: %s. Supported types: running, road_biking", at))
+				return
+			}
+			updates["type"] = at
+		}
+
+		if raw, ok := rawFields["startTime"]; ok {
+			if string(raw) == "null" {
+				sendError(w, http.StatusBadRequest, "Start time cannot be null")
+				return
+			}
+			var st time.Time
+			if err := json.Unmarshal(raw, &st); err != nil {
+				sendError(w, http.StatusBadRequest, "Invalid start time format")
+				return
+			}
+			if st.IsZero() {
+				sendError(w, http.StatusBadRequest, "Valid Start Time is required")
+				return
+			}
+			updates["start_time"] = st
+		}
+
+		if raw, ok := rawFields["plannedDistanceMeter"]; ok {
+			if string(raw) == "null" {
+				updates["planned_distance_m"] = nil
+			} else {
+				var v float64
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid planned distance format")
+					return
+				}
+				updates["planned_distance_m"] = v
+			}
+		}
+
+		if raw, ok := rawFields["plannedDurationSecond"]; ok {
+			if string(raw) == "null" {
+				updates["planned_duration_s"] = nil
+			} else {
+				var v int
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid planned duration format")
+					return
+				}
+				updates["planned_duration_s"] = v
+			}
+		}
+
+		if raw, ok := rawFields["plannedElevationGainMeter"]; ok {
+			if string(raw) == "null" {
+				updates["planned_elevation_gain_m"] = nil
+			} else {
+				var v float64
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid planned elevation gain format")
+					return
+				}
+				updates["planned_elevation_gain_m"] = v
+			}
+		}
+
+		if raw, ok := rawFields["targetAverageSpeedMeterPerSecond"]; ok {
+			if string(raw) == "null" {
+				updates["target_avg_speed_mps"] = nil
+			} else {
+				var v float64
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid target average speed format")
+					return
+				}
+				updates["target_avg_speed_mps"] = v
+			}
+		}
+
+		if raw, ok := rawFields["targetPowerWatt"]; ok {
+			if string(raw) == "null" {
+				updates["target_power_watt"] = nil
+			} else {
+				var v int
+				if err := json.Unmarshal(raw, &v); err != nil {
+					sendError(w, http.StatusBadRequest, "Invalid target power format")
+					return
+				}
+				updates["target_power_watt"] = v
+			}
+		}
+
+		if raw, ok := rawFields["matchedActivityId"]; ok {
+			if string(raw) == "null" {
+				updates["matched_activity_id"] = nil
+			} else {
+				var actID string
+				if err := json.Unmarshal(raw, &actID); err != nil || strings.TrimSpace(actID) == "" {
+					sendError(w, http.StatusBadRequest, "Invalid matched activity ID format")
+					return
+				}
+				// Validate the activity exists and belongs to the user
+				activity, err := h.database.GetActivityByID(ctx, actID)
+				if err != nil || activity == nil {
+					sendError(w, http.StatusNotFound, "Activity not found")
+					return
+				}
+				if activity.UserID != userID {
+					sendError(w, http.StatusForbidden, "Activity does not belong to user")
+					return
+				}
+				updates["matched_activity_id"] = actID
+			}
+		}
+
+		if len(updates) == 0 {
+			sendError(w, http.StatusBadRequest, "No updates provided")
+			return
+		}
+
+		err = h.database.UpdatePlannedActivity(ctx, activityID, userID, updates)
+		if err != nil {
+			if err.Error() == "planned activity not found" {
+				sendError(w, http.StatusNotFound, "Planned activity not found")
+				return
+			}
+			h.log.Error("Failed to update planned activity", err)
+			sendError(w, http.StatusInternalServerError, "Failed to update planned activity")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Planned activity updated"})
+	}
+}
+
+func (h *Handler) HandleGetPlannedActivityByID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		plannedActivityID := strings.TrimSpace(r.URL.Query().Get("id"))
+		if plannedActivityID == "" {
+			sendError(w, http.StatusBadRequest, "Planned activity ID is required")
+			return
+		}
+
+		pa, err := h.database.GetPlannedActivityByID(ctx, plannedActivityID, userID)
+		if err != nil {
+			if err.Error() == "planned activity not found" {
+				sendError(w, http.StatusNotFound, "Planned activity not found")
+				return
+			}
+			h.log.Error("Failed to fetch planned activity", err)
+			sendError(w, http.StatusInternalServerError, "Failed to fetch planned activity")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(pa)
+	}
+}
+
+func (h *Handler) HandleGetTodayPlannedActivities() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userID, err := h.getAuthenticatedUserID(ctx, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		referenceDate, err := plannedActivityReferenceDateFromRequest(r)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		plannedActivities, err := h.database.GetUnmatchedPlannedActivitiesByDate(ctx, userID, referenceDate)
+		if err != nil {
+			h.log.Error("Failed to fetch today's unmatched planned activities", err)
+			sendError(w, http.StatusInternalServerError, "Failed to fetch planned activities")
+			return
+		}
+
+		// Return empty array instead of null
+		if plannedActivities == nil {
+			plannedActivities = []models.PlannedActivity{}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"plannedActivities": plannedActivities,
+		})
+	}
+}
+
+func plannedActivityReferenceDateFromRequest(r *http.Request) (time.Time, error) {
+	dateValue := strings.TrimSpace(r.URL.Query().Get("date"))
+	if dateValue == "" {
+		return time.Time{}, fmt.Errorf("date query parameter is required")
+	}
+
+	offsetValue := strings.TrimSpace(r.URL.Query().Get("timezoneOffsetMinutes"))
+	if offsetValue == "" {
+		return time.Time{}, fmt.Errorf("timezoneOffsetMinutes query parameter is required")
+	}
+
+	offsetMinutes, err := strconv.Atoi(offsetValue)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("timezoneOffsetMinutes must be a valid integer")
+	}
+
+	localDate, err := time.Parse("2006-01-02", dateValue)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("date must use YYYY-MM-DD format")
+	}
+
+	location := time.FixedZone("client", offsetMinutes*60)
+	return time.Date(
+		localDate.Year(),
+		localDate.Month(),
+		localDate.Day(),
+		12,
+		0,
+		0,
+		0,
+		location,
+	), nil
 }
 
 func sendError(w http.ResponseWriter, code int, message string) {

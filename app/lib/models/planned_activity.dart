@@ -9,6 +9,7 @@ class PlannedActivity {
   final double? plannedElevationGainMeter;
   final double? targetAverageSpeedMeterPerSecond;
   final int? targetPowerWatt;
+  final String? matchedActivityId;
 
   const PlannedActivity({
     this.id,
@@ -21,6 +22,7 @@ class PlannedActivity {
     this.plannedElevationGainMeter,
     this.targetAverageSpeedMeterPerSecond,
     this.targetPowerWatt,
+    this.matchedActivityId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -41,6 +43,7 @@ class PlannedActivity {
 
   factory PlannedActivity.fromJson(Map<String, dynamic> json) =>
       PlannedActivity(
+        id: json['id'] as String?,
         title: json['title'] as String,
         description: json['description'] as String?,
         activityType: json['activityType'] as String,
@@ -53,6 +56,7 @@ class PlannedActivity {
         targetAverageSpeedMeterPerSecond:
             (json['targetAverageSpeedMeterPerSecond'] as num?)?.toDouble(),
         targetPowerWatt: json['targetPowerWatt'] as int?,
+        matchedActivityId: json['matchedActivityId'] as String?,
       );
 
   /// Parses the snake_case response from the calendar API endpoint.
@@ -65,12 +69,12 @@ class PlannedActivity {
             : json['description'] as String?,
         activityType: json['type'] as String,
         startTime: DateTime.parse(json['start_time'] as String).toLocal(),
-        plannedDistanceMeter: (json['planned_distance'] as num?)?.toDouble(),
-        plannedDurationSecond: json['planned_duration'] as int?,
+        plannedDistanceMeter: (json['planned_distance_m'] as num?)?.toDouble(),
+        plannedDurationSecond: json['planned_duration_s'] as int?,
         plannedElevationGainMeter:
-            (json['planned_elevation_gain'] as num?)?.toDouble(),
+            (json['planned_elevation_gain_m'] as num?)?.toDouble(),
         targetAverageSpeedMeterPerSecond:
-            (json['target_avg_speed'] as num?)?.toDouble(),
-        targetPowerWatt: json['target_power'] as int?,
+            (json['target_avg_speed_mps'] as num?)?.toDouble(),
+        targetPowerWatt: json['target_power_watt'] as int?,
       );
 }
