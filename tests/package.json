@@ -1,0 +1,17 @@
+{
+  "name": "cadent-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:api:ui": "playwright test --project=api --ui",
+    "test:api:debug": "PWDEBUG=1 playwright test --project=api",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^22.19.17",
+    "typescript": "^5.9.3"
+  }
+}

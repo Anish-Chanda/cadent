@@ -32,6 +32,14 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
+func TestNewClient_TrimsTrailingSlashes(t *testing.T) {
+	client := NewClient("https://valhalla.anishchanda.dev/")
+
+	if client.baseURL != "https://valhalla.anishchanda.dev" {
+		t.Errorf("NewClient() baseURL = %s, want trailing slash trimmed", client.baseURL)
+	}
+}
+
 func TestClient_GetHeight_Success(t *testing.T) {
 	// Mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

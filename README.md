@@ -81,25 +81,11 @@ make docker-build-api    # Build Docker image
 
 ```bash
 make test           # All unit tests
+make install-e2e    # Install Playwright E2E dependencies (once)
 make test-e2e-api   # End-to-end API tests (requires running server)
 ```
 
-E2E tests use [Hurl](https://hurl.dev/) and live in the `tests/` directory.
-
-## Project Structure
-
-```
-cadent/
-├── backend/        # Go REST API
-│   ├── internal/   # Handlers, models, DB, storage, geo utilities
-│   └── migrations/ # PostgreSQL migrations
-├── app/            # Flutter mobile app
-├── web/            # React web app
-├── tests/          # E2E tests (Hurl)
-├── Makefile
-├── Dockerfile
-└── docker-compose.dev.yaml
-```
+E2E tests use [Playwright](https://playwright.dev/) and are in the `tests/` directory.
 
 ## API
 
